@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This file preserves the small set of product truths that appear stable enough to constrain future exploration.
+This file preserves the small set of product truths that currently appear stable enough to constrain future exploration.
 
 It is intentionally narrow.
 
@@ -15,11 +15,10 @@ It is intentionally narrow.
 - `Goal Forest` is a longer-lived orientation surface around sessions and captures rather than a replacement for `work session`.
 - Goals, captured fragments, tasks, tools, and reviews should support orientation and execution across the broader control surface.
 
-## Canonical language
+## Language discipline
 
-- `Goal Forest` is currently a canonical user-facing term for the shared workspace.
-- Because this term is metaphorical, the product should pair it with literal operational language when clarity matters, especially around sessions, actions, and review states.
-- The metaphor should mainly name the surface, not replace literal action labels.
+- Stable business terms live in `glossary.md`.
+- Metaphorical surface names should be paired with literal operational language when clarity matters, especially around sessions, actions, and review states.
 
 ## Durable product pressures
 

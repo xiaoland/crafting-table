@@ -2,224 +2,92 @@
 
 ## Purpose
 
-This file defines how the documentation system in this repository is allowed to grow.
+This file defines how the repository's documentation system may grow under the local `SVC v9.5` interpretation.
 
-It exists because the external framework that inspired this repo is not stored here. Future contributors and agents therefore need a small local source of truth for:
-
-- when to add new durable documents
-- when to keep material in `tasks/`
-- when to create a new documentation layer
-- when to simplify or delete docs that no longer earn their cost
-
-The goal is not to create a second framework inside the repo.
-
-The goal is to keep the doc system small, legible, and able to grow only under real pressure.
+The goal is to preserve expensive truths without turning docs into a second software system.
 
 ## Governing idea
 
-Durable docs are a selective memory system.
+Documentation is selective memory.
 
-They should preserve truths that are:
+Before adding or editing a durable doc, answer two questions separately:
 
-- stable
-- easy to lose
-- costly to rediscover
-- useful beyond the current task
-- not better enforced in code, tests, or other executable checks
+1. What kind of perturbation is this: Intent, Constraint, Reality, or Artifact?
+2. Which layer should own the truth once the work is no longer volatile?
 
-If a truth is still volatile, local, or mostly useful for current execution, it belongs in `tasks/`, not in a durable layer.
+Mode selection helps you work, but it does not decide ownership.
 
 ## Current admitted layers
 
 The repository currently admits only these durable layers:
 
-- `docs/00-meta/` for local documentation-system guidance
-- `docs/10-prd/` for durable product what and why, when such truth exists
+- `docs/00-meta/` for reusable workflow rules, route protocols, and framework concepts
+- `docs/10-prd/` for durable product what/why, observable behavior, and business vocabulary
 
 It also admits:
 
-- `tasks/` for volatile planning, exploration, primitive product ideas, and temporary execution context
+- `tasks/` for volatile planning, exploration, diagnostics, and artifacts
+- code, tests, build settings, and executable guardrails for implementation truth
 
-The following layers are not admitted by default and should not be created until their admission rules are met:
+The following layers are not admitted by default and should not be created until pressure is real:
 
+- `docs/15-alignment/`
 - `docs/20-product-tdd/`
 - `docs/30-unit-tdd/`
 - `docs/40-deployment/`
 
 ## Promotion test
 
-Before promoting anything into durable documentation, ask:
+Promote information into durable docs only when all are true:
 
-1. Is it stable across more than one task or discussion?
-2. Will future humans or agents likely need it again?
-3. Would rediscovering it later be risky or expensive?
-4. Is it product or design memory rather than temporary execution chatter?
-5. Can it be expressed more safely in code, tests, CI, or runtime checks instead?
+1. it is stable across more than one task or discussion
+2. future humans or agents will likely need it again
+3. rediscovering it later would be risky or expensive
+4. it is not better enforced in code, tests, CI, or runtime checks
+5. the durable owner is clear
 
-Promote only if most of these answers are yes.
-
-If the answer is still unclear, keep the material in `tasks/`.
+If any of these are unclear, keep the material in `tasks/`.
 
 ## Durable destination rules
 
-Use the smallest correct destination.
+Use the smallest correct destination:
 
-- **Local documentation-system rules** → `docs/00-meta/`
-- **Product what/why** → `docs/10-prd/`
-- **Cross-unit technical truth** → `docs/20-product-tdd/` only when admitted
-- **Hard local unit design truth** → `docs/30-unit-tdd/` only when admitted
-- **Runtime or operational truth** → `docs/40-deployment/` only when admitted
-- **Mechanically enforceable truth** → code, tests, CI, types, schemas, assertions
-- **Volatile reasoning or temporary plans** → `tasks/`
+- reusable route or mode guidance -> `docs/00-meta/`
+- framework concepts and boundary language -> `docs/00-meta/concepts.md`
+- durable product what/why and observable behavior -> `docs/10-prd/`
+- business vocabulary -> `docs/10-prd/glossary.md`
+- mechanically enforceable truth -> code, tests, build settings, and executable checks
+- volatile reasoning, diagnostics, and temporary artifacts -> `tasks/`
 
-Do not create a new durable doc if an existing smaller destination already fits.
+If future complexity justifies `docs/20-product-tdd/`, `docs/30-unit-tdd/`, or `docs/40-deployment/`, add only the smallest structure that solves the actual problem.
 
-## Rules for `docs/10-prd/`
+## PRD growth rule
 
-`docs/10-prd/` is the durable home for product what and why.
+The PRD layer stays intentionally sparse until there is enough stable product truth to earn more structure.
 
-Add files there only when the content is:
+If the PRD layer grows materially, prefer the `v9.5` one-way derivation shape:
 
-- product-level
-- stable enough to preserve
-- likely to matter beyond the current task
-- not just rough exploration or primitive ideation
+- `_drivers/` for upstream pressure sources
+- `behavior/` for product commitments
+- `domain-structure/` for derived semantic stabilization
+- `glossary.md` for business language
 
-Typical examples of material that may eventually belong there:
-
-- durable product pressures
-- stable product claims
-- durable workflows
-- product rules and invariants
-- stable scope boundaries
-- canonical terminology worth preserving
-
-Do not put these in `docs/10-prd/`:
-
-- implementation structure
-- technical decomposition
-- speculative architecture
-- active planning
-- rough brainstorming
-- fake certainty written to make the repo look complete
-
-## Admission rule for `docs/20-product-tdd/`
-
-Create `docs/20-product-tdd/` only when at least one of these becomes true:
-
-- the system has multiple meaningful technical units
-- cross-unit coordination becomes non-trivial
-- authority boundaries are easy to misunderstand
-- important product claims depend on cooperation across multiple units
-- system-level regressions can happen even when local units appear correct
-
-If code and tests still explain the system well enough, do not create this layer.
-
-## Admission rule for `docs/30-unit-tdd/`
-
-Create `docs/30-unit-tdd/` only for genuinely hard local units.
-
-A unit should get this layer only when at least one of these becomes true:
-
-- authority or state ownership is non-obvious
-- ordering, timing, or concurrency matters
-- failure semantics are subtle
-- several interfaces interact in risky ways
-- invariants are easy to violate during normal iteration
-- the unit repeatedly regresses
-- the unit has high blast radius or high change cost
-
-Do not create this layer for ordinary components just to be thorough.
-
-## Admission rule for `docs/40-deployment/`
-
-Create `docs/40-deployment/` only when runtime or operational truth becomes non-trivial.
-
-Typical triggers include:
-
-- deployment topology becomes complex
-- configuration risk becomes meaningful
-- releases or migrations need preserved rationale
-- rollback or recovery depends on documented operational knowledge
-
-If deployment remains simple, do not create this layer.
+Do not create those folders early just so the tree looks complete.
 
 ## Task rule
 
 `tasks/` is the entropy buffer of the system.
 
-Keep material in `tasks/` when it is:
+Every non-trivial task packet README must include these anchors:
 
-- still changing
-- primarily useful for the current task
-- speculative
-- procedural
-- exploratory
-- not yet worthy of durable preservation
+- Objective & Hypothesis
+- Guardrails Touched
+- Verification
 
-This includes:
-
-- primitive product ideas
-- rough naming exploration
-- possible workflows
-- temporary plans
-- sequencing notes
-- comparisons among options
-- open questions still under active discussion
-
-Tasks are allowed to decay.
-Durable docs should stay small.
+Focused child notes may inherit that packet context, but once a note becomes independently actionable or reusable outside the packet, add its own anchors too.
 
 ## Demotion rule
 
-If a durable document no longer answers an expensive future question, simplify it, merge it, or delete it.
+If a durable doc no longer answers an expensive future question, simplify it, merge it, move its truth to a better home, or delete it.
 
 Prefer deletion over ritual maintenance.
-
-A doc should also be demoted or removed if it has become:
-
-- mostly duplicate
-- mostly speculative
-- mostly task-local
-- mostly implementation trivia better kept near code
-
-## Change discipline
-
-When adding a durable doc or layer:
-
-- choose the smallest structure that solves the real problem
-- avoid creating document families in anticipation of future needs
-- avoid splitting a topic across many weak files too early
-- keep naming clear and literal
-- update neighboring docs only as much as needed to keep navigation honest
-
-When in doubt, bias toward:
-
-- fewer docs
-- smaller docs
-- later promotion
-- stronger ownership of truth
-
-## Practical rule of thumb
-
-If the material is mainly about:
-
-- what the product must be or why → consider `docs/10-prd/`
-- how the documentation system itself should work → consider `docs/00-meta/`
-- what the code must guarantee mechanically → put it in code/tests/checks
-- what we are exploring right now → keep it in `tasks/`
-
-If you feel pressure to create a doc just so the tree looks complete, do not create it.
-
-## Current expectation
-
-For now, this repository should remain minimal.
-
-A good near-term outcome is:
-
-- `docs/00-meta/` stays short and practical
-- `docs/10-prd/` stays sparse until real product truth stabilizes
-- `tasks/` absorbs product exploration and temporary reasoning
-- code and tests carry implementation truth
-
-That is enough foundation for the documentation system to grow later without drifting into ceremony.

@@ -3,6 +3,17 @@
 ## Status
 Active
 
+## MVT Core
+
+- Objective & Hypothesis: keep early product exploration volatile while testing whether a believable core job and first workflow are emerging; the expected result is clearer product direction without premature PRD promotion.
+- Guardrails Touched: do not invent stable product truth too early; do not smuggle implementation structure into product exploration.
+- Verification: durable conclusions are promoted only when they recur, while open questions and competing ideas remain in this task packet.
+
+## Classification
+
+- Input Type: Intent
+- Active Mode: Explore
+
 ## Purpose
 
 Capture early product exploration for `Xiaoland Workbench` while the product is still too immature for a filled-out PRD.

@@ -2,97 +2,47 @@
 
 ## Purpose
 
-This directory is the durable home for **product what and why** when that truth becomes stable enough to preserve.
+This directory owns durable product what, why, observable behavior, and business vocabulary.
 
-For this repository, the PRD layer exists as part of the documentation system foundation, but it is intentionally sparse right now.
+It is intentionally sparse because the product is still early. The goal is to preserve only product truths that future humans or agents would otherwise be likely to lose, misread, or pay too much to rediscover.
 
-The product is still too immature for a filled-out PRD.
-Current ideas are still exploratory and should not be promoted into durable product documents just to make the layer look complete.
+## Current shape
 
-For repository-level documentation system rules, read `docs/00-meta/`.
-That layer explains how the documentation system is structured locally and how new durable docs should be admitted.
+The repository is still using the minimal `v9.5` PRD shape:
 
-## What belongs here later
+- `index.md` - what this layer owns
+- `glossary.md` - stable business and product language
+- `early-product-truths.md` - the currently admitted durable product truths
 
-When product truth becomes stable, this layer may contain documents such as:
+If the PRD layer grows materially later, prefer the `v9.5` one-way derivation shape (`_drivers/`, `behavior/`, `domain-structure/`) instead of adding flat files casually.
 
-- product pressures
-- product claims
-- workflows
-- rules and invariants
-- scope boundaries
-- important product-level open questions
-- glossary terms that are costly to let drift
+## What belongs here
 
-These documents should be added only when they capture truth that is:
+Use this layer for:
 
-- stable across more than one task or discussion
-- expensive to rediscover later
-- useful to future contributors or agents
-- not better kept in code, tests, or temporary task notes
+- durable product pressures
+- stable product claims and scope boundaries
+- stable user-visible workflows or rules
+- business vocabulary that needs canonical meaning
 
 ## What does not belong here
 
 Do not use this layer for:
 
 - implementation structure
-- technical decomposition
-- interface contracts
+- technical decomposition or interface contracts
 - build sequencing
-- temporary planning
-- brainstorming that has not survived discussion
-- speculative product doctrine written too early
+- temporary planning or brainstorming
+- speculative product doctrine written only to look complete
 
-Those belong in code, tests, future technical design layers if justified, or `tasks/` while the work is still volatile.
+Keep those in code, tests, future technical layers if justified, or `tasks/` while the work is still volatile.
 
-## Current status
+## Vocabulary boundary
 
-At the moment, this layer is intentionally minimal.
+Business and product language belongs in `glossary.md`.
 
-That means:
-
-- there is not yet an admitted full PRD
-- exploratory product thinking should stay lightweight
-- temporary product clarification can live in `tasks/`
-- durable product docs should appear only after real stability emerges
-
-The currently admitted durable product document is:
-
-- `early-product-truths.md`
+Product truth docs should use that vocabulary consistently instead of redefining terms in multiple places.
 
 ## Admission rule
 
-Create additional files in this directory only when a product truth has become clear enough that future humans or agents would otherwise be likely to lose it, misread it, or pay too much to rediscover it.
-
-If the truth is still moving, keep it out of the PRD layer.
-
-## Promotion rule
-
-Promote into this layer only:
-
-- durable product meaning
-- stable user-visible claims
-- stable workflows
-- stable product rules
-- terminology that needs a canonical meaning
-
-Keep volatile reasoning in `tasks/`.
-
-## Reading guidance
-
-If this layer is still sparse, do not force PRD reading as a ritual.
-
-Read:
-
-1. `README.md`
-2. `AGENTS.md`
-3. `docs/00-meta/` for repository-level documentation system rules
-4. relevant files in this directory only if they exist and are populated
-5. relevant files in `tasks/` for active exploration
-6. code and tests for implementation truth
-
-## Change discipline
-
-Prefer adding fewer, stronger documents over many weak ones.
-
-If a proposed PRD file does not answer an expensive future question, it probably should not exist yet.
+Create or expand PRD files only when a product truth is stable across more than one task or discussion, useful to future contributors, and not better kept in code/tests or task notes.

@@ -3,12 +3,18 @@
 ## Status
 Done
 
+## MVT Core
+
+- Objective & Hypothesis: initialize the repository for honest early exploration; the expected result is a minimal app and documentation baseline that future work can build on without pretending the product is already fully defined.
+- Guardrails Touched: keep durable product truth sparse; keep implementation truth in code, tests, and executable guardrails.
+- Verification: the repo has a minimal app shell, a minimal doc system, and no unjustified durable technical layers.
+
 ## Purpose
 Initialize the repository for early-stage exploration with:
 
 - a minimal `Swift + SwiftUI` app shell
 - an `iPad-first` direction
-- a lightweight documentation baseline aligned with `Sustainable Vibe Coding Framework v8`
+- a lightweight documentation baseline aligned with the minimal `Sustainable Vibe Coding` model
 
 This task captures the initial setup work for a repository whose product direction is still immature. The goal of the bootstrap was to create a clean foundation for later discovery and implementation, not to pretend that the product is already well-defined.
 
@@ -45,7 +51,7 @@ Not included:
 The project is still exploratory. The bootstrap should prepare future work rather than prematurely encode product decisions.
 
 ### 2. Establish the PRD layer without inventing PRD content
-The repository should include the V8 PRD layer location, `docs/10-prd/`, but that layer should stay intentionally sparse until durable product truth actually exists.
+The repository should include the PRD layer location, `docs/10-prd/`, but that layer should stay intentionally sparse until durable product truth actually exists.
 
 ### 3. Let tasks absorb product volatility
 Primitive ideas, open-ended product discussion, and temporary reasoning should stay in `tasks/` until they survive enough change to deserve promotion.

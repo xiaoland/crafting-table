@@ -6,6 +6,17 @@ Active
 ## Date
 2026-04-05
 
+## MVT Core
+
+- Objective & Hypothesis: converge the current `0.1.0` product-definition packet into a coherent baseline; the expected result is a consistent scope, language, IA, and journey set without over-promoting volatile reasoning.
+- Guardrails Touched: keep durable product truth in `docs/10-prd/`; keep detailed reasoning and open questions in `tasks/`.
+- Verification: the packet yields a coherent `0.1.0` position, explicit open questions, and only the stable product truths promoted into PRD.
+
+## Classification
+
+- Input Type: Intent
+- Active Mode: Explore -> Solidify
+
 ## Purpose
 
 Keep the current `0.1.0` product-definition work inside one task folder while still separating distinct reasoning threads into focused notes.
@@ -34,14 +45,17 @@ This folder is the current compromise:
 
 1. `AGENTS.md`
 2. `docs/00-meta/index.md`
-3. `docs/10-prd/early-product-truths.md`
-4. `goal-forest-exploration.md`
-5. `scope.md`
-6. `session-handoff.md`
-7. `remote-control-session-linkage.md`
-8. `work-session-and-goal-forest-language.md`
-9. `information-architecture.md`
-10. `user-journeys.md`
+3. `docs/00-meta/input-intent.md`
+4. `docs/00-meta/mode-a-explore.md`
+5. `docs/10-prd/glossary.md`
+6. `docs/10-prd/early-product-truths.md`
+7. `goal-forest-exploration.md`
+8. `scope.md`
+9. `session-handoff.md`
+10. `remote-control-session-linkage.md`
+11. `work-session-and-goal-forest-language.md`
+12. `information-architecture.md`
+13. `user-journeys.md`
 
 ## Current outputs
 
