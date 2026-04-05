@@ -30,6 +30,7 @@ Every task packet README should make these anchors explicit:
 
 - `docs/00-meta/` owns reusable workflow rules and framework concepts
 - `docs/10-prd/` owns durable product what/why, observable behavior, and business vocabulary
+- `docs/20-product-tdd/` owns cross-unit technical topology, contracts, and authority paths
 - local `AGENTS.md` files own tactical hazards and recurrence tripwires near code
 - code, tests, build settings, and executable checks own implementation truth
 - `tasks/` owns volatility

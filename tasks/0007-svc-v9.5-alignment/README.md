@@ -1,7 +1,7 @@
 # Task 0007 - SVC v9.5 alignment
 
 ## Status
-Active
+Done
 
 ## Date
 2026-04-05
@@ -23,3 +23,4 @@ Active
 - Identify gaps between the repo's current documentation system and the `v9.5` minimal form.
 - Apply only the changes that improve ownership clarity and day-to-day execution.
 - Keep the PRD layer sparse even while aligning vocabulary ownership.
+- Result: the repo now has typed input routes, mode SOPs, concept guidance, a PRD glossary, and explicit MVT task packet anchors.

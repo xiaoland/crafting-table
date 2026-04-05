@@ -30,24 +30,27 @@ Keep this layer small. Add a new meta doc only when repeated drift shows that th
 
 ## Current admitted layers
 
-The repository currently admits only these durable layers:
+The repository currently admits these durable layers:
 
 - `docs/00-meta/` - local route, mode, and ontology guidance
 - `docs/10-prd/` - durable product what, why, observable behavior, and business glossary
+- `docs/20-product-tdd/` - cross-unit technical truth for 0.1.0 development
 
 It also admits:
 
 - `tasks/` - volatile task packets, diagnostics, and temporary reasoning
 - code, tests, build settings, and executable guardrails - implementation truth
 
-The repository does not admit these layers by default yet:
+These layers are still not admitted by default:
 
 - `docs/15-alignment/`
-- `docs/20-product-tdd/`
 - `docs/30-unit-tdd/`
 - `docs/40-deployment/`
 
-Add them only when real pressure justifies them.
+## Why `docs/20-product-tdd/` is admitted now
+
+`0.1.0` work now spans multiple meaningful units - shell, Goal Forest, work session, capture, and Remote Control.
+Their state ownership and interaction boundaries are stable enough to deserve one shared technical memory layer before implementation spreads them across files.
 
 ## Route vs mode
 
@@ -72,8 +75,9 @@ For most work, use this order:
 3. the matching `docs/00-meta/input-*.md`
 4. the current `docs/00-meta/mode-*.md`, if needed
 5. relevant files under `docs/10-prd/`
-6. relevant task packets under `tasks/`
-7. code and tests directly related to the change
+6. relevant files under `docs/20-product-tdd/` when the work spans multiple surfaces or state owners
+7. relevant task packets under `tasks/`
+8. code and tests directly related to the change
 
 Read `docs/00-meta/concepts.md` only when boundary language is ambiguous or the user explicitly asks for framework concepts.
 

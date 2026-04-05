@@ -6,9 +6,8 @@ Use this route when product behavior stays the same, but technical, documentatio
 
 ## Primary owner
 
-- the smallest durable technical or meta layer that prevents future drift
-
-In this repository, many such constraints still belong in code, tests, local `AGENTS.md`, or `docs/00-meta/` because `docs/20-product-tdd/` and `docs/30-unit-tdd/` are not admitted yet.
+- `docs/20-product-tdd/` for cross-unit contracts, topology, and authority paths
+- code, local `AGENTS.md`, or `docs/00-meta/` for smaller local or meta-level constraints
 
 ## Guardrails
 
@@ -18,9 +17,9 @@ In this repository, many such constraints still belong in code, tests, local `AG
 ## Read-do steps
 
 1. Restate the constraint in concrete terms.
-2. Identify the smallest durable owner that should remember it.
-3. Update code, tests, local AGENTS, or meta docs where future drift would be expensive.
-4. Keep procedural exploration in a task packet until the stable boundary is clear.
+2. Identify whether the effect is cross-unit, unit-local, or purely procedural.
+3. Update `docs/20-product-tdd/` before code when future drift would otherwise be expensive.
+4. Keep local truth near code when the constraint does not need a cross-unit owner.
 5. Escalate if the constraint actually changes a product promise.
 
 ## Exit criteria

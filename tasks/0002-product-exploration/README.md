@@ -38,8 +38,9 @@ Do not promote ideas from this file into `docs/10-prd/` just to make the documen
 The repository currently has:
 
 - an iPad-first SwiftUI app foundation
-- a lightweight documentation system baseline
-- a sparse PRD layer reserved for future durable product truth
+- a lightweight `SVC v9.5` documentation baseline
+- a structured but still sparse PRD package for admitted `0.1.0` product truth
+- a minimal Product TDD package for cross-unit `0.1.0` realization memory
 
 This task should help explore product direction without inventing false certainty.
 

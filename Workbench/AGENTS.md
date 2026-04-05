@@ -32,6 +32,7 @@ Do not over-optimize for iPhone, macOS, sync, backend architecture, or broad int
 - Avoid heavy abstraction layers without concrete pressure.
 - Avoid protocol extraction purely for style.
 - Add complexity only when it solves a real product or implementation problem.
+- Before cross-feature structure changes, read `docs/20-product-tdd/` so state ownership and contracts stay aligned.
 
 ## State management
 
@@ -51,7 +52,8 @@ Do not over-optimize for iPhone, macOS, sync, backend architecture, or broad int
 
 ## Product-language note
 
-If a product term becomes durable enough to preserve, define it in `docs/10-prd/` rather than inventing local glossary docs inside the app tree.
+- If a product term becomes durable enough to preserve, define it in `docs/10-prd/glossary.md` rather than inventing local glossary docs inside the app tree.
+- If a cross-feature technical boundary becomes durable, record it in `docs/20-product-tdd/` instead of scattering it across comments.
 
 ## Change guidance
 

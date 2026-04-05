@@ -19,22 +19,27 @@ Mode selection helps you work, but it does not decide ownership.
 
 ## Current admitted layers
 
-The repository currently admits only these durable layers:
+The repository currently admits these durable layers:
 
 - `docs/00-meta/` for reusable workflow rules, route protocols, and framework concepts
 - `docs/10-prd/` for durable product what/why, observable behavior, and business vocabulary
+- `docs/20-product-tdd/` for cross-unit technical truth needed by `0.1.0`
 
 It also admits:
 
 - `tasks/` for volatile planning, exploration, diagnostics, and artifacts
 - code, tests, build settings, and executable guardrails for implementation truth
 
-The following layers are not admitted by default and should not be created until pressure is real:
+The following layers are still not admitted by default and should not be created until pressure is real:
 
 - `docs/15-alignment/`
-- `docs/20-product-tdd/`
 - `docs/30-unit-tdd/`
 - `docs/40-deployment/`
+
+## Admission note for `docs/20-product-tdd/`
+
+`docs/20-product-tdd/` is admitted now because `0.1.0` already has several durable product surfaces whose authority paths would otherwise drift during implementation.
+Admit `30-unit-tdd` later only when one unit becomes complex enough that cross-feature memory is no longer sufficient.
 
 ## Promotion test
 
@@ -56,23 +61,20 @@ Use the smallest correct destination:
 - framework concepts and boundary language -> `docs/00-meta/concepts.md`
 - durable product what/why and observable behavior -> `docs/10-prd/`
 - business vocabulary -> `docs/10-prd/glossary.md`
+- cross-unit technical contracts, topology, and authority paths -> `docs/20-product-tdd/`
 - mechanically enforceable truth -> code, tests, build settings, and executable checks
 - volatile reasoning, diagnostics, and temporary artifacts -> `tasks/`
 
-If future complexity justifies `docs/20-product-tdd/`, `docs/30-unit-tdd/`, or `docs/40-deployment/`, add only the smallest structure that solves the actual problem.
-
 ## PRD growth rule
 
-The PRD layer stays intentionally sparse until there is enough stable product truth to earn more structure.
-
-If the PRD layer grows materially, prefer the `v9.5` one-way derivation shape:
+The PRD layer now uses the `v9.5` one-way derivation shape because `0.1.0` has enough durable product truth to justify it:
 
 - `_drivers/` for upstream pressure sources
 - `behavior/` for product commitments
 - `domain-structure/` for derived semantic stabilization
 - `glossary.md` for business language
 
-Do not create those folders early just so the tree looks complete.
+Keep each file sparse and honest. Do not fill the tree with speculative doctrine.
 
 ## Task rule
 

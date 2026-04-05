@@ -44,18 +44,22 @@ This folder is the current compromise:
 ## Read first
 
 1. `AGENTS.md`
-2. `docs/00-meta/index.md`
-3. `docs/00-meta/input-intent.md`
-4. `docs/00-meta/mode-a-explore.md`
+2. `docs/00-meta/input-intent.md`
+3. `docs/00-meta/mode-a-explore.md`
+4. `docs/10-prd/index.md`
 5. `docs/10-prd/glossary.md`
-6. `docs/10-prd/early-product-truths.md`
-7. `goal-forest-exploration.md`
-8. `scope.md`
-9. `session-handoff.md`
-10. `remote-control-session-linkage.md`
-11. `work-session-and-goal-forest-language.md`
-12. `information-architecture.md`
-13. `user-journeys.md`
+6. `docs/10-prd/behavior/claims.md`
+7. `docs/10-prd/behavior/scope.md`
+8. `docs/10-prd/behavior/workflows.md`
+9. `docs/20-product-tdd/index.md`
+10. `docs/20-product-tdd/system-state-and-authority.md`
+11. `goal-forest-exploration.md`
+12. `scope.md`
+13. `session-handoff.md`
+14. `remote-control-session-linkage.md`
+15. `work-session-and-goal-forest-language.md`
+16. `information-architecture.md`
+17. `user-journeys.md`
 
 ## Current outputs
 

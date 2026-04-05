@@ -16,10 +16,10 @@ Use this route when the requested work changes product behavior, scope, policy, 
 ## Read-do steps
 
 1. Restate the intended product change and success signal.
-2. Read the smallest relevant PRD set: `index.md`, `glossary.md`, and any stable product truth already admitted.
+2. Read the smallest relevant PRD set: `index.md`, `glossary.md`, affected `_drivers/*`, affected `behavior/*`, and derived boundary docs only when needed.
 3. Keep exploration and uncertainty in a task packet until the claim is durable enough to preserve.
 4. Update PRD only when the new or revised product truth is explicit.
-5. Push downstream technical implications into code or future technical layers only after product truth is stable.
+5. Push downstream technical implications into Product TDD or code only after product truth is stable.
 
 ## Exit criteria
 

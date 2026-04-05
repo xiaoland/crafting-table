@@ -209,9 +209,11 @@ The current assumption is that this set is enough for `0.1.0` unless actual use 
 
 ## References
 
+- `docs/10-prd/behavior/scope.md`
+- `docs/10-prd/behavior/claims.md`
+- `docs/20-product-tdd/system-state-and-authority.md`
 - `tasks/0006-v0.1.0/goal-forest-exploration.md`
 - `tasks/0006-v0.1.0/remote-control-session-linkage.md`
 - `tasks/0006-v0.1.0/work-session-and-goal-forest-language.md`
 - `tasks/0006-v0.1.0/information-architecture.md`
 - `tasks/0006-v0.1.0/user-journeys.md`
-- `docs/10-prd/early-product-truths.md`

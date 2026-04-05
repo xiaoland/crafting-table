@@ -17,20 +17,23 @@ This file is intentionally volatile and belongs in `tasks/`, not in the durable 
 If you are resuming this work in a new session, read in this order:
 
 1. `AGENTS.md`
-2. `docs/00-meta/index.md`
-3. `docs/00-meta/input-intent.md`
-4. `docs/00-meta/mode-a-explore.md`
-5. `docs/10-prd/index.md`
-6. `docs/10-prd/glossary.md`
-7. `docs/10-prd/early-product-truths.md`
-8. `tasks/0006-v0.1.0/goal-forest-exploration.md`
-9. `tasks/0006-v0.1.0/scope.md`
-10. `tasks/0006-v0.1.0/README.md`
-11. `tasks/0006-v0.1.0/remote-control-session-linkage.md`
-12. `tasks/0006-v0.1.0/work-session-and-goal-forest-language.md`
-13. `tasks/0006-v0.1.0/information-architecture.md`
-14. `tasks/0006-v0.1.0/user-journeys.md`
-15. this file
+2. `docs/00-meta/input-intent.md`
+3. `docs/00-meta/mode-a-explore.md`
+4. `docs/10-prd/index.md`
+5. `docs/10-prd/glossary.md`
+6. `docs/10-prd/behavior/claims.md`
+7. `docs/10-prd/behavior/scope.md`
+8. `docs/10-prd/behavior/workflows.md`
+9. `docs/20-product-tdd/index.md`
+10. `docs/20-product-tdd/system-state-and-authority.md`
+11. `tasks/0006-v0.1.0/goal-forest-exploration.md`
+12. `tasks/0006-v0.1.0/scope.md`
+13. `tasks/0006-v0.1.0/README.md`
+14. `tasks/0006-v0.1.0/remote-control-session-linkage.md`
+15. `tasks/0006-v0.1.0/work-session-and-goal-forest-language.md`
+16. `tasks/0006-v0.1.0/information-architecture.md`
+17. `tasks/0006-v0.1.0/user-journeys.md`
+18. this file
 
 ## Current durable product position
 
@@ -115,7 +118,11 @@ At the time of writing, the main ongoing document changes are:
 - `docs/00-meta/mode-a-explore.md`
 - `docs/10-prd/index.md`
 - `docs/10-prd/glossary.md`
+- `docs/10-prd/_drivers/*`
+- `docs/10-prd/behavior/*`
+- `docs/10-prd/domain-structure/*`
 - `docs/10-prd/early-product-truths.md`
+- `docs/20-product-tdd/*`
 - `tasks/0006-v0.1.0/goal-forest-exploration.md`
 - `tasks/0006-v0.1.0/scope.md`
 - `tasks/0006-v0.1.0/session-handoff.md`
@@ -131,4 +138,4 @@ These are documentation changes only. No code or tests have been changed yet.
 
 If a future session needs a concise restart point, use:
 
-"Continue product-definition work for `Xiaoland Workbench`. Read `docs/00-meta/input-intent.md`, `docs/00-meta/mode-a-explore.md`, `docs/10-prd/glossary.md`, `docs/10-prd/early-product-truths.md`, `tasks/0006-v0.1.0/scope.md`, `tasks/0006-v0.1.0/README.md`, `tasks/0006-v0.1.0/information-architecture.md`, `tasks/0006-v0.1.0/user-journeys.md`, and `tasks/0006-v0.1.0/session-handoff.md`. Agent support is out of `0.1.0`. There is no standalone Home; the shell is SideBar + Content, with Goal Forest first and Remote Control parallel. The immediate task is to turn the current IA into a minimum screen inventory and transition map."
+"Continue product-definition work for `Xiaoland Workbench`. Read `docs/00-meta/input-intent.md`, `docs/00-meta/mode-a-explore.md`, `docs/10-prd/glossary.md`, `docs/10-prd/behavior/claims.md`, `docs/10-prd/behavior/scope.md`, `docs/10-prd/behavior/workflows.md`, `docs/20-product-tdd/system-state-and-authority.md`, `tasks/0006-v0.1.0/scope.md`, `tasks/0006-v0.1.0/README.md`, `tasks/0006-v0.1.0/information-architecture.md`, `tasks/0006-v0.1.0/user-journeys.md`, and `tasks/0006-v0.1.0/session-handoff.md`. Agent support is out of `0.1.0`. There is no standalone Home; the shell is SideBar + Content, with Goal Forest first and Remote Control parallel. The immediate task is to turn the current IA into a minimum screen inventory and transition map."

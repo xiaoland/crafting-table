@@ -10,15 +10,16 @@ Keep changes small, reversible, and honest. Do not invent product certainty, arc
 - `Workbench.xcodeproj/` - Xcode project
 - `docs/00-meta/` - typed input routes, mode SOPs, growth rules, and framework concepts
 - `docs/10-prd/` - durable product truth and business glossary
+- `docs/20-product-tdd/` - cross-unit technical truth admitted for 0.1.0 development
 - `tasks/` - volatile task packets, exploration, diagnostics, and artifacts
 
 ## Documentation rules
 
 - Start here, then read the nearest local `AGENTS.md` in the subtree you touch.
-- Read only the smallest governing set: matching `docs/00-meta/input-*.md`, current `docs/00-meta/mode-*.md`, relevant PRD/task docs, then code/tests.
+- Read only the smallest governing set: matching `docs/00-meta/input-*.md`, current `docs/00-meta/mode-*.md`, relevant PRD/Product TDD/task docs, then code/tests.
 - Load `docs/00-meta/concepts.md` only when boundary language is unclear.
 - Treat code, tests, build settings, and executable checks as implementation truth.
-- Keep the PRD layer sparse until stable product truth exists.
+- Keep the PRD layer and Product TDD layer sparse; add files only when future drift would otherwise be expensive.
 - Keep volatile product thinking in `tasks/`, not in durable docs.
 - Update docs only when a durable decision is made or a recurring workflow boundary needs preservation.
 - Do not expand scope silently.
@@ -36,7 +37,7 @@ Keep changes small, reversible, and honest. Do not invent product certainty, arc
 ### Typed input guide
 
 - Intent: product behavior, scope, or policy changes. Update `docs/10-prd/` first.
-- Constraint: product behavior stays the same, but technical, documentation-system, dependency, or environment boundaries change. Update the smallest durable owner that prevents drift.
+- Constraint: product behavior stays the same, but technical, documentation-system, dependency, or environment boundaries change. Put cross-unit truth in `docs/20-product-tdd/` and keep local truth near code.
 - Reality: observed behavior disagrees with expectation. Gather evidence first; add recurrence tripwires near code when warranted.
 - Artifact: produce a bounded deliverable or one-off output. Keep it tactical unless reuse is proven.
 
