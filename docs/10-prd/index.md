@@ -56,6 +56,10 @@ That means:
 - temporary product clarification can live in `tasks/`
 - durable product docs should appear only after real stability emerges
 
+The currently admitted durable product document is:
+
+- `early-product-truths.md`
+
 ## Admission rule
 
 Create additional files in this directory only when a product truth has become clear enough that future humans or agents would otherwise be likely to lose it, misread it, or pay too much to rediscover it.

@@ -1,0 +1,129 @@
+# Task 0005 — Session handoff
+
+## Status
+Active
+
+## Date
+2026-04-02
+
+## Purpose
+
+Provide a lightweight handoff note so a future session can resume the current product-definition work quickly without rereading the entire conversation.
+
+This file is intentionally volatile and belongs in `tasks/`, not in the durable PRD layer.
+
+## Read first
+
+If you are resuming this work in a new session, read in this order:
+
+1. `AGENTS.md`
+2. `docs/00-meta/index.md`
+3. `docs/00-meta/growth-rules.md`
+4. `docs/10-prd/index.md`
+5. `docs/10-prd/early-product-truths.md`
+6. `tasks/0006-v0.1.0/goal-forest-exploration.md`
+7. `tasks/0006-v0.1.0/scope.md`
+8. `tasks/0006-v0.1.0/README.md`
+9. `tasks/0006-v0.1.0/remote-control-session-linkage.md`
+10. `tasks/0006-v0.1.0/work-session-and-goal-forest-language.md`
+11. `tasks/0006-v0.1.0/information-architecture.md`
+12. `tasks/0006-v0.1.0/user-journeys.md`
+13. this file
+
+## Current durable product position
+
+These points have been promoted into the PRD layer or are being treated as stable enough to constrain discussion:
+
+- `Xiaoland Workbench` is a personal, iPad-first central control surface for life and work.
+- The product optimizes for the repo owner's personal utility, not generic market breadth.
+- The product must not collapse into a developer-only or fully agent-centric tool.
+- `work session` is the first-class execution object.
+- `Goal Forest` is intended as a user-facing term.
+- remote control is a core tool surface
+- first remote shape is terminal-first with file transfer
+
+## Current `0.1.0` direction
+
+The working `0.1.0` baseline is currently:
+
+- Sidebar + Content shell
+- work session basics
+- operable `Goal Forest`
+- seed pool / quick capture
+- remote control baseline
+
+The working `0.1.0` non-goals are currently:
+
+- no agent support in `Goal Forest` or `Remote Control`
+- no integrated agent-output review
+- Pencil-specific workflows should not shape the first release
+- no autonomous `Goal Forest` restructuring
+- no GUI remote desktop
+
+## Most important recent decisions
+
+- Remote control must meet a real baseline in `0.1.0`.
+- `Goal Forest` must be truly operable in `0.1.0`, not decorative.
+- Agent support was removed from `0.1.0` across both `Goal Forest` and `Remote Control`.
+- Integrated agent-output review is out of scope for `0.1.0`.
+- Pencil was downgraded to a low-confidence idea.
+- There is no standalone `Home` concept in the current shell direction.
+- `Goal Forest` and `Remote Control` are parallel tabs, with `Goal Forest` first.
+- `work session` has content priority, `Goal Forest` may shrink into minimap context, and capture starts from a floating create button.
+- The current minimum `Goal Forest` operation set is being treated as sufficient for now.
+
+## Current tension that is now deferred
+
+A longer-term contradiction still exists, but it no longer blocks `0.1.0`:
+
+- the product must not become agent-centric
+- the broader product idea still imagines shared human/agent workspace
+
+For now, the chosen simplification is to keep `0.1.0` fully human-operated across `Goal Forest` and `Remote Control`.
+
+## Recommended next decision
+
+The next useful step is to turn the current IA and journey draft into a minimum screen inventory and transition map for `0.1.0`.
+
+The minimal decision that is still missing is:
+
+- which content states are true first-version screens versus overlays
+- how much current or recent session state belongs in the shell without creating a second dashboard
+- whether any manual review affordance exists beyond remote file access
+
+Without that decision, the shell may still look coherent in prose but fuzzy in implementation.
+
+## Proposed minimum `Goal Forest` operation set
+
+The current proposed minimum operation set for `0.1.0` is:
+
+1. create a node
+2. rename or edit a node
+3. connect a node to another node
+4. attach a work session or capture to a node
+5. move or re-link a session or capture
+6. inspect a node with nearby relationships
+7. archive or remove a node without breaking continuity
+
+## Files changed so far
+
+At the time of writing, the main ongoing document changes are:
+
+- `docs/10-prd/index.md`
+- `docs/10-prd/early-product-truths.md`
+- `tasks/0006-v0.1.0/goal-forest-exploration.md`
+- `tasks/0006-v0.1.0/scope.md`
+- `tasks/0006-v0.1.0/session-handoff.md`
+- `tasks/0006-v0.1.0/README.md`
+- `tasks/0006-v0.1.0/remote-control-session-linkage.md`
+- `tasks/0006-v0.1.0/work-session-and-goal-forest-language.md`
+- `tasks/0006-v0.1.0/information-architecture.md`
+- `tasks/0006-v0.1.0/user-journeys.md`
+
+These are documentation changes only. No code or tests have been changed yet.
+
+## Practical resume prompt
+
+If a future session needs a concise restart point, use:
+
+"Continue product-definition work for `Xiaoland Workbench`. Read `docs/10-prd/early-product-truths.md`, `tasks/0006-v0.1.0/scope.md`, `tasks/0006-v0.1.0/README.md`, `tasks/0006-v0.1.0/information-architecture.md`, `tasks/0006-v0.1.0/user-journeys.md`, and `tasks/0006-v0.1.0/session-handoff.md`. Agent support is out of `0.1.0`. There is no standalone Home; the shell is SideBar + Content, with Goal Forest first and Remote Control parallel. The immediate task is to turn the current IA into a minimum screen inventory and transition map."

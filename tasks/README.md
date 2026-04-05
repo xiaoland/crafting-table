@@ -17,7 +17,7 @@ Tasks absorb volatility. They are not the long-term source of truth.
 
 ## What belongs here
 
-A task file is appropriate when you need to record:
+A task folder is appropriate when you need to record:
 
 - the current goal
 - constraints for the work
@@ -27,7 +27,19 @@ A task file is appropriate when you need to record:
 - early product thoughts, rough concepts, and tentative framing
 - links to any relevant durable documents
 
-Good task docs are practical and disposable.
+Good task notes are practical and disposable.
+
+At the top level of `tasks/`, admit:
+
+- this `README.md`
+- task folders only
+
+Do not create standalone task files directly under `tasks/`.
+
+Inside each task folder, keep the structure minimal:
+
+- one `README.md` for entry and navigation
+- only the focused child notes that materially help
 
 ## Primitive product ideas
 
@@ -78,26 +90,18 @@ As a rule of thumb:
 
 ## Suggested task shape
 
-A task file can use this lightweight structure:
+A task folder can use this lightweight structure:
 
-- title
-- status
-- date
-- context
-- goal
-- constraints
-- proposed approach
-- open questions
-- next steps
-- references
+- `README.md` with title, status, date, purpose, navigation, and current outputs
+- optional focused child notes for specific questions, trade-offs, or drafts
 
 ## Naming
 
-Use simple, sortable names such as:
+Use simple, sortable folder names such as:
 
-- `0001-bootstrap-foundation.md`
-- `0002-navigation-shell-spike.md`
-- `0003-prd-clarification.md`
+- `0001-bootstrap-foundation/`
+- `0002-navigation-shell-spike/`
+- `0006-v0.1.0/`
 
 ## Rule of thumb
 
