@@ -1,6 +1,9 @@
-# Xiaoland Workbench
+# (xiaoland's) Crafting Table
 
-Xiaoland' personal workbench app.
+Xiaoland's personal crafting table app.
+
+Short form: `Crafting Table`
+Abbreviation: `CT`
 
 ## License
 

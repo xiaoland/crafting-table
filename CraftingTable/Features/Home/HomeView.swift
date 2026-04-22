@@ -30,7 +30,7 @@ struct HomeView: View {
             .frame(maxWidth: 960, alignment: .leading)
         }
         .background(Color(uiColor: .systemGroupedBackground))
-        .navigationTitle("Workbench")
+        .navigationTitle("Crafting Table")
     }
 
     private var header: some View {
@@ -39,7 +39,7 @@ struct HomeView: View {
                 .font(.headline)
                 .foregroundStyle(.secondary)
 
-            Text("Build the workbench slowly.")
+            Text("Build the crafting table slowly.")
                 .font(.largeTitle.bold())
 
             Text("The current goal is not feature completeness. The goal is to create a calm starting point for product discussion, documentation, and later implementation.")
@@ -75,7 +75,7 @@ struct HomeView: View {
                 StepRow(
                     index: 1,
                     title: "Define the primary promise",
-                    detail: "What should this workbench help you do better than notes, reminders, or a calendar app?"
+                    detail: "What should this crafting table help you do better than notes, reminders, or a calendar app?"
                 )
 
                 StepRow(

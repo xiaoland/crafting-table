@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct WorkbenchApp: App {
+struct CraftingTableApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()

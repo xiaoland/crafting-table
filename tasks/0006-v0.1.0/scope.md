@@ -39,7 +39,7 @@ It does need to be:
 
 ## Recommended release goal
 
-`0.1.0` should prove that `Xiaoland Workbench` can act as a personally useful central control surface that helps the user:
+`0.1.0` should prove that `(xiaoland's) Crafting Table` can act as a personally useful central control surface that helps the user:
 
 1. regain orientation
 2. resume a work session

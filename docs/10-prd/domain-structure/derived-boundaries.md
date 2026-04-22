@@ -14,7 +14,7 @@
 
 - derived domain boundary: `Remote Control`
   derivation source: `behavior/claims.md`, `behavior/workflows.md`
-  boundary intent: own remote machine action inside the broader workbench loop
+  boundary intent: own remote machine action inside the broader crafting table loop
 
 - derived domain boundary: `host profile`
   derivation source: `behavior/rules-and-invariants.md`

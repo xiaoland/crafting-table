@@ -16,7 +16,7 @@ Active
 
 ## Purpose
 
-Capture early product exploration for `Xiaoland Workbench` while the product is still too immature for a filled-out PRD.
+Capture early product exploration for `(xiaoland's) Crafting Table` while the product is still too immature for a filled-out PRD.
 
 This task is the working place for primitive ideas, rough framing, and open questions that are useful right now but not yet stable enough for durable documentation.
 
@@ -70,7 +70,7 @@ Key question:
 
 - what is the smallest believable job this product does better than a notes app plus ad hoc task tracking?
 
-### 2. What “workbench” might mean
+### 2. What “crafting table” might mean
 
 Possible interpretations:
 
@@ -160,7 +160,7 @@ There may be a better model than disconnected notes plus todos, but the repo sho
 ### Product identity
 
 - Is the first product primarily about orientation, coordination, or inquiry?
-- Is `workbench` the real product concept, or only a temporary umbrella term?
+- Is `crafting table` the real product concept, or only a temporary umbrella term?
 - Is there one strong core loop, or are there several weakly related ideas?
 
 ### User value

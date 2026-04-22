@@ -71,7 +71,7 @@ struct RootView: View {
                 Label(section.title, systemImage: section.systemImage)
                     .tag(section)
             }
-            .navigationTitle("Workbench")
+            .navigationTitle("Crafting Table")
         } detail: {
             detailView(for: selection ?? .overview)
         }

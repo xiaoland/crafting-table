@@ -14,10 +14,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "A1B2C3D4E5F60718293A4B11"
-               BuildableName = "Workbench.app"
-               BlueprintName = "Workbench"
-               ReferencedContainer = "container:Workbench.xcodeproj">
+               BlueprintIdentifier = "A10000410000000000000001"
+               BuildableName = "CraftingTable.app"
+               BlueprintName = "CraftingTable"
+               ReferencedContainer = "container:CraftingTable.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -44,10 +44,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "A1B2C3D4E5F60718293A4B11"
-            BuildableName = "Workbench.app"
-            BlueprintName = "Workbench"
-            ReferencedContainer = "container:Workbench.xcodeproj">
+            BlueprintIdentifier = "A10000410000000000000001"
+            BuildableName = "CraftingTable.app"
+            BlueprintName = "CraftingTable"
+            ReferencedContainer = "container:CraftingTable.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -61,10 +61,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "A1B2C3D4E5F60718293A4B11"
-            BuildableName = "Workbench.app"
-            BlueprintName = "Workbench"
-            ReferencedContainer = "container:Workbench.xcodeproj">
+            BlueprintIdentifier = "A10000410000000000000001"
+            BuildableName = "CraftingTable.app"
+            BlueprintName = "CraftingTable"
+            ReferencedContainer = "container:CraftingTable.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

@@ -2,8 +2,8 @@
 
 ## Objectives
 
-- business objective: prove that `Xiaoland Workbench` can be personally useful on iPad in real repeat use.
-  service objective: let the user orient, resume, capture, and act from one coherent workbench.
+- business objective: prove that `(xiaoland's) Crafting Table` can be personally useful on iPad in real repeat use.
+  service objective: let the user orient, resume, capture, and act from one coherent crafting table.
   success rationale: `0.1.0` should feel like one believable system rather than disconnected experiments.
 
 - business objective: keep the first release human-centered and legible.

@@ -11,7 +11,7 @@ Active
 Describe believable `0.1.0` journeys that fit the current scope and the current shell direction.
 
 These journeys are not exhaustive.
-They are the minimum set needed to test whether the app feels like one workbench rather than disconnected tools.
+They are the minimum set needed to test whether the app feels like one crafting table rather than disconnected tools.
 
 ## Journey 1 — Re-enter work through `Goal Forest`
 
@@ -80,7 +80,7 @@ Why this matters:
 Goal:
 
 - act on a real machine
-- keep that action inside the workbench loop
+- keep that action inside the crafting table loop
 
 Steps:
 
@@ -93,7 +93,7 @@ Steps:
 
 Why this matters:
 
-- it proves that remote control is part of the workbench rather than an isolated utility
+- it proves that remote control is part of the crafting table rather than an isolated utility
 - it provides a concrete action loop for `0.1.0`
 
 ## Journey 5 — Remote first, session second
@@ -108,7 +108,7 @@ Steps:
 2. The user connects to a host before deciding what session should own the work.
 3. The remote surface keeps the connection visibly unattached rather than silently orphaned.
 4. The user later attaches the activity to a current session, a recent session, or a newly created one.
-5. The workbench preserves host, recency, transfers, and a short note as the continuity bundle.
+5. The crafting table preserves host, recency, transfers, and a short note as the continuity bundle.
 
 Why this matters:
 

@@ -26,7 +26,7 @@ Some product choices have now been made, but several operational and interaction
 
 These decisions appear stable enough to constrain exploration, even if some of their consequences still need testing:
 
-- the product is a central control surface for life and work rather than a developer-only workbench
+- the product is a central control surface for life and work rather than a developer-only crafting table
 - the product must not become agent-centric
 - the first-class object is the `work session`
 - `Goal Forest` is intended to be user-facing terminology
@@ -46,7 +46,7 @@ These decisions appear stable enough to constrain exploration, even if some of t
 - capture should be cheap even when structure is missing
 - humans and agents should collaborate on the same shared state
 - execution should focus on the subset relevant now, not on the entire corpus
-- the workbench should eventually connect planning to real action surfaces
+- the crafting table should eventually connect planning to real action surfaces
 - the product should function as one place to orient across multiple important parts of life and work
 - `Goal Forest` should become a genuinely operable structure rather than a decorative label
 - important tool surfaces may eventually need agent-operable actions, but `0.1.0` should stay fully human-operated
@@ -74,7 +74,7 @@ These decisions appear stable enough to constrain exploration, even if some of t
 
 One believable product hypothesis worth testing is:
 
-`Xiaoland Workbench` is a human-AI central control surface for orienting, focusing, and acting across the user's current life and work state.
+`(xiaoland's) Crafting Table` is a human-AI central control surface for orienting, focusing, and acting across the user's current life and work state.
 
 That suggests a possible broad control loop:
 

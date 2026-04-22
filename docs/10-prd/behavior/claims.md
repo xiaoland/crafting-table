@@ -2,7 +2,7 @@
 
 ## Claim 1 - One shared surface supports orientation and action
 
-- claim intent: help the user regain orientation, choose focus, and act from one coherent workbench.
+- claim intent: help the user regain orientation, choose focus, and act from one coherent crafting table.
 - evaluation dimensions: continuity, focus selection, surface coherence.
 - evidence expectation: the main `0.1.0` journeys can start, resume, capture, and act without turning into disconnected products.
 - source rationale: `_drivers/market-and-user-pressures.md`, `_drivers/business-and-service-objectives.md`
@@ -38,7 +38,7 @@
 
 ## Claim 5 - `Remote Control` is a core, session-aware action surface
 
-- claim intent: keep remote work inside the workbench loop without forcing too much ceremony upfront.
+- claim intent: keep remote work inside the crafting table loop without forcing too much ceremony upfront.
 - evaluation dimensions: usefulness, session linkage, continuity.
 - evidence expectation: the user can start remote work from a session or directly from Remote Control and still preserve session linkage and continuity.
 - source rationale: `_drivers/market-and-user-pressures.md`, `_drivers/hard-constraints.md`, `_drivers/operational-realities.md`

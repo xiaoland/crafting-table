@@ -1,10 +1,16 @@
 # Product glossary
 
-This file owns stable business and product vocabulary for `Xiaoland Workbench`.
+This file owns stable business and product vocabulary for `(xiaoland's) Crafting Table`.
 
 Keep entries short, product-facing, and free of implementation guesses.
 
 ## Terms
+
+### `(xiaoland's) Crafting Table`
+
+The formal product name.
+
+In product copy, `Crafting Table` is an allowed short form and `CT` is an allowed abbreviation when space or repetition pressure makes the full name awkward.
 
 ### `Goal Forest`
 
@@ -33,9 +39,9 @@ Capture should stay cheap and should not require heavy classification at creatio
 
 ### `Remote Control`
 
-A core product surface for terminal-first remote machine access and file transfer inside the broader workbench loop.
+A core product surface for terminal-first remote machine access and file transfer inside the broader crafting table loop.
 
-It is part of the workbench, not a disconnected utility.
+It is part of the crafting table, not a disconnected utility.
 
 ### `host profile`
 

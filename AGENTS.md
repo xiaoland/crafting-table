@@ -1,13 +1,13 @@
-# Xiaoland Workbench
+# (xiaoland's) Crafting Table
 
-Early-stage foundation repo for an iPad-first SwiftUI workbench app.
+Early-stage foundation repo for an iPad-first SwiftUI crafting table app.
 
 Keep changes small, reversible, and honest. Do not invent product certainty, architecture, or documentation layers before they are earned.
 
 ## Repository layout
 
-- `Workbench/` - SwiftUI app source
-- `Workbench.xcodeproj/` - Xcode project
+- `CraftingTable/` - SwiftUI app source
+- `CraftingTable.xcodeproj/` - Xcode project
 - `docs/00-meta/` - typed input routes, mode SOPs, growth rules, and framework concepts
 - `docs/10-prd/` - durable product truth and business glossary
 - `docs/20-product-tdd/` - cross-unit technical truth admitted for 0.1.0 development

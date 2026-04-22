@@ -9,7 +9,7 @@ Active
 ## Problem
 
 `Remote Control` is now a protected `0.1.0` surface.
-It needs to feel native to the workbench rather than like a standalone terminal app pasted into it.
+It needs to feel native to the crafting table rather than like a standalone terminal app pasted into it.
 
 The main tension is simple:
 
@@ -44,7 +44,7 @@ The current recommended `0.1.0` model is:
   - attach to recent session
   - create a new session
 
-This keeps quick remote work cheap without cutting it off from the rest of the workbench.
+This keeps quick remote work cheap without cutting it off from the rest of the crafting table.
 
 ### 2. Attachment rule
 
@@ -62,7 +62,7 @@ For `0.1.0`, the session only needs a small amount of remote continuity:
 
 - host profile used
 - last connection time
-- file transfers initiated from the workbench
+- file transfers initiated from the crafting table
 - a short human-written note or outcome
 - a quick return path from the session back to the same host
 

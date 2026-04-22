@@ -39,7 +39,7 @@ If you are resuming this work in a new session, read in this order:
 
 These points have been promoted into the PRD layer or are being treated as stable enough to constrain discussion:
 
-- `Xiaoland Workbench` is a personal, iPad-first central control surface for life and work.
+- `(xiaoland's) Crafting Table` is a personal, iPad-first central control surface for life and work.
 - The product optimizes for the repo owner's personal utility, not generic market breadth.
 - The product must not collapse into a developer-only or fully agent-centric tool.
 - `work session` is the first-class execution object.
@@ -138,4 +138,4 @@ These are documentation changes only. No code or tests have been changed yet.
 
 If a future session needs a concise restart point, use:
 
-"Continue product-definition work for `Xiaoland Workbench`. Read `docs/00-meta/input-intent.md`, `docs/00-meta/mode-a-explore.md`, `docs/10-prd/glossary.md`, `docs/10-prd/behavior/claims.md`, `docs/10-prd/behavior/scope.md`, `docs/10-prd/behavior/workflows.md`, `docs/20-product-tdd/system-state-and-authority.md`, `tasks/0006-v0.1.0/scope.md`, `tasks/0006-v0.1.0/README.md`, `tasks/0006-v0.1.0/information-architecture.md`, `tasks/0006-v0.1.0/user-journeys.md`, and `tasks/0006-v0.1.0/session-handoff.md`. Agent support is out of `0.1.0`. There is no standalone Home; the shell is SideBar + Content, with Goal Forest first and Remote Control parallel. The immediate task is to turn the current IA into a minimum screen inventory and transition map."
+"Continue product-definition work for `(xiaoland's) Crafting Table`. Read `docs/00-meta/input-intent.md`, `docs/00-meta/mode-a-explore.md`, `docs/10-prd/glossary.md`, `docs/10-prd/behavior/claims.md`, `docs/10-prd/behavior/scope.md`, `docs/10-prd/behavior/workflows.md`, `docs/20-product-tdd/system-state-and-authority.md`, `tasks/0006-v0.1.0/scope.md`, `tasks/0006-v0.1.0/README.md`, `tasks/0006-v0.1.0/information-architecture.md`, `tasks/0006-v0.1.0/user-journeys.md`, and `tasks/0006-v0.1.0/session-handoff.md`. Agent support is out of `0.1.0`. There is no standalone Home; the shell is SideBar + Content, with Goal Forest first and Remote Control parallel. The immediate task is to turn the current IA into a minimum screen inventory and transition map."

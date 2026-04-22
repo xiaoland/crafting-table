@@ -30,7 +30,7 @@
 - trigger: remote work is needed from inside a work session
 - normal flow: open Remote Control from the session -> connect to a saved host -> do terminal/file work -> leave a small continuity bundle in the session
 - exception flow: if no host is configured yet, create or select a host profile before continuing
-- observable outcome: remote work stays inside the broader workbench loop
+- observable outcome: remote work stays inside the broader crafting table loop
 
 ## Workflow 5 - Remote first, session second
 

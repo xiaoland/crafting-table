@@ -145,7 +145,7 @@ Primary job:
 - connect to saved hosts
 - run terminal-first remote work
 - transfer files in the same workflow
-- preserve enough session linkage to stay inside the broader workbench loop
+- preserve enough session linkage to stay inside the broader crafting table loop
 
 Minimum content emphasis:
 

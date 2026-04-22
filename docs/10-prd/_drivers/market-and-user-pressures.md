@@ -5,7 +5,7 @@ This repo is personal-first, so "market" pressure here means repeat personal use
 ## Pressures
 
 - market pressure: the product should optimize for the repo owner's real repeat use, not for broad feature coverage.
-  user pressure: a narrow but genuinely useful workbench is better than a wide but shallow one.
+  user pressure: a narrow but genuinely useful crafting table is better than a wide but shallow one.
   urgency and tradeoff: protect coherence before chasing breadth.
 
 - market pressure: interruption recovery and restart cost are central value pressures.
