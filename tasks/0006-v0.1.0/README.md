@@ -28,6 +28,8 @@ The current notes in this folder cover:
 - how `work session` and `Goal Forest` should coexist in user-facing language
 - the current UI information architecture
 - the current user-journey draft
+- the minimum screen inventory
+- the minimum transition map
 
 This task stays in `tasks/` because the detailed reasoning is still volatile.
 
@@ -60,6 +62,8 @@ This folder is the current compromise:
 15. `work-session-and-goal-forest-language.md`
 16. `information-architecture.md`
 17. `user-journeys.md`
+18. `minimum-screen-inventory.md`
+19. `transition-map.md`
 
 ## Current outputs
 
@@ -80,7 +84,8 @@ The current recommended `0.1.0` position is:
 
 - Does `0.1.0` need any manual review affordance beyond remote file access?
 - How much current or recent session state should remain visible in the shell without creating a second dashboard?
-- What is the minimum screen inventory and transition map needed to make the current IA implementable?
+- What is the minimum visual form of the shell recency affordance without turning the sidebar into a second dashboard?
+- What is the minimum visual form of the `Goal Forest` minimap around active work?
 
 ## References
 

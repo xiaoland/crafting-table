@@ -33,7 +33,9 @@ If you are resuming this work in a new session, read in this order:
 15. `tasks/0006-v0.1.0/work-session-and-goal-forest-language.md`
 16. `tasks/0006-v0.1.0/information-architecture.md`
 17. `tasks/0006-v0.1.0/user-journeys.md`
-18. this file
+18. `tasks/0006-v0.1.0/minimum-screen-inventory.md`
+19. `tasks/0006-v0.1.0/transition-map.md`
+20. this file
 
 ## Current durable product position
 
@@ -88,15 +90,15 @@ For now, the chosen simplification is to keep `0.1.0` fully human-operated acros
 
 ## Recommended next decision
 
-The next useful step is to turn the current IA and journey draft into a minimum screen inventory and transition map for `0.1.0`.
+The next useful step is to turn the current screen inventory and transition map into a low-fidelity layout packet for `0.1.0`.
 
 The minimal decision that is still missing is:
 
-- which content states are true first-version screens versus overlays
 - how much current or recent session state belongs in the shell without creating a second dashboard
+- what the smallest believable `Goal Forest` minimap looks like around active work
 - whether any manual review affordance exists beyond remote file access
 
-Without that decision, the shell may still look coherent in prose but fuzzy in implementation.
+Without that decision, the IA may stay coherent in writing but still underspecified for screen-level design.
 
 ## Proposed minimum `Goal Forest` operation set
 
@@ -131,6 +133,8 @@ At the time of writing, the main ongoing document changes are:
 - `tasks/0006-v0.1.0/work-session-and-goal-forest-language.md`
 - `tasks/0006-v0.1.0/information-architecture.md`
 - `tasks/0006-v0.1.0/user-journeys.md`
+- `tasks/0006-v0.1.0/minimum-screen-inventory.md`
+- `tasks/0006-v0.1.0/transition-map.md`
 
 These are documentation changes only. No code or tests have been changed yet.
 
@@ -138,4 +142,4 @@ These are documentation changes only. No code or tests have been changed yet.
 
 If a future session needs a concise restart point, use:
 
-"Continue product-definition work for `(xiaoland's) Crafting Table`. Read `docs/00-meta/input-intent.md`, `docs/00-meta/mode-a-explore.md`, `docs/10-prd/glossary.md`, `docs/10-prd/behavior/claims.md`, `docs/10-prd/behavior/scope.md`, `docs/10-prd/behavior/workflows.md`, `docs/20-product-tdd/system-state-and-authority.md`, `tasks/0006-v0.1.0/scope.md`, `tasks/0006-v0.1.0/README.md`, `tasks/0006-v0.1.0/information-architecture.md`, `tasks/0006-v0.1.0/user-journeys.md`, and `tasks/0006-v0.1.0/session-handoff.md`. Agent support is out of `0.1.0`. There is no standalone Home; the shell is SideBar + Content, with Goal Forest first and Remote Control parallel. The immediate task is to turn the current IA into a minimum screen inventory and transition map."
+"Continue product-definition work for `(xiaoland's) Crafting Table`. Read `docs/00-meta/input-intent.md`, `docs/00-meta/mode-a-explore.md`, `docs/10-prd/glossary.md`, `docs/10-prd/behavior/claims.md`, `docs/10-prd/behavior/scope.md`, `docs/10-prd/behavior/workflows.md`, `docs/20-product-tdd/system-state-and-authority.md`, `tasks/0006-v0.1.0/scope.md`, `tasks/0006-v0.1.0/README.md`, `tasks/0006-v0.1.0/information-architecture.md`, `tasks/0006-v0.1.0/user-journeys.md`, `tasks/0006-v0.1.0/minimum-screen-inventory.md`, `tasks/0006-v0.1.0/transition-map.md`, and `tasks/0006-v0.1.0/session-handoff.md`. Agent support is out of `0.1.0`. There is no standalone Home; the shell is SideBar + Content, with Goal Forest first and Remote Control parallel. The immediate task is to turn the current packet into a low-fidelity layout packet."

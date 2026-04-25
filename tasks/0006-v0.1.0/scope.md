@@ -217,3 +217,5 @@ The current assumption is that this set is enough for `0.1.0` unless actual use 
 - `tasks/0006-v0.1.0/work-session-and-goal-forest-language.md`
 - `tasks/0006-v0.1.0/information-architecture.md`
 - `tasks/0006-v0.1.0/user-journeys.md`
+- `tasks/0006-v0.1.0/minimum-screen-inventory.md`
+- `tasks/0006-v0.1.0/transition-map.md`
