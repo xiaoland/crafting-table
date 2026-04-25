@@ -5,6 +5,8 @@ struct RemoteControlScreen: View {
     let hosts: [HostProfile]
     let selectedHost: HostProfile?
     let linkedSession: WorkSession?
+    let continuityRecord: RemoteContinuityRecord?
+    let continuityHost: HostProfile?
     let attachSession: () -> Void
     let editHost: () -> Void
     let connect: (HostProfile) -> Void
@@ -123,7 +125,7 @@ struct RemoteControlScreen: View {
                     Text(linkedSession.title)
                         .font(.headline)
 
-                    Text("Host, recency, transfers, and note will be recorded on this session in a later persistence slice.")
+                    Text("Host, recency, transfers, and note are recorded on this session when a linked connection starts.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
@@ -137,6 +139,28 @@ struct RemoteControlScreen: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .accessibilityIdentifier("remote-attach-session-button")
+                }
+
+                if let continuityRecord {
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Last remote continuity")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        Text(continuityHost?.name ?? "Saved host")
+                            .font(.subheadline.weight(.semibold))
+
+                        Text(continuityRecord.note)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(3)
+
+                        Text(continuityRecord.lastConnectionAt.formatted(date: .abbreviated, time: .shortened))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }
@@ -202,9 +226,19 @@ struct RemoteControlScreen: View {
             }
 
             Panel(title: "Continuity Note", systemImage: "note.text") {
-                Text("Record outcome or next step after remote work. Persistence is reserved for task 0010.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(continuityRecord?.note ?? "Connect while linked to a session to record host and recency.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    if let continuityRecord {
+                        ForEach(continuityRecord.transferSummaries, id: \.self) { transfer in
+                            Label(transfer, systemImage: "arrow.up.arrow.down")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
             }
         }
     }

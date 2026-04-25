@@ -27,3 +27,21 @@
 - state object: remote continuity recorded against a session
   authority owner: Work Session
   write path: Remote Control may propose or submit updates through session-owned attach or note flows
+
+## 0.1.0 local persistence boundary
+
+- state object: durable workspace document
+  authority owner: WorkspaceStore
+  write path: feature-level actions submit product mutations to `WorkspaceStore`; `WorkspaceStore` handles local JSON load and save
+
+- state object: Goal Forest nodes, DAG edges, capture placement, host profile metadata, sessions, and session remote continuity records
+  authority owner: same product units listed above
+  write path: product actions keep their existing authority owner, with `WorkspaceStore` acting as the shared persistence boundary
+
+- state object: shell route, active sheet, split-view visibility, and live remote connection state
+  authority owner: Shell and Remote Control runtime
+  write path: in-memory SwiftUI state inside the active app run
+
+- state object: host credential secret
+  authority owner: platform credential store
+  write path: app data stores only a credential reference identifier; secret material belongs outside the workspace JSON document

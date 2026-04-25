@@ -31,8 +31,8 @@ enum ActiveSheet: Identifiable {
     }
 }
 
-struct WorkSession: Identifiable, Equatable {
-    enum Status {
+struct WorkSession: Identifiable, Codable, Equatable {
+    enum Status: String, CaseIterable, Codable {
         case active
         case paused
         case done
@@ -60,50 +60,75 @@ struct WorkSession: Identifiable, Equatable {
         }
     }
 
-    let id: String
-    let title: String
-    let status: Status
-    let objective: String
-    let continuity: String
-    let activity: [String]
+    var id: String
+    var title: String
+    var status: Status
+    var objective: String
+    var continuity: String
+    var activity: [String]
 }
 
-struct GoalNode: Identifiable, Equatable {
-    let id: String
-    let title: String
-    let summary: String
-    let systemImage: String
-    let nearbyCount: Int
-    let gridColumn: Int
-    let gridRow: Int
+struct GoalNode: Identifiable, Codable, Equatable {
+    var id: String
+    var title: String
+    var summary: String
+    var systemImage: String
+    var nearbyCount: Int
+    var gridColumn: Int
+    var gridRow: Int
 }
 
-struct GoalEdge: Identifiable, Equatable {
-    enum Style {
+struct GoalEdge: Identifiable, Codable, Equatable {
+    enum Style: String, Codable {
         case primary
         case crossLink
     }
 
-    let id: String
-    let fromNodeID: String
-    let toNodeID: String
-    let style: Style
+    var id: String
+    var fromNodeID: String
+    var toNodeID: String
+    var style: Style
 }
 
-struct CaptureItem: Identifiable {
-    let id: String
-    let title: String
-    let detail: String
+struct CaptureItem: Identifiable, Codable, Equatable {
+    var id: String
+    var title: String
+    var detail: String
+    var createdAt: Date
+    var linkedSessionID: String?
+    var linkedNodeID: String?
 }
 
-struct HostProfile: Identifiable {
-    let id: String
-    let name: String
-    let address: String
-    let note: String
+struct HostProfile: Identifiable, Codable, Equatable {
+    var id: String
+    var name: String
+    var address: String
+    var note: String
+    var credentialReferenceID: String?
+}
+
+struct RemoteContinuityRecord: Identifiable, Codable, Equatable {
+    var id: String
+    var sessionID: String
+    var hostProfileID: String
+    var lastConnectionAt: Date
+    var transferSummaries: [String]
+    var note: String
+}
+
+struct WorkspaceDocument: Codable, Equatable {
+    var schemaVersion: Int
+    var goalNodes: [GoalNode]
+    var goalEdges: [GoalEdge]
+    var sessions: [WorkSession]
+    var captures: [CaptureItem]
+    var hosts: [HostProfile]
+    var remoteContinuityRecords: [RemoteContinuityRecord]
 }
 
 enum SeedData {
+    private static let seedDate = Date(timeIntervalSince1970: 1_774_396_800)
+
     static let goalNodes: [GoalNode] = [
         GoalNode(
             id: "ship-010",
@@ -211,17 +236,26 @@ enum SeedData {
         CaptureItem(
             id: "capture-a2",
             title: "A2 sidebar recency",
-            detail: "Active session plus two recent sessions keeps resume visible without making a dashboard."
+            detail: "Active session plus two recent sessions keeps resume visible without making a dashboard.",
+            createdAt: seedDate,
+            linkedSessionID: "session-layout",
+            linkedNodeID: "ship-010"
         ),
         CaptureItem(
             id: "capture-b2",
             title: "B2 nearby context",
-            detail: "Work session carries a compact Goal Forest panel around active work."
+            detail: "Work session carries a compact Goal Forest panel around active work.",
+            createdAt: seedDate,
+            linkedSessionID: "session-layout",
+            linkedNodeID: "layout"
         ),
         CaptureItem(
             id: "capture-c1",
             title: "C1 remote linkage",
-            detail: "Remote header shows linked session or attach action."
+            detail: "Remote header shows linked session or attach action.",
+            createdAt: seedDate,
+            linkedSessionID: "session-remote-depth",
+            linkedNodeID: "remote-loop"
         )
     ]
 
@@ -230,15 +264,40 @@ enum SeedData {
             id: "host-lab",
             name: "Lab Mac mini",
             address: "lab-mini.local",
-            note: "Primary local test host placeholder."
+            note: "Primary local test host placeholder.",
+            credentialReferenceID: "keychain://crafting-table/host-lab"
         ),
         HostProfile(
             id: "host-build",
             name: "Build Box",
             address: "build.internal",
-            note: "Future terminal and transfer workflow target."
+            note: "Future terminal and transfer workflow target.",
+            credentialReferenceID: "keychain://crafting-table/host-build"
         )
     ]
+
+    static let remoteContinuityRecords: [RemoteContinuityRecord] = [
+        RemoteContinuityRecord(
+            id: "remote-session-layout-host-lab",
+            sessionID: "session-layout",
+            hostProfileID: "host-lab",
+            lastConnectionAt: seedDate,
+            transferSummaries: [
+                "No transfers recorded yet."
+            ],
+            note: "Use this host to validate the first linked Remote Control loop."
+        )
+    ]
+
+    static let initialDocument = WorkspaceDocument(
+        schemaVersion: 1,
+        goalNodes: goalNodes,
+        goalEdges: goalEdges,
+        sessions: sessions,
+        captures: captures,
+        hosts: hosts,
+        remoteContinuityRecords: remoteContinuityRecords
+    )
 
     static var activeSession: WorkSession {
         sessions[0]

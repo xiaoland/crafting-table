@@ -6,6 +6,9 @@ struct WorkSessionScreen: View {
     let nearbyNodes: [GoalNode]
     let captures: [CaptureItem]
     let linkedSessions: [WorkSession]
+    let remoteContinuity: RemoteContinuityRecord?
+    let remoteHost: HostProfile?
+    let updateStatus: (WorkSession.Status) -> Void
     let openGoalForest: () -> Void
     let openRemoteControl: () -> Void
 
@@ -56,7 +59,18 @@ struct WorkSessionScreen: View {
 
                 Spacer(minLength: 0)
 
-                StatusPill(title: session.status.title, systemImage: session.status.systemImage)
+                Menu {
+                    ForEach(WorkSession.Status.allCases, id: \.self) { status in
+                        Button {
+                            updateStatus(status)
+                        } label: {
+                            Label(status.title, systemImage: status.systemImage)
+                        }
+                    }
+                } label: {
+                    StatusPill(title: session.status.title, systemImage: session.status.systemImage)
+                }
+                .accessibilityIdentifier("work-session-status-menu")
             }
 
             Panel(title: "Objective", systemImage: "checkmark.circle") {
@@ -77,6 +91,27 @@ struct WorkSessionScreen: View {
                         ForEach(session.activity, id: \.self) { item in
                             Label(item, systemImage: "smallcircle.filled.circle")
                                 .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if let remoteContinuity {
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Remote continuity")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+
+                            Text(remoteHost?.name ?? "Saved host")
+                                .font(.subheadline.weight(.semibold))
+
+                            Text(remoteContinuity.note)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            Text("Last connected \(remoteContinuity.lastConnectionAt.formatted(date: .abbreviated, time: .shortened))")
+                                .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
                     }

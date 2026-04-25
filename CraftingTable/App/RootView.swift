@@ -1,18 +1,20 @@
 import SwiftUI
 
 struct RootView: View {
+    @EnvironmentObject private var workspaceStore: WorkspaceStore
+
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var route: AppRoute = .goalForest
     @State private var activeSheet: ActiveSheet?
     @State private var remoteState: RemoteConnectionState = .disconnected
-    @State private var selectedHostID: String? = SeedData.hosts.first?.id
+    @State private var selectedHostID: String?
     @State private var linkedRemoteSessionID: String?
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             SidebarView(
-                activeSession: SeedData.activeSession,
-                recentSessions: SeedData.recentSessions,
+                activeSession: workspaceStore.activeSession,
+                recentSessions: workspaceStore.recentSessions,
                 route: route,
                 openGoalForest: {
                     route = .goalForest
@@ -47,11 +49,11 @@ struct RootView: View {
         switch route {
         case .goalForest:
             GoalForestScreen(
-                nodes: SeedData.goalNodes,
-                edges: SeedData.goalEdges,
-                selectedNode: SeedData.primaryNode,
-                sessions: SeedData.sessions,
-                captures: SeedData.captures,
+                nodes: workspaceStore.document.goalNodes,
+                edges: workspaceStore.document.goalEdges,
+                selectedNode: workspaceStore.primaryNode,
+                sessions: workspaceStore.document.sessions,
+                captures: workspaceStore.document.captures,
                 openSession: { sessionID in
                     route = .workSession(sessionID)
                 },
@@ -60,13 +62,18 @@ struct RootView: View {
                 }
             )
         case .workSession(let sessionID):
-            let session = SeedData.session(with: sessionID) ?? SeedData.activeSession
+            let session = workspaceStore.session(with: sessionID) ?? workspaceStore.activeSession
             WorkSessionScreen(
                 session: session,
-                primaryNode: SeedData.primaryNode,
-                nearbyNodes: SeedData.nearbyNodes,
-                captures: SeedData.captures,
-                linkedSessions: SeedData.sessions,
+                primaryNode: workspaceStore.primaryNode,
+                nearbyNodes: workspaceStore.nearbyNodes,
+                captures: workspaceStore.document.captures,
+                linkedSessions: workspaceStore.document.sessions,
+                remoteContinuity: workspaceStore.remoteContinuity(for: session.id),
+                remoteHost: workspaceStore.host(with: workspaceStore.remoteContinuity(for: session.id)?.hostProfileID),
+                updateStatus: { status in
+                    workspaceStore.updateSessionStatus(sessionID: session.id, status: status)
+                },
                 openGoalForest: {
                     route = .goalForest
                 },
@@ -78,9 +85,11 @@ struct RootView: View {
         case .remoteControl:
             RemoteControlScreen(
                 state: remoteState,
-                hosts: SeedData.hosts,
+                hosts: workspaceStore.document.hosts,
                 selectedHost: selectedHost,
                 linkedSession: linkedRemoteSession,
+                continuityRecord: workspaceStore.remoteContinuity(for: linkedRemoteSessionID),
+                continuityHost: workspaceStore.host(with: workspaceStore.remoteContinuity(for: linkedRemoteSessionID)?.hostProfileID),
                 attachSession: {
                     activeSheet = .sessionAttach
                 },
@@ -90,6 +99,9 @@ struct RootView: View {
                 connect: { host in
                     selectedHostID = host.id
                     remoteState = .connected
+                    if let linkedRemoteSessionID {
+                        workspaceStore.recordRemoteConnection(hostID: host.id, sessionID: linkedRemoteSessionID)
+                    }
                 },
                 disconnect: {
                     remoteState = .disconnected
@@ -102,11 +114,11 @@ struct RootView: View {
     }
 
     private var selectedHost: HostProfile? {
-        SeedData.hosts.first { $0.id == selectedHostID } ?? SeedData.hosts.first
+        workspaceStore.host(with: selectedHostID)
     }
 
     private var linkedRemoteSession: WorkSession? {
-        linkedRemoteSessionID.flatMap { SeedData.session(with: $0) }
+        linkedRemoteSessionID.flatMap { workspaceStore.session(with: $0) }
     }
 
     @ViewBuilder
@@ -114,26 +126,66 @@ struct RootView: View {
         switch sheet {
         case .capture:
             CaptureSheet(
-                currentSession: SeedData.activeSession,
-                primaryNode: SeedData.primaryNode
-            )
-        case .sessionAttach:
-            SessionAttachSheet(
-                activeSession: SeedData.activeSession,
-                recentSessions: SeedData.recentSessions,
-                attach: { session in
-                    linkedRemoteSessionID = session.id
+                currentSession: workspaceStore.activeSession,
+                primaryNode: workspaceStore.primaryNode,
+                save: { text, sessionID, nodeID in
+                    workspaceStore.createCapture(
+                        text: text,
+                        linkedSessionID: sessionID,
+                        linkedNodeID: nodeID
+                    )
                     activeSheet = nil
                 }
             )
+        case .sessionAttach:
+            SessionAttachSheet(
+                activeSession: workspaceStore.activeSession,
+                recentSessions: workspaceStore.recentSessions,
+                attach: { session in
+                    linkedRemoteSessionID = session.id
+                    recordConnectedRemoteActivityIfNeeded(sessionID: session.id)
+                    activeSheet = nil
+                },
+                createAndAttach: {
+                    let session = workspaceStore.createSession()
+                    linkedRemoteSessionID = session.id
+                    recordConnectedRemoteActivityIfNeeded(sessionID: session.id)
+                    activeSheet = nil
+                    return session
+                }
+            )
         case .nodeEditor:
-            NodeEditSheet(node: SeedData.primaryNode)
+            NodeEditSheet(
+                node: workspaceStore.primaryNode,
+                save: { node in
+                    workspaceStore.updateGoalNode(node)
+                    activeSheet = nil
+                }
+            )
         case .hostEditor:
-            HostProfileSheet(host: selectedHost ?? SeedData.hosts[0])
+            HostProfileSheet(
+                host: selectedHost ?? SeedData.hosts[0],
+                save: { host in
+                    workspaceStore.updateHostProfile(host)
+                    selectedHostID = host.id
+                    activeSheet = nil
+                }
+            )
         }
+    }
+
+    private func recordConnectedRemoteActivityIfNeeded(sessionID: String) {
+        guard remoteState == .connected,
+              let hostID = selectedHost?.id
+        else {
+            return
+        }
+
+        workspaceStore.recordRemoteConnection(hostID: hostID, sessionID: sessionID)
     }
 }
 
 #Preview {
     RootView()
+        .environmentObject(WorkspaceStore())
 }

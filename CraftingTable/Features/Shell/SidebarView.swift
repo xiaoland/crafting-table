@@ -46,7 +46,7 @@ struct SidebarView: View {
                     SidebarSection(title: "Current Work") {
                         SessionSidebarRow(
                             session: activeSession,
-                            label: "Active",
+                            label: activeSession.status.title,
                             isSelected: route == .workSession(activeSession.id),
                             accessibilityIdentifier: "sidebar-session-\(activeSession.id)",
                             action: {
