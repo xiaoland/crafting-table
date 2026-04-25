@@ -48,6 +48,7 @@ struct RootView: View {
         case .goalForest:
             GoalForestScreen(
                 nodes: SeedData.goalNodes,
+                edges: SeedData.goalEdges,
                 selectedNode: SeedData.primaryNode,
                 sessions: SeedData.sessions,
                 captures: SeedData.captures,

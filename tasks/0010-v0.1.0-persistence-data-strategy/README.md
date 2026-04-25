@@ -30,6 +30,7 @@ In scope for this slice:
 
 - choose the first persistence mechanism for local personal use
 - persist Goal Forest nodes and relationships needed by the first operable screen
+- persist Goal Forest DAG edges, cross-links, and fixed grid layout positions
 - persist work sessions with active, paused, and done state
 - persist captures before and after explicit placement
 - persist saved host profiles at workspace scope
@@ -58,6 +59,7 @@ Out of scope for this slice:
 ## State Objects To Cover
 
 - Goal Forest nodes and nearby relationships
+- Goal Forest node grid positions and DAG edges
 - work sessions and session lifecycle state
 - captures and explicit placement links
 - host profiles
@@ -73,6 +75,7 @@ Out of scope for this slice:
 - Does remote continuity need a single freeform note, or small fields such as outcome and next step?
 - Should session-to-Goal Forest linkage support one primary link in `0.1.0`, or only a list of related links?
 - Should unlinked captures exist as an explicit seed pool state, or as captures with no placement link?
+- Should grid positions be stored directly, derived deterministically from DAG topology, or both?
 
 ## Verification Plan
 

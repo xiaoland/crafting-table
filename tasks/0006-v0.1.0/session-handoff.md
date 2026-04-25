@@ -79,6 +79,7 @@ The working `0.1.0` non-goals are currently:
 - `Goal Forest` and `Remote Control` are parallel tabs, with `Goal Forest` first.
 - `work session` has content priority, `Goal Forest` may shrink into minimap context, and capture starts from a floating create button.
 - The first low-fidelity layout cut uses A2 shell recency, B2 nearby Goal Forest context, and C1 Remote Control session linkage.
+- The full `Goal Forest` screen should be a tree-like fixed-grid DAG canvas with visible node connections and allowed cross-links; `0.1.0` should not include drag-and-drop node positioning.
 - The current minimum `Goal Forest` operation set is being treated as sufficient for now.
 
 ## Current tension that is now deferred

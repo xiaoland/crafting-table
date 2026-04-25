@@ -74,6 +74,20 @@ struct GoalNode: Identifiable, Equatable {
     let summary: String
     let systemImage: String
     let nearbyCount: Int
+    let gridColumn: Int
+    let gridRow: Int
+}
+
+struct GoalEdge: Identifiable, Equatable {
+    enum Style {
+        case primary
+        case crossLink
+    }
+
+    let id: String
+    let fromNodeID: String
+    let toNodeID: String
+    let style: Style
 }
 
 struct CaptureItem: Identifiable {
@@ -96,28 +110,63 @@ enum SeedData {
             title: "Ship 0.1.0",
             summary: "Align shell, sessions, capture, Goal Forest, and Remote Control into one repeatable loop.",
             systemImage: "flag",
-            nearbyCount: 4
+            nearbyCount: 4,
+            gridColumn: 0,
+            gridRow: 1
         ),
         GoalNode(
             id: "remote-loop",
             title: "Remote Work Loop",
             summary: "Keep terminal-first remote work linked to sessions without adding ceremony.",
             systemImage: "terminal",
-            nearbyCount: 3
+            nearbyCount: 3,
+            gridColumn: 1,
+            gridRow: 2
         ),
         GoalNode(
             id: "capture",
             title: "Cheap Capture",
             summary: "Save raw state first and decide placement later.",
             systemImage: "tray.and.arrow.down",
-            nearbyCount: 2
+            nearbyCount: 2,
+            gridColumn: 2,
+            gridRow: 1
         ),
         GoalNode(
             id: "layout",
             title: "iPad Shell",
             summary: "Make orientation and execution share one SideBar plus Content shell.",
             systemImage: "sidebar.left",
-            nearbyCount: 3
+            nearbyCount: 3,
+            gridColumn: 1,
+            gridRow: 0
+        )
+    ]
+
+    static let goalEdges: [GoalEdge] = [
+        GoalEdge(
+            id: "ship-layout",
+            fromNodeID: "ship-010",
+            toNodeID: "layout",
+            style: .primary
+        ),
+        GoalEdge(
+            id: "ship-remote",
+            fromNodeID: "ship-010",
+            toNodeID: "remote-loop",
+            style: .primary
+        ),
+        GoalEdge(
+            id: "layout-capture",
+            fromNodeID: "layout",
+            toNodeID: "capture",
+            style: .primary
+        ),
+        GoalEdge(
+            id: "remote-capture",
+            fromNodeID: "remote-loop",
+            toNodeID: "capture",
+            style: .crossLink
         )
     ]
 

@@ -55,6 +55,20 @@ Minimum states:
 
 This keeps direct remote entry cheap while making unattached remote activity visible and recoverable.
 
+### D1 - Goal Forest DAG grid canvas
+
+The full `Goal Forest` surface uses a fixed grid layout of a directed acyclic graph.
+
+Minimum shape:
+
+- tree-like trunk and branch reading order
+- visible directed node connections
+- cross-links are allowed because the structure is a DAG
+- node positions are generated or assigned by grid layout
+- no drag-and-drop positioning in `0.1.0`
+
+This keeps the surface canvas-like and relational without turning the first version into a freeform drawing tool.
+
 ## First Screen Layouts
 
 ### Persistent shell
@@ -66,7 +80,7 @@ This keeps direct remote entry cheap while making unattached remote activity vis
 ### Goal Forest screen
 
 - Header: `Goal Forest`, selected node summary, create/edit node action.
-- Main area: low-fidelity node map using simple grouped cards.
+- Main area: low-fidelity tree-like DAG canvas using fixed grid layout, visible node connections, and cross-links.
 - Side context: linked sessions and captures for the selected node.
 - Primary transition: open linked or new work session.
 
@@ -104,6 +118,7 @@ This slice should implement:
 
 - local SwiftUI navigation state only
 - static seed data for sessions, nodes, captures, and hosts
+- static seed data for Goal Forest node grid positions and DAG edges
 - low-fidelity connected/disconnected toggles for Remote Control
 - honest placeholders for persistence, real terminal connection, and file transfer
 
@@ -116,6 +131,7 @@ This slice should leave to later tasks:
 
 - App launches into `Goal Forest`.
 - Sidebar contains `Goal Forest`, `Remote Control`, one active session, and two recent sessions.
+- `Goal Forest` shows a tree-like fixed-grid DAG canvas with directed edges and at least one cross-link.
 - Selecting a session opens the `work session` screen.
 - `work session` shows nearby Goal Forest context.
 - `work session` can open Remote Control with linked session state.
