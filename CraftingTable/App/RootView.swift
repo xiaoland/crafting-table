@@ -1,209 +1,135 @@
 import SwiftUI
 
-enum WorkspaceSection: String, CaseIterable, Identifiable {
-    case overview
-    case currentWork
-    case tasks
-    case notes
-    case inbox
-    case settings
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .overview:
-            return "Overview"
-        case .currentWork:
-            return "Current Work"
-        case .tasks:
-            return "Tasks"
-        case .notes:
-            return "Notes"
-        case .inbox:
-            return "Inbox"
-        case .settings:
-            return "Settings"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .overview:
-            return "square.grid.2x2"
-        case .currentWork:
-            return "scope"
-        case .tasks:
-            return "checklist"
-        case .notes:
-            return "note.text"
-        case .inbox:
-            return "tray"
-        case .settings:
-            return "gearshape"
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .overview:
-            return "Start here"
-        case .currentWork:
-            return "What you are doing now"
-        case .tasks:
-            return "Things to finish"
-        case .notes:
-            return "Ideas and fragments"
-        case .inbox:
-            return "Inputs to triage"
-        case .settings:
-            return "App configuration"
-        }
-    }
-}
-
 struct RootView: View {
-    @State private var selection: WorkspaceSection? = .overview
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var route: AppRoute = .goalForest
+    @State private var activeSheet: ActiveSheet?
+    @State private var remoteState: RemoteConnectionState = .disconnected
+    @State private var selectedHostID: String? = SeedData.hosts.first?.id
+    @State private var linkedRemoteSessionID: String?
 
     var body: some View {
-        NavigationSplitView {
-            List(WorkspaceSection.allCases, selection: $selection) { section in
-                Label(section.title, systemImage: section.systemImage)
-                    .tag(section)
-            }
-            .navigationTitle("Crafting Table")
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            SidebarView(
+                activeSession: SeedData.activeSession,
+                recentSessions: SeedData.recentSessions,
+                route: route,
+                openGoalForest: {
+                    route = .goalForest
+                },
+                openRemoteControl: {
+                    linkedRemoteSessionID = nil
+                    route = .remoteControl
+                },
+                openSession: { session in
+                    route = .workSession(session.id)
+                }
+            )
         } detail: {
-            detailView(for: selection ?? .overview)
+            ZStack(alignment: .bottomTrailing) {
+                detailView
+
+                CaptureButton {
+                    activeSheet = .capture
+                }
+                .padding(24)
+            }
+            .background(Color(uiColor: .systemGroupedBackground))
         }
         .navigationSplitViewStyle(.balanced)
+        .sheet(item: $activeSheet) { sheet in
+            sheetView(for: sheet)
+        }
     }
 
     @ViewBuilder
-    private func detailView(for section: WorkspaceSection) -> some View {
-        switch section {
-        case .overview:
-            HomeView()
-        case .currentWork:
-            PlaceholderSectionView(
-                title: section.title,
-                subtitle: section.subtitle,
-                systemImage: section.systemImage,
-                bullets: [
-                    "Define how current work should be captured.",
-                    "Decide which context should follow you across sessions.",
-                    "Keep this surface lightweight until the product idea matures."
-                ]
-            )
-        case .tasks:
-            PlaceholderSectionView(
-                title: section.title,
-                subtitle: section.subtitle,
-                systemImage: section.systemImage,
-                bullets: [
-                    "Collect lightweight task concepts.",
-                    "Avoid premature workflow decisions.",
-                    "Promote only durable rules into docs."
-                ]
-            )
-        case .notes:
-            PlaceholderSectionView(
-                title: section.title,
-                subtitle: section.subtitle,
-                systemImage: section.systemImage,
-                bullets: [
-                    "Use this area for raw thinking.",
-                    "Separate unstable ideas from durable product decisions.",
-                    "Promote recurring patterns into the PRD."
-                ]
-            )
-        case .inbox:
-            PlaceholderSectionView(
-                title: section.title,
-                subtitle: section.subtitle,
-                systemImage: section.systemImage,
-                bullets: [
-                    "Future home for mail, captures, and imported context.",
-                    "Do not design integrations until the product pressure is clearer.",
-                    "Start from manual input before automation."
-                ]
-            )
-        case .settings:
-            PlaceholderSectionView(
-                title: section.title,
-                subtitle: section.subtitle,
-                systemImage: section.systemImage,
-                bullets: [
-                    "App-level preferences will live here.",
-                    "Multi-device concerns can be added later.",
-                    "Keep the initial shell simple and easy to evolve."
-                ]
-            )
-        }
-    }
-}
-
-private struct PlaceholderSectionView: View {
-    let title: String
-    let subtitle: String
-    let systemImage: String
-    let bullets: [String]
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    header
-                    bulletList
+    private var detailView: some View {
+        switch route {
+        case .goalForest:
+            GoalForestScreen(
+                nodes: SeedData.goalNodes,
+                selectedNode: SeedData.primaryNode,
+                sessions: SeedData.sessions,
+                captures: SeedData.captures,
+                openSession: { sessionID in
+                    route = .workSession(sessionID)
+                },
+                editNode: {
+                    activeSheet = .nodeEditor
                 }
-                .padding(24)
-                .frame(maxWidth: 720, alignment: .leading)
-            }
-            .navigationTitle(title)
-        }
-    }
-
-    private var header: some View {
-        HStack(alignment: .top, spacing: 16) {
-            Image(systemName: systemImage)
-                .font(.system(size: 28, weight: .semibold))
-                .foregroundStyle(.tint)
-                .frame(width: 44, height: 44)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(title)
-                    .font(.largeTitle)
-                    .fontWeight(.semibold)
-
-                Text(subtitle)
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-
-                Text("This is a placeholder surface for early discovery. Keep structure minimal until the product direction is stable enough to deserve stronger commitments.")
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private var bulletList: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Current guidance")
-                .font(.headline)
-
-            ForEach(bullets, id: \.self) { bullet in
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 7))
-                        .padding(.top, 7)
-                        .foregroundStyle(.secondary)
-
-                    Text(bullet)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+            )
+        case .workSession(let sessionID):
+            let session = SeedData.session(with: sessionID) ?? SeedData.activeSession
+            WorkSessionScreen(
+                session: session,
+                primaryNode: SeedData.primaryNode,
+                nearbyNodes: SeedData.nearbyNodes,
+                captures: SeedData.captures,
+                linkedSessions: SeedData.sessions,
+                openGoalForest: {
+                    route = .goalForest
+                },
+                openRemoteControl: {
+                    linkedRemoteSessionID = session.id
+                    route = .remoteControl
                 }
-            }
+            )
+        case .remoteControl:
+            RemoteControlScreen(
+                state: remoteState,
+                hosts: SeedData.hosts,
+                selectedHost: selectedHost,
+                linkedSession: linkedRemoteSession,
+                attachSession: {
+                    activeSheet = .sessionAttach
+                },
+                editHost: {
+                    activeSheet = .hostEditor
+                },
+                connect: { host in
+                    selectedHostID = host.id
+                    remoteState = .connected
+                },
+                disconnect: {
+                    remoteState = .disconnected
+                },
+                returnToSession: { session in
+                    route = .workSession(session.id)
+                }
+            )
         }
-        .padding(20)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+    }
+
+    private var selectedHost: HostProfile? {
+        SeedData.hosts.first { $0.id == selectedHostID } ?? SeedData.hosts.first
+    }
+
+    private var linkedRemoteSession: WorkSession? {
+        linkedRemoteSessionID.flatMap { SeedData.session(with: $0) }
+    }
+
+    @ViewBuilder
+    private func sheetView(for sheet: ActiveSheet) -> some View {
+        switch sheet {
+        case .capture:
+            CaptureSheet(
+                currentSession: SeedData.activeSession,
+                primaryNode: SeedData.primaryNode
+            )
+        case .sessionAttach:
+            SessionAttachSheet(
+                activeSession: SeedData.activeSession,
+                recentSessions: SeedData.recentSessions,
+                attach: { session in
+                    linkedRemoteSessionID = session.id
+                    activeSheet = nil
+                }
+            )
+        case .nodeEditor:
+            NodeEditSheet(node: SeedData.primaryNode)
+        case .hostEditor:
+            HostProfileSheet(host: selectedHost ?? SeedData.hosts[0])
+        }
     }
 }
 

@@ -35,7 +35,8 @@ If you are resuming this work in a new session, read in this order:
 17. `tasks/0006-v0.1.0/user-journeys.md`
 18. `tasks/0006-v0.1.0/minimum-screen-inventory.md`
 19. `tasks/0006-v0.1.0/transition-map.md`
-20. this file
+20. `tasks/0006-v0.1.0/low-fidelity-layout-packet.md`
+21. this file
 
 ## Current durable product position
 
@@ -77,6 +78,7 @@ The working `0.1.0` non-goals are currently:
 - There is no standalone `Home` concept in the current shell direction.
 - `Goal Forest` and `Remote Control` are parallel tabs, with `Goal Forest` first.
 - `work session` has content priority, `Goal Forest` may shrink into minimap context, and capture starts from a floating create button.
+- The first low-fidelity layout cut uses A2 shell recency, B2 nearby Goal Forest context, and C1 Remote Control session linkage.
 - The current minimum `Goal Forest` operation set is being treated as sufficient for now.
 
 ## Current tension that is now deferred
@@ -90,15 +92,14 @@ For now, the chosen simplification is to keep `0.1.0` fully human-operated acros
 
 ## Recommended next decision
 
-The next useful step is to turn the current screen inventory and transition map into a low-fidelity layout packet for `0.1.0`.
+The next useful step is to implement the low-fidelity SwiftUI shell skeleton for `0.1.0`.
 
 The minimal decision that is still missing is:
 
-- how much current or recent session state belongs in the shell without creating a second dashboard
-- what the smallest believable `Goal Forest` minimap looks like around active work
 - whether any manual review affordance exists beyond remote file access
+- whether the shell skeleton reveals any missing product or technical decision before persistence and real remote depth begin
 
-Without that decision, the IA may stay coherent in writing but still underspecified for screen-level design.
+Without that implementation pass, the IA may stay coherent in writing but still untested as an iPad-first SwiftUI surface.
 
 ## Proposed minimum `Goal Forest` operation set
 
@@ -135,6 +136,7 @@ At the time of writing, the main ongoing document changes are:
 - `tasks/0006-v0.1.0/user-journeys.md`
 - `tasks/0006-v0.1.0/minimum-screen-inventory.md`
 - `tasks/0006-v0.1.0/transition-map.md`
+- `tasks/0006-v0.1.0/low-fidelity-layout-packet.md`
 
 These are documentation changes only. No code or tests have been changed yet.
 
@@ -142,4 +144,4 @@ These are documentation changes only. No code or tests have been changed yet.
 
 If a future session needs a concise restart point, use:
 
-"Continue product-definition work for `(xiaoland's) Crafting Table`. Read `docs/00-meta/input-intent.md`, `docs/00-meta/mode-a-explore.md`, `docs/10-prd/glossary.md`, `docs/10-prd/behavior/claims.md`, `docs/10-prd/behavior/scope.md`, `docs/10-prd/behavior/workflows.md`, `docs/20-product-tdd/system-state-and-authority.md`, `tasks/0006-v0.1.0/scope.md`, `tasks/0006-v0.1.0/README.md`, `tasks/0006-v0.1.0/information-architecture.md`, `tasks/0006-v0.1.0/user-journeys.md`, `tasks/0006-v0.1.0/minimum-screen-inventory.md`, `tasks/0006-v0.1.0/transition-map.md`, and `tasks/0006-v0.1.0/session-handoff.md`. Agent support is out of `0.1.0`. There is no standalone Home; the shell is SideBar + Content, with Goal Forest first and Remote Control parallel. The immediate task is to turn the current packet into a low-fidelity layout packet."
+"Continue product-definition work for `(xiaoland's) Crafting Table`. Read `docs/00-meta/input-intent.md`, `docs/00-meta/mode-c-execute.md`, `docs/10-prd/glossary.md`, `docs/10-prd/behavior/claims.md`, `docs/10-prd/behavior/scope.md`, `docs/10-prd/behavior/workflows.md`, `docs/20-product-tdd/system-state-and-authority.md`, `tasks/0006-v0.1.0/scope.md`, `tasks/0006-v0.1.0/README.md`, `tasks/0006-v0.1.0/information-architecture.md`, `tasks/0006-v0.1.0/user-journeys.md`, `tasks/0006-v0.1.0/minimum-screen-inventory.md`, `tasks/0006-v0.1.0/transition-map.md`, `tasks/0006-v0.1.0/low-fidelity-layout-packet.md`, and `tasks/0006-v0.1.0/session-handoff.md`. Agent support is out of `0.1.0`. There is no standalone Home; the shell is SideBar + Content, with Goal Forest first and Remote Control parallel. The immediate task is to implement the low-fidelity SwiftUI shell skeleton."

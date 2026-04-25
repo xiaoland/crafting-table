@@ -30,6 +30,7 @@ The current notes in this folder cover:
 - the current user-journey draft
 - the minimum screen inventory
 - the minimum transition map
+- the low-fidelity layout packet for the first SwiftUI shell skeleton
 
 This task stays in `tasks/` because the detailed reasoning is still volatile.
 
@@ -64,6 +65,7 @@ This folder is the current compromise:
 17. `user-journeys.md`
 18. `minimum-screen-inventory.md`
 19. `transition-map.md`
+20. `low-fidelity-layout-packet.md`
 
 ## Current outputs
 
@@ -79,13 +81,12 @@ The current recommended `0.1.0` position is:
 - `Goal Forest` may keep its metaphorical name, but operational labels should stay literal
 - `Goal Forest` may also shrink into minimap context around active work
 - capture starts from a small global floating create button
+- the first layout cut uses A2 shell recency, B2 nearby Goal Forest context, and C1 Remote Control session linkage
 
 ## Remaining open questions
 
 - Does `0.1.0` need any manual review affordance beyond remote file access?
-- How much current or recent session state should remain visible in the shell without creating a second dashboard?
-- What is the minimum visual form of the shell recency affordance without turning the sidebar into a second dashboard?
-- What is the minimum visual form of the `Goal Forest` minimap around active work?
+- Does the low-fidelity SwiftUI shell reveal any missing product or technical decision before persistence and real remote depth begin?
 
 ## References
 

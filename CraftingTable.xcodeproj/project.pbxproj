@@ -8,16 +8,28 @@
 /* Begin PBXBuildFile section */
 		A10000010000000000000001 /* CraftingTableApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000110000000000000001 /* CraftingTableApp.swift */; };
 		A10000010000000000000002 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000110000000000000002 /* RootView.swift */; };
-		A10000010000000000000003 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000110000000000000003 /* HomeView.swift */; };
 		A10000010000000000000004 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000110000000000000004 /* Assets.xcassets */; };
+		A10000010000000000000006 /* WorkspaceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000110000000000000006 /* WorkspaceModels.swift */; };
+		A10000010000000000000007 /* SharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000110000000000000007 /* SharedComponents.swift */; };
+		A10000010000000000000008 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000110000000000000008 /* SidebarView.swift */; };
+		A10000010000000000000009 /* GoalForestScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000110000000000000009 /* GoalForestScreen.swift */; };
+		A1000001000000000000000A /* WorkSessionScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000011000000000000000A /* WorkSessionScreen.swift */; };
+		A1000001000000000000000B /* RemoteControlScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000011000000000000000B /* RemoteControlScreen.swift */; };
+		A1000001000000000000000C /* CaptureSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000011000000000000000C /* CaptureSheets.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A10000110000000000000001 /* CraftingTableApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftingTableApp.swift; sourceTree = "<group>"; };
 		A10000110000000000000002 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
-		A10000110000000000000003 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		A10000110000000000000004 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A10000110000000000000005 /* CraftingTable.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CraftingTable.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000110000000000000006 /* WorkspaceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceModels.swift; sourceTree = "<group>"; };
+		A10000110000000000000007 /* SharedComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedComponents.swift; sourceTree = "<group>"; };
+		A10000110000000000000008 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
+		A10000110000000000000009 /* GoalForestScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalForestScreen.swift; sourceTree = "<group>"; };
+		A1000011000000000000000A /* WorkSessionScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkSessionScreen.swift; sourceTree = "<group>"; };
+		A1000011000000000000000B /* RemoteControlScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteControlScreen.swift; sourceTree = "<group>"; };
+		A1000011000000000000000C /* CaptureSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSheets.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,17 +73,63 @@
 		A10000310000000000000004 /* Features */ = {
 			isa = PBXGroup;
 			children = (
-				A10000310000000000000005 /* Home */,
+				A10000310000000000000007 /* Shared */,
+				A10000310000000000000008 /* Shell */,
+				A10000310000000000000009 /* GoalForest */,
+				A1000031000000000000000A /* WorkSession */,
+				A1000031000000000000000B /* RemoteControl */,
+				A1000031000000000000000C /* Capture */,
 			);
 			path = Features;
 			sourceTree = "<group>";
 		};
-		A10000310000000000000005 /* Home */ = {
+		A10000310000000000000007 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
-				A10000110000000000000003 /* HomeView.swift */,
+				A10000110000000000000006 /* WorkspaceModels.swift */,
+				A10000110000000000000007 /* SharedComponents.swift */,
 			);
-			path = Home;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		A10000310000000000000008 /* Shell */ = {
+			isa = PBXGroup;
+			children = (
+				A10000110000000000000008 /* SidebarView.swift */,
+			);
+			path = Shell;
+			sourceTree = "<group>";
+		};
+		A10000310000000000000009 /* GoalForest */ = {
+			isa = PBXGroup;
+			children = (
+				A10000110000000000000009 /* GoalForestScreen.swift */,
+			);
+			path = GoalForest;
+			sourceTree = "<group>";
+		};
+		A1000031000000000000000A /* WorkSession */ = {
+			isa = PBXGroup;
+			children = (
+				A1000011000000000000000A /* WorkSessionScreen.swift */,
+			);
+			path = WorkSession;
+			sourceTree = "<group>";
+		};
+		A1000031000000000000000B /* RemoteControl */ = {
+			isa = PBXGroup;
+			children = (
+				A1000011000000000000000B /* RemoteControlScreen.swift */,
+			);
+			path = RemoteControl;
+			sourceTree = "<group>";
+		};
+		A1000031000000000000000C /* Capture */ = {
+			isa = PBXGroup;
+			children = (
+				A1000011000000000000000C /* CaptureSheets.swift */,
+			);
+			path = Capture;
 			sourceTree = "<group>";
 		};
 		A10000310000000000000006 /* Products */ = {
@@ -153,7 +211,13 @@
 			files = (
 				A10000010000000000000001 /* CraftingTableApp.swift in Sources */,
 				A10000010000000000000002 /* RootView.swift in Sources */,
-				A10000010000000000000003 /* HomeView.swift in Sources */,
+				A10000010000000000000006 /* WorkspaceModels.swift in Sources */,
+				A10000010000000000000007 /* SharedComponents.swift in Sources */,
+				A10000010000000000000008 /* SidebarView.swift in Sources */,
+				A10000010000000000000009 /* GoalForestScreen.swift in Sources */,
+				A1000001000000000000000A /* WorkSessionScreen.swift in Sources */,
+				A1000001000000000000000B /* RemoteControlScreen.swift in Sources */,
+				A1000001000000000000000C /* CaptureSheets.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
