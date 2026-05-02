@@ -136,6 +136,23 @@ Verified:
 - local HTTP smoke for `/health`
 - local HTTP smoke for `/threads?limit=3`
 
+## Slice 2 Outcome
+
+macOS Desktop Scout now exists in `Companion/scouts/macos/`.
+
+Implemented:
+
+- Swift executable package `codex-macos-scout`
+- Codex running-app discovery through `NSWorkspace`
+- AX window snapshot with title, role, subrole, focus, main-window state, and bounds
+- JSON output with app snapshots, window snapshots, errors, and confidence
+
+Verified:
+
+- `swift build --package-path Companion/scouts/macos`
+- `swift run --package-path Companion/scouts/macos codex-macos-scout --pretty`
+- local run found `com.openai.codex`, AX trusted state, and visible Codex windows
+
 ## Open Technical Questions
 
 - First companion transport: HTTP plus WebSocket, or one WebSocket RPC channel.
