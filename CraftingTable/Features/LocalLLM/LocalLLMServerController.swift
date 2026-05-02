@@ -2,6 +2,17 @@ import Foundation
 
 @MainActor
 final class LocalLLMServerController: ObservableObject {
+    enum ControllerError: LocalizedError {
+        case noActiveModel
+
+        var errorDescription: String? {
+            switch self {
+            case .noActiveModel:
+                return "Choose an active verified model first."
+            }
+        }
+    }
+
     @Published private(set) var state: LocalLLMServerState = .stopped
     @Published private(set) var bearerToken: String
     @Published var port: UInt16 = 8787
@@ -40,21 +51,12 @@ final class LocalLLMServerController: ObservableObject {
                         store?.models ?? []
                     }
                 },
-                generateHandler: { [weak store] request in
-                    let modelID = await MainActor.run {
-                        request.modelID ?? store?.activeModel?.id
+                generateHandler: { [weak self] request in
+                    guard let self else {
+                        throw ControllerError.noActiveModel
                     }
 
-                    guard let modelID else {
-                        throw LocalLLMHTTPServer.ServerError.unsupportedRoute
-                    }
-
-                    return LocalLLMGenerationResult(
-                        modelID: modelID,
-                        outputText: "Local LLM runtime is not connected yet.",
-                        inputTokens: nil,
-                        outputTokens: nil
-                    )
+                    return try await self.generate(request)
                 }
             )
 
@@ -62,6 +64,31 @@ final class LocalLLMServerController: ObservableObject {
         } catch {
             state = .failed(error.localizedDescription)
         }
+    }
+
+    func generate(_ request: LocalLLMGenerationRequest) async throws -> LocalLLMGenerationResult {
+        let modelID = request.modelID ?? store.activeModel?.id
+        guard let modelID else {
+            throw ControllerError.noActiveModel
+        }
+
+        let previousState = state
+        if case .listening(let url) = state {
+            state = .generating(url)
+        }
+
+        defer {
+            if case .generating = state {
+                state = previousState
+            }
+        }
+
+        return LocalLLMGenerationResult(
+            modelID: modelID,
+            outputText: "Runtime adapter pending. Prompt received: \(request.input)",
+            inputTokens: nil,
+            outputTokens: nil
+        )
     }
 
     func stop() {

@@ -14,6 +14,13 @@ struct LocalLLMScreen: View {
                 VStack(alignment: .leading, spacing: 16) {
                     header
 
+                    LocalLLMChatPanel(
+                        activeModel: store.activeModel,
+                        generate: { request in
+                            try await server.generate(request)
+                        }
+                    )
+
                     ViewThatFits(in: .horizontal) {
                         HStack(alignment: .top, spacing: 16) {
                             serverPanel

@@ -119,6 +119,41 @@ struct LocalLLMGenerationResult: Equatable {
     var outputTokens: Int?
 }
 
+struct LocalLLMChatMessage: Identifiable, Equatable {
+    enum Role: String {
+        case user
+        case assistant
+        case system
+
+        var title: String {
+            switch self {
+            case .user:
+                return "User"
+            case .assistant:
+                return "Assistant"
+            case .system:
+                return "System"
+            }
+        }
+
+        var systemImage: String {
+            switch self {
+            case .user:
+                return "person"
+            case .assistant:
+                return "sparkles"
+            case .system:
+                return "exclamationmark.circle"
+            }
+        }
+    }
+
+    var id = UUID()
+    var role: Role
+    var text: String
+    var createdAt = Date()
+}
+
 enum LocalLLMServerState: Equatable {
     case stopped
     case starting
