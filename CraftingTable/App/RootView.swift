@@ -5,6 +5,8 @@ struct RootView: View {
     @EnvironmentObject private var localLLMStore: LocalLLMStore
     @EnvironmentObject private var localLLMServer: LocalLLMServerController
 
+    @AppStorage("floatingCreateButtonCorner") private var floatingCreateButtonCornerRawValue = FloatingCreateButtonCorner.bottomTrailing.rawValue
+
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var route: AppRoute = .goalForest
     @State private var activeSheet: ActiveSheet?
@@ -15,44 +17,44 @@ struct RootView: View {
     @State private var connectingFromGoalNodeID: String?
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
-            SidebarView(
-                activeSession: workspaceStore.activeSession,
-                recentSessions: workspaceStore.recentSessions,
-                route: route,
-                openGoalForest: {
-                    route = .goalForest
-                },
-                openRemoteControl: {
-                    linkedRemoteSessionID = nil
-                    route = .remoteControl
-                },
-                openLocalLLM: {
-                    route = .localLLM
-                },
-                openCodexRemote: {
-                    route = .codexRemote
-                },
-                openSession: { session in
-                    route = .workSession(session.id)
-                }
-            )
-        } detail: {
-            ZStack(alignment: .bottomTrailing) {
+        ZStack {
+            NavigationSplitView(columnVisibility: $columnVisibility) {
+                SidebarView(
+                    activeSession: workspaceStore.activeSession,
+                    recentSessions: workspaceStore.recentSessions,
+                    route: route,
+                    openGoalForest: {
+                        route = .goalForest
+                    },
+                    openRemoteControl: {
+                        linkedRemoteSessionID = nil
+                        route = .remoteControl
+                    },
+                    openLocalLLM: {
+                        route = .localLLM
+                    },
+                    openCodexRemote: {
+                        route = .codexRemote
+                    },
+                    openSession: { session in
+                        route = .workSession(session.id)
+                    }
+                )
+            } detail: {
                 detailView
-
-                if showsFloatingCreateButton {
-                    CaptureButton(
-                        accessibilityLabel: route == .goalForest ? "Create Goal Node" : "Create Capture",
-                        accessibilityIdentifier: route == .goalForest ? "goal-forest-create-node-button" : "global-capture-button",
-                        action: handleFloatingCreate
-                    )
-                    .padding(24)
-                }
+                    .background(Color(uiColor: .systemGroupedBackground))
             }
-            .background(Color(uiColor: .systemGroupedBackground))
+            .navigationSplitViewStyle(.balanced)
+
+            if showsFloatingCreateButton {
+                FloatingCreateButton(
+                    corner: floatingCreateButtonCorner,
+                    accessibilityLabel: route == .goalForest ? "Create Goal Node" : "Create Capture",
+                    accessibilityIdentifier: route == .goalForest ? "goal-forest-create-node-button" : "global-capture-button",
+                    action: handleFloatingCreate
+                )
+            }
         }
-        .navigationSplitViewStyle(.balanced)
         .sheet(item: $activeSheet) { sheet in
             sheetView(for: sheet)
         }
@@ -167,6 +169,17 @@ struct RootView: View {
         }
     }
 
+    private var floatingCreateButtonCorner: Binding<FloatingCreateButtonCorner> {
+        Binding(
+            get: {
+                FloatingCreateButtonCorner(rawValue: floatingCreateButtonCornerRawValue) ?? .bottomTrailing
+            },
+            set: { corner in
+                floatingCreateButtonCornerRawValue = corner.rawValue
+            }
+        )
+    }
+
     private var selectedHost: HostProfile? {
         workspaceStore.host(with: selectedHostID)
     }
@@ -268,6 +281,149 @@ struct RootView: View {
         }
 
         workspaceStore.recordRemoteConnection(hostID: hostID, sessionID: sessionID)
+    }
+}
+
+private enum FloatingCreateButtonCorner: String, CaseIterable {
+    case topLeading
+    case topTrailing
+    case bottomLeading
+    case bottomTrailing
+
+    var isLeading: Bool {
+        switch self {
+        case .topLeading, .bottomLeading:
+            return true
+        case .topTrailing, .bottomTrailing:
+            return false
+        }
+    }
+
+    var isTop: Bool {
+        switch self {
+        case .topLeading, .topTrailing:
+            return true
+        case .bottomLeading, .bottomTrailing:
+            return false
+        }
+    }
+}
+
+private struct FloatingCreateButton: View {
+    @Binding var corner: FloatingCreateButtonCorner
+
+    let accessibilityLabel: String
+    let accessibilityIdentifier: String
+    let action: () -> Void
+
+    @GestureState private var dragTranslation: CGSize = .zero
+
+    private let buttonDiameter: CGFloat = 54
+    private let edgeInset: CGFloat = 24
+
+    var body: some View {
+        GeometryReader { geometry in
+            CaptureButton(
+                accessibilityLabel: accessibilityLabel,
+                accessibilityIdentifier: accessibilityIdentifier,
+                action: action
+            )
+            .position(
+                position(
+                    for: corner,
+                    in: geometry.size,
+                    safeAreaInsets: geometry.safeAreaInsets,
+                    dragTranslation: dragTranslation
+                )
+            )
+            .highPriorityGesture(
+                DragGesture(minimumDistance: 8, coordinateSpace: .local)
+                    .updating($dragTranslation) { value, state, _ in
+                        state = value.translation
+                    }
+                    .onEnded { value in
+                        let finalPosition = position(
+                            for: corner,
+                            in: geometry.size,
+                            safeAreaInsets: geometry.safeAreaInsets,
+                            dragTranslation: value.translation
+                        )
+                        corner = nearestCorner(
+                            to: finalPosition,
+                            in: geometry.size,
+                            safeAreaInsets: geometry.safeAreaInsets
+                        )
+                    }
+            )
+            .animation(.snappy(duration: 0.24), value: corner)
+        }
+    }
+
+    private func position(
+        for corner: FloatingCreateButtonCorner,
+        in size: CGSize,
+        safeAreaInsets: EdgeInsets,
+        dragTranslation: CGSize = .zero
+    ) -> CGPoint {
+        let baseX = corner.isLeading
+            ? safeAreaInsets.leading + edgeInset + buttonDiameter / 2
+            : size.width - safeAreaInsets.trailing - edgeInset - buttonDiameter / 2
+        let baseY = corner.isTop
+            ? safeAreaInsets.top + edgeInset + buttonDiameter / 2
+            : size.height - safeAreaInsets.bottom - edgeInset - buttonDiameter / 2
+
+        return clampedPosition(
+            CGPoint(
+                x: baseX + dragTranslation.width,
+                y: baseY + dragTranslation.height
+            ),
+            in: size,
+            safeAreaInsets: safeAreaInsets
+        )
+    }
+
+    private func nearestCorner(
+        to point: CGPoint,
+        in size: CGSize,
+        safeAreaInsets: EdgeInsets
+    ) -> FloatingCreateButtonCorner {
+        FloatingCreateButtonCorner.allCases.min { lhs, rhs in
+            let lhsPosition = position(for: lhs, in: size, safeAreaInsets: safeAreaInsets)
+            let rhsPosition = position(for: rhs, in: size, safeAreaInsets: safeAreaInsets)
+
+            return squaredDistance(from: point, to: lhsPosition) < squaredDistance(from: point, to: rhsPosition)
+        } ?? .bottomTrailing
+    }
+
+    private func clampedPosition(
+        _ point: CGPoint,
+        in size: CGSize,
+        safeAreaInsets: EdgeInsets
+    ) -> CGPoint {
+        let minX = safeAreaInsets.leading + edgeInset + buttonDiameter / 2
+        let maxX = size.width - safeAreaInsets.trailing - edgeInset - buttonDiameter / 2
+        let minY = safeAreaInsets.top + edgeInset + buttonDiameter / 2
+        let maxY = size.height - safeAreaInsets.bottom - edgeInset - buttonDiameter / 2
+
+        return CGPoint(
+            x: clampedCoordinate(point.x, min: minX, max: maxX, fallback: size.width / 2),
+            y: clampedCoordinate(point.y, min: minY, max: maxY, fallback: size.height / 2)
+        )
+    }
+
+    private func clampedCoordinate(_ value: CGFloat, min: CGFloat, max: CGFloat, fallback: CGFloat) -> CGFloat {
+        guard min <= max else {
+            return fallback
+        }
+
+        return Swift.min(Swift.max(value, min), max)
+    }
+
+    private func squaredDistance(from lhs: CGPoint, to rhs: CGPoint) -> CGFloat {
+        let dx = lhs.x - rhs.x
+        let dy = lhs.y - rhs.y
+
+        return dx * dx + dy * dy
     }
 }
 
