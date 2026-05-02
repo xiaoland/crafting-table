@@ -6,6 +6,7 @@ struct SidebarView: View {
     let route: AppRoute
     let openGoalForest: () -> Void
     let openRemoteControl: () -> Void
+    let openLocalLLM: () -> Void
     let openSession: (WorkSession) -> Void
 
     var body: some View {
@@ -40,6 +41,15 @@ struct SidebarView: View {
                             isSelected: route == .remoteControl,
                             accessibilityIdentifier: "sidebar-remote-control",
                             action: openRemoteControl
+                        )
+
+                        SidebarRow(
+                            title: "Local LLM",
+                            subtitle: "Models, LAN server",
+                            systemImage: "brain.head.profile",
+                            isSelected: route == .localLLM,
+                            accessibilityIdentifier: "sidebar-local-llm",
+                            action: openLocalLLM
                         )
                     }
 

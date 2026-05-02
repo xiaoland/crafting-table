@@ -2,6 +2,8 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var workspaceStore: WorkspaceStore
+    @EnvironmentObject private var localLLMStore: LocalLLMStore
+    @EnvironmentObject private var localLLMServer: LocalLLMServerController
 
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var route: AppRoute = .goalForest
@@ -22,6 +24,9 @@ struct RootView: View {
                 openRemoteControl: {
                     linkedRemoteSessionID = nil
                     route = .remoteControl
+                },
+                openLocalLLM: {
+                    route = .localLLM
                 },
                 openSession: { session in
                     route = .workSession(session.id)
@@ -109,6 +114,11 @@ struct RootView: View {
                 returnToSession: { session in
                     route = .workSession(session.id)
                 }
+            )
+        case .localLLM:
+            LocalLLMScreen(
+                store: localLLMStore,
+                server: localLLMServer
             )
         }
     }
