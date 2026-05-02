@@ -52,4 +52,4 @@ Observed turn result:
 
 ## Next Cut
 
-Wire the CraftingTable `CodexRemoteScreen` to select a thread, submit text through the new turn route, and render the completed assistant text. Keep live event projection for the following slice.
+Add live event projection for active turns, including status changes, assistant deltas, approval requests, user-input requests, and errors.

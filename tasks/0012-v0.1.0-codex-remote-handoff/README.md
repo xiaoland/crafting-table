@@ -41,10 +41,10 @@ Goal Forest, Work Session, and Remote Control integration sit outside this MVP. 
 
 Build the semantic handoff path behind the existing companion boundary:
 
-1. Extend the standalone CraftingTable Codex Remote surface to select a thread.
-2. Add text input and submit through `POST /threads/{thread_id}/turns`.
-3. Display completed assistant text from the synchronous MVP response.
-4. Add event or polling feedback after the request/response path is stable.
+1. Add live event or polling feedback for active turns.
+2. Surface approval and user-input request states from Companion.
+3. Add LAN pairing and companion endpoint persistence.
+4. Decide the first hot-handoff reconciliation UI from scout confidence.
 
 ## Promotion Candidates
 

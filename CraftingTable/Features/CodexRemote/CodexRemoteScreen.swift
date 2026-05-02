@@ -7,6 +7,11 @@ struct CodexRemoteScreen: View {
     @State private var threadList: CodexRemoteThreadList?
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var selectedThreadID: String?
+    @State private var turnInput = ""
+    @State private var turnResult: CodexRemoteTurnResult?
+    @State private var isSubmittingTurn = false
+    @State private var turnErrorMessage: String?
 
     private let client = CodexRemoteClient()
 
@@ -25,7 +30,28 @@ struct CodexRemoteScreen: View {
                     CodexRemoteStatusPanel(health: health)
                 }
 
-                CodexRemoteThreadsPanel(threadList: threadList)
+                CodexRemoteThreadsPanel(
+                    threadList: threadList,
+                    selectedThreadID: selectedThreadID,
+                    selectThread: { thread in
+                        selectedThreadID = thread.id
+                        turnResult = nil
+                        turnErrorMessage = nil
+                    }
+                )
+
+                CodexRemoteTurnPanel(
+                    selectedThread: selectedThread,
+                    input: $turnInput,
+                    result: turnResult,
+                    isSubmitting: isSubmittingTurn,
+                    errorMessage: turnErrorMessage,
+                    submit: {
+                        Task {
+                            await submitTurn()
+                        }
+                    }
+                )
             }
             .padding(24)
             .frame(maxWidth: 1040, alignment: .topLeading)
@@ -93,11 +119,61 @@ struct CodexRemoteScreen: View {
             let snapshot = try await client.loadSnapshot(endpoint: endpoint)
             health = snapshot.health
             threadList = snapshot.threadList
+            preserveOrSelectThread(from: snapshot.threadList.threads)
         } catch {
             errorMessage = error.localizedDescription
         }
 
         isLoading = false
+    }
+
+    @MainActor
+    private func submitTurn() async {
+        let trimmedInput = turnInput.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard let selectedThreadID else {
+            turnErrorMessage = "Select a thread first."
+            return
+        }
+
+        guard !trimmedInput.isEmpty else {
+            turnErrorMessage = "Message is required."
+            return
+        }
+
+        isSubmittingTurn = true
+        turnErrorMessage = nil
+
+        do {
+            let result = try await client.submitTurn(
+                endpoint: endpoint,
+                threadID: selectedThreadID,
+                input: trimmedInput
+            )
+            turnResult = result
+            turnInput = ""
+            await refresh()
+        } catch {
+            turnErrorMessage = error.localizedDescription
+        }
+
+        isSubmittingTurn = false
+    }
+
+    private var selectedThread: CodexRemoteThread? {
+        threadList?.threads.first { thread in
+            thread.id == selectedThreadID
+        }
+    }
+
+    private func preserveOrSelectThread(from threads: [CodexRemoteThread]) {
+        if let selectedThreadID,
+           threads.contains(where: { $0.id == selectedThreadID })
+        {
+            return
+        }
+
+        selectedThreadID = threads.first?.id
     }
 }
 
@@ -148,6 +224,8 @@ private struct CodexRemoteStatusPanel: View {
 
 private struct CodexRemoteThreadsPanel: View {
     let threadList: CodexRemoteThreadList?
+    let selectedThreadID: String?
+    let selectThread: (CodexRemoteThread) -> Void
 
     var body: some View {
         Panel(title: "Codex Threads", systemImage: "text.bubble") {
@@ -167,7 +245,13 @@ private struct CodexRemoteThreadsPanel: View {
                     } else {
                         VStack(spacing: 8) {
                             ForEach(threadList.threads) { thread in
-                                CodexRemoteThreadRow(thread: thread)
+                                CodexRemoteThreadRow(
+                                    thread: thread,
+                                    isSelected: thread.id == selectedThreadID,
+                                    select: {
+                                        selectThread(thread)
+                                    }
+                                )
                             }
                         }
                     }
@@ -182,40 +266,119 @@ private struct CodexRemoteThreadsPanel: View {
 
 private struct CodexRemoteThreadRow: View {
     let thread: CodexRemoteThread
+    let isSelected: Bool
+    let select: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "bubble.left.and.text.bubble.right")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.tint)
-                .frame(width: 28, height: 28)
-                .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+        Button(action: select) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "bubble.left.and.text.bubble.right")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(isSelected ? Color.white : Color.accentColor)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        isSelected ? Color.white.opacity(0.18) : Color.accentColor.opacity(0.12),
+                        in: RoundedRectangle(cornerRadius: 6)
+                    )
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(thread.title)
-                    .font(.subheadline.weight(.semibold))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(thread.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(isSelected ? .white : .primary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(thread.id)
+                        .font(.caption)
+                        .foregroundStyle(isSelected ? .white.opacity(0.8) : .secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+
+                Spacer(minLength: 0)
+
+                Text(thread.displayUpdatedAt)
+                    .font(.caption2)
+                    .foregroundStyle(isSelected ? .white.opacity(0.82) : .secondary)
+                    .multilineTextAlignment(.trailing)
                     .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(thread.id)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
             }
-
-            Spacer(minLength: 0)
-
-            Text(thread.updatedAt)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.trailing)
-                .lineLimit(2)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .background(
+                isSelected ? Color.accentColor : Color(uiColor: .secondarySystemBackground),
+                in: RoundedRectangle(cornerRadius: 8)
+            )
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+        .buttonStyle(.plain)
         .accessibilityIdentifier("codex-remote-thread-\(thread.id)")
+    }
+}
+
+private struct CodexRemoteTurnPanel: View {
+    let selectedThread: CodexRemoteThread?
+    @Binding var input: String
+    let result: CodexRemoteTurnResult?
+    let isSubmitting: Bool
+    let errorMessage: String?
+    let submit: () -> Void
+
+    var body: some View {
+        Panel(title: "Turn", systemImage: "paperplane") {
+            VStack(alignment: .leading, spacing: 12) {
+                CodexRemoteKeyValueRow(
+                    title: "Selected",
+                    value: selectedThread?.title ?? "No thread selected"
+                )
+
+                TextEditor(text: $input)
+                    .frame(minHeight: 110)
+                    .padding(8)
+                    .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color(uiColor: .separator), lineWidth: 0.5)
+                    )
+                    .disabled(selectedThread == nil || isSubmitting)
+                    .accessibilityIdentifier("codex-remote-turn-input")
+
+                HStack(spacing: 10) {
+                    Button(action: submit) {
+                        Label("Send", systemImage: "paperplane.fill")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(selectedThread == nil || input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSubmitting)
+                    .accessibilityIdentifier("codex-remote-turn-send-button")
+
+                    if isSubmitting {
+                        ProgressView("Waiting for turn")
+                            .font(.footnote)
+                    }
+                }
+
+                if let errorMessage {
+                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("codex-remote-turn-error")
+                }
+
+                if let result {
+                    VStack(alignment: .leading, spacing: 8) {
+                        CodexRemoteKeyValueRow(title: "Status", value: result.status)
+                        CodexRemoteKeyValueRow(title: "Events", value: "\(result.eventCount)")
+                        Text(result.assistantText)
+                            .font(.body)
+                            .textSelection(.enabled)
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+                    }
+                    .accessibilityIdentifier("codex-remote-turn-result")
+                }
+            }
+        }
     }
 }
 

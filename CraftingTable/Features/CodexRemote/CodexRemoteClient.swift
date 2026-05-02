@@ -55,6 +55,23 @@ struct CodexRemoteThread: Decodable, Identifiable {
     let id: String
     let title: String
     let updatedAt: String
+
+    var displayUpdatedAt: String {
+        guard let seconds = Double(updatedAt) else {
+            return updatedAt
+        }
+
+        return Date(timeIntervalSince1970: seconds)
+            .formatted(date: .abbreviated, time: .shortened)
+    }
+}
+
+struct CodexRemoteTurnResult: Decodable {
+    let threadId: String
+    let turnId: String
+    let status: String
+    let assistantText: String
+    let eventCount: Int
 }
 
 struct CodexRemoteClient {
@@ -69,18 +86,48 @@ struct CodexRemoteClient {
         return try await CodexRemoteSnapshot(health: health, threadList: threadList)
     }
 
+    func submitTurn(endpoint: String, threadID: String, input: String, cwd: String? = nil) async throws -> CodexRemoteTurnResult {
+        let baseURL = try normalizedBaseURL(from: endpoint)
+        let turnURL = baseURL
+            .appendingPathComponent("threads")
+            .appendingPathComponent(threadID)
+            .appendingPathComponent("turns")
+        let payload = CodexRemoteTurnSubmitPayload(input: input, cwd: cwd)
+
+        return try await send(payload, to: turnURL)
+    }
+
     private func fetch<Response: Decodable>(_ type: Response.Type, from url: URL) async throws -> Response {
         let (data, response) = try await URLSession.shared.data(from: url)
+
+        return try decode(type, from: data, response: response)
+    }
+
+    private func send<Body: Encodable, Response: Decodable>(_ body: Body, to url: URL) async throws -> Response {
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        return try decode(Response.self, from: data, response: response)
+    }
+
+    private func decode<Response: Decodable>(_ type: Response.Type, from data: Data, response: URLResponse) throws -> Response {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
 
         guard let httpResponse = response as? HTTPURLResponse,
               (200..<300).contains(httpResponse.statusCode)
         else {
+            if let apiError = try? decoder.decode(CodexRemoteAPIError.self, from: data) {
+                throw CodexRemoteClientError.server(apiError.error)
+            }
+
             let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
             throw CodexRemoteClientError.badStatus(statusCode)
         }
 
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
         return try decoder.decode(type, from: data)
     }
 
@@ -117,9 +164,19 @@ struct CodexRemoteClient {
     }
 }
 
+private struct CodexRemoteTurnSubmitPayload: Encodable {
+    let input: String
+    let cwd: String?
+}
+
+private struct CodexRemoteAPIError: Decodable {
+    let error: String
+}
+
 enum CodexRemoteClientError: LocalizedError {
     case invalidEndpoint
     case badStatus(Int)
+    case server(String)
 
     var errorDescription: String? {
         switch self {
@@ -127,6 +184,8 @@ enum CodexRemoteClientError: LocalizedError {
             return "Enter a valid Companion endpoint."
         case .badStatus(let statusCode):
             return statusCode > 0 ? "Companion returned HTTP \(statusCode)." : "Companion returned an invalid response."
+        case .server(let message):
+            return message
         }
     }
 }

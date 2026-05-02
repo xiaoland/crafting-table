@@ -207,6 +207,23 @@ Verified:
 - local Companion smoke for `GET /threads?limit=2`, `POST /threads/{thread_id}/resume`, and `POST /threads/{thread_id}/turns`
 - marker response returned `CRAFTINGTABLE_COMPANION_RECHECK_OK` with status `completed`
 
+## Slice 6 Outcome
+
+CraftingTable Codex Remote can now submit a text turn through Companion.
+
+Implemented:
+
+- selectable thread rows in `CodexRemoteScreen`
+- turn composer bound to the selected Codex thread
+- `CodexRemoteClient.submitTurn` for `POST /threads/{thread_id}/turns`
+- synchronous completed-turn result display with status, event count, and assistant text
+- Companion API error decoding in the iPad client
+- numeric app-server timestamps rendered as local dates in thread rows
+
+Verified:
+
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+
 ## Open Technical Questions
 
 - First pairing UX for LAN use.
