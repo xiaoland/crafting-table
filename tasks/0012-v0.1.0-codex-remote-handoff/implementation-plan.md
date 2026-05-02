@@ -224,6 +224,25 @@ Verified:
 
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
 
+## Slice 7 Outcome
+
+Companion now exposes Desktop Scout hot-handoff clues through a CraftingTable-owned route, and CraftingTable surfaces those clues inside Codex Remote.
+
+Implemented:
+
+- `GET /desktop/snapshot` in Companion
+- platform scout launcher for macOS Swift Scout and Windows UIA Scout binaries
+- normalized desktop snapshot response with platform, source, target app, confidence, window count, active window title, errors, and raw scout JSON
+- Codex Remote client support for desktop snapshots
+- `Desktop Handoff` panel in `CodexRemoteScreen`
+
+Verified:
+
+- `cargo fmt --manifest-path Companion/Cargo.toml`
+- `cargo test --manifest-path Companion/Cargo.toml`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+- local Companion smoke for `GET /desktop/snapshot`, returning `platform: macos`, `source: macos-swift-scout`, `confidence: medium`, `window_count: 3`, and no scout errors
+
 ## Open Technical Questions
 
 - First pairing UX for LAN use.

@@ -26,7 +26,8 @@ Useful environment variables:
 - `GET /threads?limit=20`: semantic thread list from Codex app-server with `session_index.jsonl` fallback
 - `POST /threads/{thread_id}/resume`: resume a Codex thread through app-server
 - `POST /threads/{thread_id}/turns`: submit one text turn and return the completed assistant text
+- `GET /desktop/snapshot`: run the platform Desktop Scout and return normalized hot-handoff clues
 
 ## Current Scope
 
-This slice proves Companion-owned semantic handoff through a loopback Codex app-server. Event streaming, approval handling, and persistent app-server supervision land in later slices.
+This slice proves Companion-owned semantic handoff through a loopback Codex app-server and Desktop Scout snapshotting through a small Companion route. Event streaming, approval handling, persistent app-server supervision, and pairing land in later slices.

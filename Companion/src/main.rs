@@ -1,6 +1,7 @@
 mod app_server;
 mod codex;
 mod config;
+mod desktop_scout;
 mod models;
 mod routes;
 mod thread_store;

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Debug, Serialize)]
 pub struct ApiError {
@@ -92,4 +93,16 @@ pub struct TurnSubmitResponse {
     pub status: String,
     pub assistant_text: String,
     pub event_count: usize,
+}
+
+#[derive(Debug, Serialize)]
+pub struct DesktopSnapshotResponse {
+    pub platform: String,
+    pub source: String,
+    pub target_app_name: Option<String>,
+    pub confidence: String,
+    pub window_count: usize,
+    pub active_window_title: Option<String>,
+    pub errors: Vec<String>,
+    pub raw: Value,
 }

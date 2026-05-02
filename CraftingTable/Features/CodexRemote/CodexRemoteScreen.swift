@@ -5,8 +5,10 @@ struct CodexRemoteScreen: View {
     @State private var endpoint = "http://127.0.0.1:3765"
     @State private var health: CodexRemoteHealth?
     @State private var threadList: CodexRemoteThreadList?
+    @State private var desktopSnapshot: CodexRemoteDesktopSnapshot?
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var desktopErrorMessage: String?
     @State private var selectedThreadID: String?
     @State private var turnInput = ""
     @State private var turnResult: CodexRemoteTurnResult?
@@ -29,6 +31,11 @@ struct CodexRemoteScreen: View {
                 if let health {
                     CodexRemoteStatusPanel(health: health)
                 }
+
+                CodexRemoteDesktopPanel(
+                    snapshot: desktopSnapshot,
+                    errorMessage: desktopErrorMessage
+                )
 
                 CodexRemoteThreadsPanel(
                     threadList: threadList,
@@ -114,6 +121,7 @@ struct CodexRemoteScreen: View {
     private func refresh() async {
         isLoading = true
         errorMessage = nil
+        desktopErrorMessage = nil
 
         do {
             let snapshot = try await client.loadSnapshot(endpoint: endpoint)
@@ -122,6 +130,13 @@ struct CodexRemoteScreen: View {
             preserveOrSelectThread(from: snapshot.threadList.threads)
         } catch {
             errorMessage = error.localizedDescription
+        }
+
+        do {
+            desktopSnapshot = try await client.loadDesktopSnapshot(endpoint: endpoint)
+        } catch {
+            desktopSnapshot = nil
+            desktopErrorMessage = error.localizedDescription
         }
 
         isLoading = false
@@ -174,6 +189,46 @@ struct CodexRemoteScreen: View {
         }
 
         selectedThreadID = threads.first?.id
+    }
+}
+
+private struct CodexRemoteDesktopPanel: View {
+    let snapshot: CodexRemoteDesktopSnapshot?
+    let errorMessage: String?
+
+    var body: some View {
+        Panel(title: "Desktop Handoff", systemImage: "rectangle.on.rectangle") {
+            VStack(alignment: .leading, spacing: 12) {
+                if let snapshot {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 10)], spacing: 10) {
+                        MetricBadge(value: snapshot.confidence, label: "Confidence")
+                        MetricBadge(value: "\(snapshot.windowCount)", label: "Windows")
+                        MetricBadge(value: snapshot.platform, label: "Platform")
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        CodexRemoteKeyValueRow(title: "Source", value: snapshot.source)
+                        CodexRemoteKeyValueRow(title: "Target", value: snapshot.targetAppName ?? "Codex")
+                        CodexRemoteKeyValueRow(title: "Active", value: snapshot.activeWindowTitle ?? "Unavailable")
+                    }
+
+                    ForEach(snapshot.errors, id: \.self) { error in
+                        Label(error, systemImage: "exclamationmark.triangle")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                    }
+                } else if let errorMessage {
+                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("codex-remote-desktop-error")
+                } else {
+                    ContentUnavailableView("No desktop snapshot", systemImage: "rectangle.slash")
+                        .frame(maxWidth: .infinity, minHeight: 120)
+                }
+            }
+        }
     }
 }
 

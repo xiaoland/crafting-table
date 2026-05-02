@@ -5,6 +5,16 @@ struct CodexRemoteSnapshot {
     let threadList: CodexRemoteThreadList
 }
 
+struct CodexRemoteDesktopSnapshot: Decodable {
+    let platform: String
+    let source: String
+    let targetAppName: String?
+    let confidence: String
+    let windowCount: Int
+    let activeWindowTitle: String?
+    let errors: [String]
+}
+
 struct CodexRemoteHealth: Decodable {
     let service: String
     let version: String
@@ -95,6 +105,15 @@ struct CodexRemoteClient {
         let payload = CodexRemoteTurnSubmitPayload(input: input, cwd: cwd)
 
         return try await send(payload, to: turnURL)
+    }
+
+    func loadDesktopSnapshot(endpoint: String) async throws -> CodexRemoteDesktopSnapshot {
+        let baseURL = try normalizedBaseURL(from: endpoint)
+        let desktopURL = baseURL
+            .appendingPathComponent("desktop")
+            .appendingPathComponent("snapshot")
+
+        return try await fetch(CodexRemoteDesktopSnapshot.self, from: desktopURL)
     }
 
     private func fetch<Response: Decodable>(_ type: Response.Type, from url: URL) async throws -> Response {

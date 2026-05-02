@@ -11,6 +11,7 @@ use axum::{
 use crate::{
     app_server, codex,
     config::Config,
+    desktop_scout,
     models::{
         ApiError, HealthResponse, PlatformInfo, ScoutHealth, ScoutStatus, ThreadListQuery,
         TurnSubmitRequest,
@@ -37,6 +38,7 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/threads", get(list_threads))
         .route("/threads/:thread_id/resume", post(resume_thread))
         .route("/threads/:thread_id/turns", post(submit_turn))
+        .route("/desktop/snapshot", get(desktop_snapshot))
         .with_state(state)
 }
 
@@ -117,6 +119,13 @@ async fn submit_turn(
     {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(error) => api_error(StatusCode::BAD_GATEWAY, error),
+    }
+}
+
+async fn desktop_snapshot() -> impl IntoResponse {
+    match desktop_scout::snapshot().await {
+        Ok(response) => (StatusCode::OK, Json(response)).into_response(),
+        Err(error) => api_error(StatusCode::SERVICE_UNAVAILABLE, error),
     }
 }
 

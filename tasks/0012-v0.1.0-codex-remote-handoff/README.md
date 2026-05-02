@@ -24,6 +24,7 @@ Executing
 - `implementation-plan.md`: implementation locations, technology stack, and MVP execution slices.
 - `windows-smoke-findings.md`: `ws.yyh` probing results, Windows UI Automation findings, and smoke-runner implications.
 - `semantic-handoff-findings.md`: app-server protocol facts, Companion adapter shape, and semantic smoke results.
+- `desktop-handoff-findings.md`: Companion Desktop Scout route, normalized snapshot contract, and hot-handoff smoke result.
 
 ## Current Decision
 
@@ -39,12 +40,12 @@ Goal Forest, Work Session, and Remote Control integration sit outside this MVP. 
 
 ## Next Execution Target
 
-Build the semantic handoff path behind the existing companion boundary:
+Harden the standalone Codex Remote path behind the existing companion boundary:
 
 1. Add live event or polling feedback for active turns.
 2. Surface approval and user-input request states from Companion.
 3. Add LAN pairing and companion endpoint persistence.
-4. Decide the first hot-handoff reconciliation UI from scout confidence.
+4. Use Desktop Scout confidence to guide manual thread selection or semantic resume.
 
 ## Promotion Candidates
 
