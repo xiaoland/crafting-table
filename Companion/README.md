@@ -44,6 +44,12 @@ Probe a running Companion:
 ./scripts/codex-remote-companion.sh smoke
 ```
 
+The same commands are exposed as Codex App Local Environment actions in:
+
+```text
+.codex/environments/environment.toml
+```
+
 ## Endpoints
 
 - `GET /health`: companion, platform, Codex CLI, app-server reachability, and scout placeholders

@@ -259,16 +259,19 @@ Codex Remote Companion now has shared local launch entrypoints:
 - `scripts/codex-remote-companion.sh scout`: one macOS Desktop Scout snapshot.
 - `scripts/codex-remote-companion.sh smoke`: health, desktop snapshot, and thread-list smoke against `CODEX_REMOTE_ENDPOINT` or `http://127.0.0.1:3765`.
 
+Codex App exposes the same commands as Local Environment actions in `.codex/environments/environment.toml`.
+
 VS Code exposes the same commands as tasks under `Codex Remote:*`.
 
-Codex App, CLI, and IDE can use the repo skill `$codex-remote-companion`, stored at `.agents/skills/codex-remote-companion/SKILL.md`.
-
-Official Codex docs name the CI integration `Codex GitHub Action` and describe local reusable workflows as `skills`. This task uses a repo skill for local Mac startup, because launching Companion and macOS Scout depends on the developer's interactive Mac session and Accessibility permission. A future GitHub Action can cover CI checks for scripts, builds, and smoke prompts.
+Official Codex docs describe Local Environment actions as project actions that appear in the Codex App top bar and run inside the app's integrated terminal. This fits Companion and macOS Scout startup because the commands depend on the developer's interactive Mac session and Accessibility permission.
 
 Verified:
 
 - `bash -n scripts/codex-remote-companion.sh`
+- `python3 -c 'import tomllib; tomllib.load(open(".codex/environments/environment.toml", "rb"))'`
 - `jq empty .vscode/tasks.json`
 - `./scripts/codex-remote-companion.sh scout`
 - `./scripts/codex-remote-companion.sh companion`
 - `./scripts/codex-remote-companion.sh smoke`
+
+Latest smoke against an already-running Companion confirmed `/health`, `/desktop/snapshot`, and `/threads?limit=5` all returned. The existing Companion process lacked macOS Accessibility trust in that launch context, so the desktop snapshot reported `confidence: low` with an AX window-read error. Launching the same script from an Accessibility-trusted terminal context restores window-level Scout data.

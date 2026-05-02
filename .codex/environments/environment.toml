@@ -13,3 +13,23 @@ command = "./scripts/launch-ipad-simulator.sh"
 name = "Launch Connected iPad"
 icon = "play"
 command = "./scripts/launch-ipad-device.sh"
+
+[[actions]]
+name = "Start Codex Remote Companion"
+icon = "play"
+command = "./scripts/codex-remote-companion.sh companion"
+
+[[actions]]
+name = "Start Codex Remote Companion LAN"
+icon = "play"
+command = "./scripts/codex-remote-companion.sh companion-lan"
+
+[[actions]]
+name = "Run Codex macOS Scout Snapshot"
+icon = "play"
+command = "./scripts/codex-remote-companion.sh scout"
+
+[[actions]]
+name = "Smoke Codex Remote Companion"
+icon = "play"
+command = "./scripts/codex-remote-companion.sh smoke"
