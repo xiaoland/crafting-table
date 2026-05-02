@@ -1,3 +1,4 @@
+mod app_server;
 mod codex;
 mod config;
 mod models;

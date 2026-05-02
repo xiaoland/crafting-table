@@ -60,3 +60,36 @@ pub struct ThreadSummary {
     pub title: String,
     pub updated_at: String,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct TurnSubmitRequest {
+    pub input: String,
+    pub cwd: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ThreadResumeResponse {
+    pub thread: SemanticThreadSummary,
+    pub model: Option<String>,
+    pub model_provider: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct SemanticThreadSummary {
+    pub id: String,
+    pub title: String,
+    pub preview: String,
+    pub cwd: Option<String>,
+    pub status: String,
+    pub updated_at: String,
+    pub source: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TurnSubmitResponse {
+    pub thread_id: String,
+    pub turn_id: String,
+    pub status: String,
+    pub assistant_text: String,
+    pub event_count: usize,
+}

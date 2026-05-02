@@ -23,6 +23,7 @@ Executing
 - `handoff-architecture.md`: handoff modes, companion boundary, evidence, and risk framing.
 - `implementation-plan.md`: implementation locations, technology stack, and MVP execution slices.
 - `windows-smoke-findings.md`: `ws.yyh` probing results, Windows UI Automation findings, and smoke-runner implications.
+- `semantic-handoff-findings.md`: app-server protocol facts, Companion adapter shape, and semantic smoke results.
 
 ## Current Decision
 
@@ -40,11 +41,10 @@ Goal Forest, Work Session, and Remote Control integration sit outside this MVP. 
 
 Build the semantic handoff path behind the existing companion boundary:
 
-1. Inspect the local Codex app-server protocol exposed by the installed Desktop bundle.
-2. Add a Companion-owned semantic adapter that can resume one known thread and submit one input.
-3. Expose the smallest stable Companion contract for selected thread state and turn submission.
-4. Extend the standalone CraftingTable Codex Remote surface to select a thread and submit input.
-5. Add event or polling feedback only after the request/response path is stable.
+1. Extend the standalone CraftingTable Codex Remote surface to select a thread.
+2. Add text input and submit through `POST /threads/{thread_id}/turns`.
+3. Display completed assistant text from the synchronous MVP response.
+4. Add event or polling feedback after the request/response path is stable.
 
 ## Promotion Candidates
 

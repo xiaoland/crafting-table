@@ -187,6 +187,26 @@ Verified:
 - built app `Info.plist` contains `NSLocalNetworkUsageDescription` and `NSAppTransportSecurity.NSAllowsLocalNetworking`
 - `git diff --check`
 
+## Slice 5 Outcome
+
+Companion semantic handoff now exists behind a CraftingTable-owned HTTP contract.
+
+Implemented:
+
+- `CodexAppServerClient` that launches local Codex app-server on an ephemeral loopback WebSocket port
+- app-server `initialize` and `initialized` handshake
+- app-server-backed `GET /threads?limit=20` with `session_index.jsonl` fallback
+- `POST /threads/{thread_id}/resume` backed by `thread/resume`
+- `POST /threads/{thread_id}/turns` backed by `thread/resume` plus `turn/start`
+- synchronous MVP turn completion that aggregates `item/agentMessage/delta` until `turn/completed`
+
+Verified:
+
+- `cargo fmt --manifest-path Companion/Cargo.toml`
+- `cargo test --manifest-path Companion/Cargo.toml`
+- local Companion smoke for `GET /threads?limit=2`, `POST /threads/{thread_id}/resume`, and `POST /threads/{thread_id}/turns`
+- marker response returned `CRAFTINGTABLE_COMPANION_RECHECK_OK` with status `completed`
+
 ## Open Technical Questions
 
 - First pairing UX for LAN use.

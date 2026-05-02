@@ -39,7 +39,7 @@ pub async fn probe(config: &Config) -> CodexHealth {
     }
 }
 
-fn resolve_codex_bin(config: &Config) -> Option<PathBuf> {
+pub fn resolve_codex_bin(config: &Config) -> Option<PathBuf> {
     if let Some(path) = &config.codex_bin {
         if is_executable_candidate(path) {
             return Some(path.clone());

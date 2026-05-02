@@ -23,8 +23,10 @@ Useful environment variables:
 ## Endpoints
 
 - `GET /health`: companion, platform, Codex CLI, app-server reachability, and scout placeholders
-- `GET /threads?limit=20`: cold thread list from `session_index.jsonl`
+- `GET /threads?limit=20`: semantic thread list from Codex app-server with `session_index.jsonl` fallback
+- `POST /threads/{thread_id}/resume`: resume a Codex thread through app-server
+- `POST /threads/{thread_id}/turns`: submit one text turn and return the completed assistant text
 
 ## Current Scope
 
-This slice proves the runnable Companion Core boundary. Semantic resume, send input, event streaming, and scouts land in later slices.
+This slice proves Companion-owned semantic handoff through a loopback Codex app-server. Event streaming, approval handling, and persistent app-server supervision land in later slices.
