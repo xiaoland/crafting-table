@@ -1,7 +1,7 @@
 # Task 0012 - v0.1.0 Codex Remote handoff
 
 ## Status
-Proposed
+Executing
 
 ## Date
 2026-05-02
@@ -38,13 +38,13 @@ Goal Forest, Work Session, and Remote Control integration sit outside this MVP. 
 
 ## Next Execution Target
 
-Build the first MVP around `Companion/`:
+Build the semantic handoff path behind the existing companion boundary:
 
-1. Create Rust Companion Core with `health`, app-server reachability, and a minimal thread listing path.
-2. Add macOS Desktop Scout first for local active Codex window snapshot.
-3. Add Windows Desktop Scout using the smoke path proven on `ws.yyh`.
-4. Wire a minimal `Codex Remote` app surface in CraftingTable after the companion can produce stable snapshots.
-5. Keep Codex Remote runtime state self-contained for this MVP.
+1. Inspect the local Codex app-server protocol exposed by the installed Desktop bundle.
+2. Add a Companion-owned semantic adapter that can resume one known thread and submit one input.
+3. Expose the smallest stable Companion contract for selected thread state and turn submission.
+4. Extend the standalone CraftingTable Codex Remote surface to select a thread and submit input.
+5. Add event or polling feedback only after the request/response path is stable.
 
 ## Promotion Candidates
 

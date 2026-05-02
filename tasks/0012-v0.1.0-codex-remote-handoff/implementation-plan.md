@@ -87,27 +87,26 @@ Planned APIs:
    - locate Codex CLI/app bundle
    - check app-server reachability
 
-2. Semantic handoff spike
-   - list threads through app-server adapter
-   - resume a selected thread
-   - send one input
-   - stream status and assistant output
-
-3. macOS Desktop Scout spike
+2. macOS Desktop Scout spike
    - detect active Codex Desktop window
    - emit active snapshot JSON
    - add confidence fields for reconciliation
 
-4. Windows Desktop Scout spike
+3. Windows Desktop Scout spike
    - implement UIA snapshot using the proven scheduled-task execution path
    - emit the same snapshot schema as macOS
    - include structured error output for permissions, missing app, and empty UIA tree
 
-5. CraftingTable Codex Remote spike
+4. CraftingTable Codex Remote surface spike
    - add host companion connection state
    - show thread list and selected snapshot
-   - send input to selected thread
    - keep Goal Forest, Work Session, and Remote Control integration as later decisions
+
+5. Semantic handoff spike
+   - inspect the installed Codex app-server protocol
+   - resume a selected thread
+   - send one input
+   - stream or poll status and assistant output
 
 ## Validation Steps
 
@@ -170,9 +169,26 @@ Verified:
 - `scripts/windows-smoke/run-codex-windows-scout.sh ws.yyh`
 - real Windows smoke found the Codex window, WebView shell, Chrome render host, and emitted `confidence: Low` with no scout errors
 
+## Slice 4 Outcome
+
+Standalone CraftingTable Codex Remote now exists in `CraftingTable/Features/CodexRemote/`.
+
+Implemented:
+
+- `AppRoute.codexRemote` and a dedicated sidebar entry
+- `CodexRemoteScreen` with editable companion endpoint, host health, scout status, and Codex thread list
+- `CodexRemoteClient` for Companion `GET /health` and `GET /threads?limit=20`
+- target `Info.plist` entries for local-network usage and ATS local networking
+- Codex Remote runtime state remains self-contained inside the feature
+
+Verified:
+
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+- built app `Info.plist` contains `NSLocalNetworkUsageDescription` and `NSAppTransportSecurity.NSAllowsLocalNetworking`
+- `git diff --check`
+
 ## Open Technical Questions
 
-- First companion transport: HTTP plus WebSocket, or one WebSocket RPC channel.
 - First pairing UX for LAN use.
 - Minimum app-server event set for a useful mobile projection.
 - Amount of approval and user-input resolution in the first CraftingTable UI.
