@@ -119,6 +119,23 @@ Planned APIs:
 - Windows Scout can produce active Codex top-level window snapshot on `ws.yyh`.
 - CraftingTable can hold active host and thread state inside Codex Remote.
 
+## Slice 1 Outcome
+
+Companion Core bootstrap now exists in `Companion/`.
+
+Implemented:
+
+- Rust binary package `codex-remote-companion`
+- `GET /health` for companion, platform, Codex CLI, app-server reachability, and scout placeholders
+- `GET /threads?limit=20` for cold thread listing from `session_index.jsonl`
+- unit coverage for session index parsing and malformed-record handling
+
+Verified:
+
+- `cargo test --manifest-path Companion/Cargo.toml`
+- local HTTP smoke for `/health`
+- local HTTP smoke for `/threads?limit=3`
+
 ## Open Technical Questions
 
 - First companion transport: HTTP plus WebSocket, or one WebSocket RPC channel.

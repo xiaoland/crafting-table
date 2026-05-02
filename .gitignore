@@ -18,6 +18,9 @@ DerivedData/
 *.dSYM
 *.dSYM.zip
 
+# Rust
+target/
+
 # Swift Package Manager
 .build/
 Packages/
