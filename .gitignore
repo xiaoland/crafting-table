@@ -14,12 +14,24 @@ xcuserdata/
 # Build products
 build/
 DerivedData/
+.build/
 *.ipa
 *.dSYM
 *.dSYM.zip
 
+# .NET build products
+[Bb]in/
+[Oo]bj/
+*.dll
+*.exe
+*.pdb
+*.deps.json
+*.runtimeconfig.json
+
+# Rust build products
+target/
+
 # Swift Package Manager
-.build/
 Packages/
 Package.resolved
 
