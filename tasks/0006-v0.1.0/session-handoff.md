@@ -77,9 +77,13 @@ The working `0.1.0` non-goals are currently:
 - Pencil was downgraded to a low-confidence idea.
 - There is no standalone `Home` concept in the current shell direction.
 - `Goal Forest` and `Remote Control` are parallel tabs, with `Goal Forest` first.
-- `work session` has content priority, `Goal Forest` may shrink into minimap context, and capture starts from a floating create button.
+- `work session` has content priority, `Goal Forest` may shrink into minimap context, and capture stays cheap from execution-oriented surfaces.
+- On the full `Goal Forest` surface, the floating create button creates a new unlinked node so graph growth is directly visible.
 - The first low-fidelity layout cut uses A2 shell recency, B2 nearby Goal Forest context, and C1 Remote Control session linkage.
-- The full `Goal Forest` screen should be a tree-like fixed-grid DAG canvas with visible node connections and allowed cross-links; `0.1.0` should not include drag-and-drop node positioning.
+- The full `Goal Forest` screen should be a tree-like DAG canvas with automatic grid layout, visible curved directed connections, and allowed cross-links; `0.1.0` should not include drag-and-drop node positioning.
+- `Goal Forest` node selection toggles on repeated node taps and clears on blank canvas taps; node details sit above linked sessions on the trailing side.
+- The `Goal Forest` surface is a larger pan-and-zoom canvas, while node positions remain derived from DAG topology.
+- Selecting a node should not recenter the view unless the selected card would fall under the trailing floating panels.
 - The current minimum `Goal Forest` operation set is being treated as sufficient for now.
 
 ## Current tension that is now deferred

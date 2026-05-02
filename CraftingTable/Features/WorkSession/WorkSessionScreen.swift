@@ -2,7 +2,7 @@ import SwiftUI
 
 struct WorkSessionScreen: View {
     let session: WorkSession
-    let primaryNode: GoalNode
+    let primaryNode: GoalNode?
     let nearbyNodes: [GoalNode]
     let captures: [CaptureItem]
     let linkedSessions: [WorkSession]
@@ -140,7 +140,7 @@ struct WorkSessionScreen: View {
 }
 
 private struct NearbyContextPanel: View {
-    let primaryNode: GoalNode
+    let primaryNode: GoalNode?
     let nearbyNodes: [GoalNode]
     let captureCount: Int
     let sessionCount: Int
@@ -149,18 +149,24 @@ private struct NearbyContextPanel: View {
     var body: some View {
         Panel(title: "Nearby Goal Forest", systemImage: "map") {
             VStack(alignment: .leading, spacing: 12) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Primary node")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                if let primaryNode {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Primary node")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
 
-                    Text(primaryNode.title)
-                        .font(.headline)
+                        Text(primaryNode.title)
+                            .font(.headline)
 
-                    Text(primaryNode.summary)
-                        .font(.caption)
+                        Text(primaryNode.summary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(3)
+                    }
+                } else {
+                    Text("No Goal Forest node selected")
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
-                        .lineLimit(3)
                 }
 
                 Divider()

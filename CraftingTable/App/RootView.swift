@@ -11,6 +11,8 @@ struct RootView: View {
     @State private var remoteState: RemoteConnectionState = .disconnected
     @State private var selectedHostID: String?
     @State private var linkedRemoteSessionID: String?
+    @State private var selectedGoalNodeID: String?
+    @State private var connectingFromGoalNodeID: String?
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -39,10 +41,12 @@ struct RootView: View {
             ZStack(alignment: .bottomTrailing) {
                 detailView
 
-                if showsCaptureButton {
-                    CaptureButton {
-                        activeSheet = .capture
-                    }
+                if showsFloatingCreateButton {
+                    CaptureButton(
+                        accessibilityLabel: route == .goalForest ? "Create Goal Node" : "Create Capture",
+                        accessibilityIdentifier: route == .goalForest ? "goal-forest-create-node-button" : "global-capture-button",
+                        action: handleFloatingCreate
+                    )
                     .padding(24)
                 }
             }
@@ -61,9 +65,30 @@ struct RootView: View {
             GoalForestScreen(
                 nodes: workspaceStore.document.goalNodes,
                 edges: workspaceStore.document.goalEdges,
-                selectedNode: workspaceStore.primaryNode,
+                selectedNode: selectedGoalNode,
                 sessions: workspaceStore.document.sessions,
                 captures: workspaceStore.document.captures,
+                connectingFromNodeID: connectingFromGoalNodeID,
+                selectNode: { node in
+                    selectedGoalNodeID = node.id
+                },
+                clearSelection: {
+                    selectedGoalNodeID = nil
+                    connectingFromGoalNodeID = nil
+                },
+                beginConnection: { node in
+                    selectedGoalNodeID = node.id
+                    connectingFromGoalNodeID = node.id
+                },
+                createConnection: { sourceID, targetID in
+                    if workspaceStore.createGoalEdge(from: sourceID, to: targetID) {
+                        selectedGoalNodeID = targetID
+                    }
+                    connectingFromGoalNodeID = nil
+                },
+                cancelConnection: {
+                    connectingFromGoalNodeID = nil
+                },
                 openSession: { sessionID in
                     route = .workSession(sessionID)
                 },
@@ -72,26 +97,29 @@ struct RootView: View {
                 }
             )
         case .workSession(let sessionID):
-            let session = workspaceStore.session(with: sessionID) ?? workspaceStore.activeSession
-            WorkSessionScreen(
-                session: session,
-                primaryNode: workspaceStore.primaryNode,
-                nearbyNodes: workspaceStore.nearbyNodes,
-                captures: workspaceStore.document.captures,
-                linkedSessions: workspaceStore.document.sessions,
-                remoteContinuity: workspaceStore.remoteContinuity(for: session.id),
-                remoteHost: workspaceStore.host(with: workspaceStore.remoteContinuity(for: session.id)?.hostProfileID),
-                updateStatus: { status in
-                    workspaceStore.updateSessionStatus(sessionID: session.id, status: status)
-                },
-                openGoalForest: {
-                    route = .goalForest
-                },
-                openRemoteControl: {
-                    linkedRemoteSessionID = session.id
-                    route = .remoteControl
-                }
-            )
+            if let session = workspaceStore.session(with: sessionID) ?? workspaceStore.activeSession {
+                WorkSessionScreen(
+                    session: session,
+                    primaryNode: selectedGoalNode ?? workspaceStore.primaryNode,
+                    nearbyNodes: workspaceStore.nearbyNodes(for: selectedGoalNode?.id ?? workspaceStore.primaryNode?.id),
+                    captures: workspaceStore.document.captures,
+                    linkedSessions: workspaceStore.document.sessions,
+                    remoteContinuity: workspaceStore.remoteContinuity(for: session.id),
+                    remoteHost: workspaceStore.host(with: workspaceStore.remoteContinuity(for: session.id)?.hostProfileID),
+                    updateStatus: { status in
+                        workspaceStore.updateSessionStatus(sessionID: session.id, status: status)
+                    },
+                    openGoalForest: {
+                        route = .goalForest
+                    },
+                    openRemoteControl: {
+                        linkedRemoteSessionID = session.id
+                        route = .remoteControl
+                    }
+                )
+            } else {
+                ContentUnavailableView("Session unavailable", systemImage: "scope")
+            }
         case .remoteControl:
             RemoteControlScreen(
                 state: remoteState,
@@ -130,7 +158,7 @@ struct RootView: View {
         }
     }
 
-    private var showsCaptureButton: Bool {
+    private var showsFloatingCreateButton: Bool {
         switch route {
         case .goalForest, .workSession, .remoteControl:
             return true
@@ -147,13 +175,36 @@ struct RootView: View {
         linkedRemoteSessionID.flatMap { workspaceStore.session(with: $0) }
     }
 
+    private func handleFloatingCreate() {
+        switch route {
+        case .goalForest:
+            let node = workspaceStore.createGoalNode()
+            selectedGoalNodeID = node.id
+            connectingFromGoalNodeID = nil
+        case .workSession, .remoteControl:
+            activeSheet = .capture
+        case .localLLM, .codexRemote:
+            break
+        }
+    }
+
+    private var selectedGoalNode: GoalNode? {
+        guard let selectedGoalNodeID,
+              let node = workspaceStore.document.goalNodes.first(where: { $0.id == selectedGoalNodeID })
+        else {
+            return nil
+        }
+
+        return node
+    }
+
     @ViewBuilder
     private func sheetView(for sheet: ActiveSheet) -> some View {
         switch sheet {
         case .capture:
             CaptureSheet(
                 currentSession: workspaceStore.activeSession,
-                primaryNode: workspaceStore.primaryNode,
+                primaryNode: selectedGoalNode,
                 save: { text, sessionID, nodeID in
                     workspaceStore.createCapture(
                         text: text,
@@ -181,22 +232,31 @@ struct RootView: View {
                 }
             )
         case .nodeEditor:
-            NodeEditSheet(
-                node: workspaceStore.primaryNode,
-                save: { node in
-                    workspaceStore.updateGoalNode(node)
-                    activeSheet = nil
-                }
-            )
+            if let selectedGoalNode {
+                NodeEditSheet(
+                    node: selectedGoalNode,
+                    save: { node in
+                        workspaceStore.updateGoalNode(node)
+                        selectedGoalNodeID = node.id
+                        activeSheet = nil
+                    }
+                )
+            } else {
+                ContentUnavailableView("No node selected", systemImage: "target")
+            }
         case .hostEditor:
-            HostProfileSheet(
-                host: selectedHost ?? SeedData.hosts[0],
-                save: { host in
-                    workspaceStore.updateHostProfile(host)
-                    selectedHostID = host.id
-                    activeSheet = nil
-                }
-            )
+            if let selectedHost {
+                HostProfileSheet(
+                    host: selectedHost,
+                    save: { host in
+                        workspaceStore.updateHostProfile(host)
+                        selectedHostID = host.id
+                        activeSheet = nil
+                    }
+                )
+            } else {
+                ContentUnavailableView("No host selected", systemImage: "server.rack")
+            }
         }
     }
 

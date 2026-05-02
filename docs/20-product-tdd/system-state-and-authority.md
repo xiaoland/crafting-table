@@ -8,7 +8,7 @@
   authority owner: Work Session
   write path: session lifecycle actions from shell, Goal Forest, or Remote Control attach flows
 
-- state object: longer-lived placement of nodes, linked sessions, and linked captures
+- state object: longer-lived Goal Forest nodes, node relationships, linked sessions, and linked captures
   authority owner: Goal Forest
   write path: Goal Forest editing flows and explicit attach/relink actions
 

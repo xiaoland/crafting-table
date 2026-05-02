@@ -7,7 +7,7 @@ final class WorkspaceStore: ObservableObject {
 
     let fileURL: URL
 
-    init(fileURL: URL? = nil, seed: WorkspaceDocument = SeedData.initialDocument) {
+    init(fileURL: URL? = nil, seed: WorkspaceDocument = .empty) {
         let resolvedFileURL = fileURL ?? WorkspaceStore.defaultFileURL
         self.fileURL = resolvedFileURL
 
@@ -24,20 +24,42 @@ final class WorkspaceStore: ObservableObject {
         }
     }
 
-    var activeSession: WorkSession {
-        document.sessions.first { $0.status == .active } ?? document.sessions.first ?? SeedData.activeSession
+    var activeSession: WorkSession? {
+        document.sessions.first { $0.status == .active } ?? document.sessions.first
     }
 
     var recentSessions: [WorkSession] {
-        Array(document.sessions.filter { $0.id != activeSession.id }.prefix(2))
+        guard let activeSession else {
+            return Array(document.sessions.prefix(2))
+        }
+
+        return Array(document.sessions.filter { $0.id != activeSession.id }.prefix(2))
     }
 
-    var primaryNode: GoalNode {
-        document.goalNodes.first ?? SeedData.primaryNode
+    var primaryNode: GoalNode? {
+        document.goalNodes.first
     }
 
-    var nearbyNodes: [GoalNode] {
-        Array(document.goalNodes.dropFirst().prefix(3))
+    func nearbyNodes(for nodeID: String?) -> [GoalNode] {
+        guard let nodeID else {
+            return []
+        }
+
+        let nearbyIDs = Set(
+            document.goalEdges.flatMap { edge in
+                if edge.fromNodeID == nodeID {
+                    return [edge.toNodeID]
+                }
+
+                if edge.toNodeID == nodeID {
+                    return [edge.fromNodeID]
+                }
+
+                return []
+            }
+        )
+
+        return document.goalNodes.filter { nearbyIDs.contains($0.id) }
     }
 
     func session(with id: String) -> WorkSession? {
@@ -86,6 +108,41 @@ final class WorkspaceStore: ObservableObject {
 
         document.goalNodes[index] = node
         persist()
+    }
+
+    func createGoalNode() -> GoalNode {
+        let node = GoalNode(
+            id: "node-\(UUID().uuidString.lowercased())",
+            title: nextGoalNodeTitle(),
+            summary: "Describe the intended outcome and linked work.",
+            systemImage: "point.3.connected.trianglepath.dotted"
+        )
+
+        document.goalNodes.append(node)
+        persist()
+        return node
+    }
+
+    @discardableResult
+    func createGoalEdge(from sourceNodeID: String, to targetNodeID: String) -> Bool {
+        guard sourceNodeID != targetNodeID,
+              document.goalNodes.contains(where: { $0.id == sourceNodeID }),
+              document.goalNodes.contains(where: { $0.id == targetNodeID }),
+              document.goalEdges.contains(where: { $0.fromNodeID == sourceNodeID && $0.toNodeID == targetNodeID }) == false,
+              createsCycle(from: sourceNodeID, to: targetNodeID) == false
+        else {
+            return false
+        }
+
+        document.goalEdges.append(
+            GoalEdge(
+                id: "edge-\(sourceNodeID)-\(targetNodeID)",
+                fromNodeID: sourceNodeID,
+                toNodeID: targetNodeID
+            )
+        )
+        persist()
+        return true
     }
 
     func createCapture(text: String, linkedSessionID: String?, linkedNodeID: String?) {
@@ -199,5 +256,48 @@ final class WorkspaceStore: ObservableObject {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode(WorkspaceDocument.self, from: data)
+    }
+
+    private func nextGoalNodeTitle() -> String {
+        let baseTitle = "New Goal Node"
+        let existingTitles = Set(document.goalNodes.map(\.title))
+
+        guard existingTitles.contains(baseTitle) else {
+            return baseTitle
+        }
+
+        var index = 2
+        while existingTitles.contains("\(baseTitle) \(index)") {
+            index += 1
+        }
+
+        return "\(baseTitle) \(index)"
+    }
+
+    private func createsCycle(from sourceNodeID: String, to targetNodeID: String) -> Bool {
+        var adjacency: [String: [String]] = [:]
+
+        for edge in document.goalEdges {
+            adjacency[edge.fromNodeID, default: []].append(edge.toNodeID)
+        }
+
+        adjacency[sourceNodeID, default: []].append(targetNodeID)
+
+        var visited = Set<String>()
+        var stack = [targetNodeID]
+
+        while let current = stack.popLast() {
+            if current == sourceNodeID {
+                return true
+            }
+
+            guard visited.insert(current).inserted else {
+                continue
+            }
+
+            stack.append(contentsOf: adjacency[current, default: []])
+        }
+
+        return false
     }
 }

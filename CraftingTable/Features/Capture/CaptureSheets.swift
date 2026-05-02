@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct CaptureSheet: View {
-    let currentSession: WorkSession
-    let primaryNode: GoalNode
+    let currentSession: WorkSession?
+    let primaryNode: GoalNode?
     let save: (String, String?, String?) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var text = ""
@@ -19,12 +19,16 @@ struct CaptureSheet: View {
 
                 Panel(title: "Optional Placement", systemImage: "paperclip") {
                     VStack(alignment: .leading, spacing: 10) {
-                        Toggle(isOn: $linkToCurrentSession) {
-                            Label(currentSession.title, systemImage: "scope")
+                        if let currentSession {
+                            Toggle(isOn: $linkToCurrentSession) {
+                                Label(currentSession.title, systemImage: "scope")
+                            }
                         }
 
-                        Toggle(isOn: $linkToPrimaryNode) {
-                            Label(primaryNode.title, systemImage: "point.3.connected.trianglepath.dotted")
+                        if let primaryNode {
+                            Toggle(isOn: $linkToPrimaryNode) {
+                                Label(primaryNode.title, systemImage: "point.3.connected.trianglepath.dotted")
+                            }
                         }
 
                         Text("Capture can save before final classification.")
@@ -48,8 +52,8 @@ struct CaptureSheet: View {
                     Button("Save") {
                         save(
                             text,
-                            linkToCurrentSession ? currentSession.id : nil,
-                            linkToPrimaryNode ? primaryNode.id : nil
+                            linkToCurrentSession ? currentSession?.id : nil,
+                            linkToPrimaryNode ? primaryNode?.id : nil
                         )
                         dismiss()
                     }
@@ -62,7 +66,7 @@ struct CaptureSheet: View {
 }
 
 struct SessionAttachSheet: View {
-    let activeSession: WorkSession
+    let activeSession: WorkSession?
     let recentSessions: [WorkSession]
     let attach: (WorkSession) -> Void
     let createAndAttach: () -> WorkSession
@@ -71,10 +75,12 @@ struct SessionAttachSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Current") {
-                    Button(activeSession.title) {
-                        attach(activeSession)
-                        dismiss()
+                if let activeSession {
+                    Section("Current") {
+                        Button(activeSession.title) {
+                            attach(activeSession)
+                            dismiss()
+                        }
                     }
                 }
 
@@ -114,16 +120,12 @@ struct NodeEditSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var title: String
     @State private var summary: String
-    @State private var gridColumn: Int
-    @State private var gridRow: Int
 
     init(node: GoalNode, save: @escaping (GoalNode) -> Void) {
         self.node = node
         self.save = save
         _title = State(initialValue: node.title)
         _summary = State(initialValue: node.summary)
-        _gridColumn = State(initialValue: node.gridColumn)
-        _gridRow = State(initialValue: node.gridRow)
     }
 
     var body: some View {
@@ -135,10 +137,6 @@ struct NodeEditSheet: View {
                         .lineLimit(3...6)
                 }
 
-                Section("Fixed Grid Position") {
-                    Stepper("Column \(gridColumn)", value: $gridColumn, in: 0...12)
-                    Stepper("Row \(gridRow)", value: $gridRow, in: 0...12)
-                }
             }
             .navigationTitle("Edit Node")
             .accessibilityIdentifier("node-edit-sheet")
@@ -148,8 +146,6 @@ struct NodeEditSheet: View {
                         var updated = node
                         updated.title = title
                         updated.summary = summary
-                        updated.gridColumn = gridColumn
-                        updated.gridRow = gridRow
                         save(updated)
                         dismiss()
                     }

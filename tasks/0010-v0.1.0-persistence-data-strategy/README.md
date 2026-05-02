@@ -22,7 +22,7 @@ Active
 
 This packet separates the persistence slice from the first `0.1.0` layout and shell implementation.
 
-The first shell cut started with in-memory seed data. This packet now owns the first local persistence boundary for that app data.
+The first shell cut started with in-memory demo data. This packet now owns the first local persistence boundary for that app data.
 
 ## Scope
 
@@ -30,12 +30,12 @@ In scope for this slice:
 
 - choose the first persistence mechanism for local personal use
 - persist Goal Forest nodes and relationships needed by the first operable screen
-- persist Goal Forest DAG edges, cross-links, and fixed grid layout positions
+- persist Goal Forest DAG edges and cross-links
 - persist work sessions with active, paused, and done state
 - persist captures before and after explicit placement
 - persist saved host profiles at workspace scope
 - persist the minimum remote continuity bundle recorded against a session
-- define a small seed or migration strategy if early mock data needs to become local data
+- define the empty-workspace and compatibility strategy for early local data
 - separate durable app data from runtime-only UI state
 - define the minimum credential-handling boundary for host profiles
 
@@ -64,13 +64,14 @@ Out of scope for this slice:
 - Existing feature views continue to receive value props and submit callbacks through `RootView`.
 - Shell route, sheet presentation, split-view visibility, and live remote connection state stay runtime-only.
 - Host profile app data stores `credentialReferenceID`; credential secret material belongs to the platform credential store.
-- Seed data becomes the first local workspace document when the saved file is absent.
+- An empty workspace document becomes the first local document when the saved file is absent.
 - Stable string IDs are admitted for the first slice because user data, links, and relaunch recovery need durable references.
+- Goal Forest grid positions are derived from DAG topology and document order at render time.
 
 ## State Objects To Cover
 
 - Goal Forest nodes and nearby relationships
-- Goal Forest node grid positions and DAG edges
+- Goal Forest DAG edges and cross-links
 - work sessions and session lifecycle state
 - captures and explicit placement links
 - host profiles
@@ -85,7 +86,7 @@ Out of scope for this slice:
 - Does remote continuity need a single freeform note, or small fields such as outcome and next step?
 - Should session-to-Goal Forest linkage support one primary link in `0.1.0`, or only a list of related links?
 - Should unlinked captures receive a dedicated seed-pool surface, or continue as captures with an empty placement link?
-- Should grid positions remain stored directly, or should a later graph-layout pass derive them from topology?
+- When should the derived DAG grid layout become a separately testable graph-layout module?
 
 ## Verification Plan
 
@@ -98,10 +99,11 @@ Out of scope for this slice:
 
 ## Implementation Evidence
 
-- `WorkspaceDocument` covers Goal Forest nodes, DAG edges, fixed grid positions, work sessions, captures with optional placement, host profiles, and remote continuity records.
-- `WorkspaceStore` loads an existing local document or writes the seed document on first launch.
+- `WorkspaceDocument` covers Goal Forest nodes, DAG edges, work sessions, captures with optional placement, host profiles, and remote continuity records.
+- `WorkspaceStore` loads an existing local document or writes an empty document on first launch.
 - Capture save creates a durable capture with optional session and node links.
-- Node edit updates title, summary, and fixed grid position.
+- Node edit updates title and summary.
+- Goal Forest edge creation persists directed DAG edges and rejects duplicate, self, and cycle-producing links.
 - Host profile edit updates metadata while preserving credential reference semantics.
 - Work session status changes persist active, paused, and done state while keeping one active session in the sidebar model.
 - Linked Remote Control connect or attach creates or updates a session-owned remote continuity record.

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SidebarView: View {
-    let activeSession: WorkSession
+    let activeSession: WorkSession?
     let recentSessions: [WorkSession]
     let route: AppRoute
     let openGoalForest: () -> Void
@@ -63,29 +63,33 @@ struct SidebarView: View {
                         )
                     }
 
-                    SidebarSection(title: "Current Work") {
-                        SessionSidebarRow(
-                            session: activeSession,
-                            label: activeSession.status.title,
-                            isSelected: route == .workSession(activeSession.id),
-                            accessibilityIdentifier: "sidebar-session-\(activeSession.id)",
-                            action: {
-                                openSession(activeSession)
-                            }
-                        )
-                    }
-
-                    SidebarSection(title: "Recent Work") {
-                        ForEach(recentSessions) { session in
+                    if let activeSession {
+                        SidebarSection(title: "Current Work") {
                             SessionSidebarRow(
-                                session: session,
-                                label: session.status.title,
-                                isSelected: route == .workSession(session.id),
-                                accessibilityIdentifier: "sidebar-session-\(session.id)",
+                                session: activeSession,
+                                label: activeSession.status.title,
+                                isSelected: route == .workSession(activeSession.id),
+                                accessibilityIdentifier: "sidebar-session-\(activeSession.id)",
                                 action: {
-                                    openSession(session)
+                                    openSession(activeSession)
                                 }
                             )
+                        }
+                    }
+
+                    if recentSessions.isEmpty == false {
+                        SidebarSection(title: "Recent Work") {
+                            ForEach(recentSessions) { session in
+                                SessionSidebarRow(
+                                    session: session,
+                                    label: session.status.title,
+                                    isSelected: route == .workSession(session.id),
+                                    accessibilityIdentifier: "sidebar-session-\(session.id)",
+                                    action: {
+                                        openSession(session)
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -99,7 +103,19 @@ struct SidebarView: View {
 }
 
 struct CaptureButton: View {
+    let accessibilityLabel: String
+    let accessibilityIdentifier: String
     let action: () -> Void
+
+    init(
+        accessibilityLabel: String = "Create Capture",
+        accessibilityIdentifier: String = "global-capture-button",
+        action: @escaping () -> Void
+    ) {
+        self.accessibilityLabel = accessibilityLabel
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.action = action
+    }
 
     var body: some View {
         Button(action: action) {
@@ -110,8 +126,8 @@ struct CaptureButton: View {
         .buttonStyle(.borderedProminent)
         .clipShape(Circle())
         .shadow(color: Color.black.opacity(0.18), radius: 10, y: 4)
-        .accessibilityLabel("Create Capture")
-        .accessibilityIdentifier("global-capture-button")
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 }
 
