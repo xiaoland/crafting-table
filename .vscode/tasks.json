@@ -23,6 +23,42 @@
       },
       "group": "build",
       "problemMatcher": []
+    },
+    {
+      "label": "Codex Remote: Start Companion (local)",
+      "type": "shell",
+      "command": "./scripts/codex-remote-companion.sh companion",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex Remote: Start Companion (LAN)",
+      "type": "shell",
+      "command": "./scripts/codex-remote-companion.sh companion-lan",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex Remote: Run macOS Scout Snapshot",
+      "type": "shell",
+      "command": "./scripts/codex-remote-companion.sh scout",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Codex Remote: Smoke Companion",
+      "type": "shell",
+      "command": "./scripts/codex-remote-companion.sh smoke",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
     }
   ]
 }

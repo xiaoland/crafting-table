@@ -8,6 +8,12 @@ Host-side MVP service for the standalone Codex Remote slice.
 cargo run --manifest-path Companion/Cargo.toml
 ```
 
+Or use the repo launch helper:
+
+```sh
+./scripts/codex-remote-companion.sh companion
+```
+
 Default bind address:
 
 ```text
@@ -19,6 +25,24 @@ Useful environment variables:
 - `CODEX_REMOTE_BIND`: companion bind address
 - `CODEX_HOME`: Codex state directory, defaulting to `~/.codex`
 - `CODEX_BIN`: explicit Codex CLI path
+
+For iPad LAN testing:
+
+```sh
+./scripts/codex-remote-companion.sh companion-lan
+```
+
+Run one macOS Scout snapshot:
+
+```sh
+./scripts/codex-remote-companion.sh scout
+```
+
+Probe a running Companion:
+
+```sh
+./scripts/codex-remote-companion.sh smoke
+```
 
 ## Endpoints
 

@@ -249,3 +249,26 @@ Verified:
 - Minimum app-server event set for a useful mobile projection.
 - Amount of approval and user-input resolution in the first CraftingTable UI.
 - CLI PTY fallback ownership between this task and task 0011.
+
+## Launch Entrypoints
+
+Codex Remote Companion now has shared local launch entrypoints:
+
+- `scripts/codex-remote-companion.sh companion`: local-only Companion startup on `127.0.0.1:3765` by default.
+- `scripts/codex-remote-companion.sh companion-lan`: LAN Companion startup on `0.0.0.0:3765` by default for iPad testing.
+- `scripts/codex-remote-companion.sh scout`: one macOS Desktop Scout snapshot.
+- `scripts/codex-remote-companion.sh smoke`: health, desktop snapshot, and thread-list smoke against `CODEX_REMOTE_ENDPOINT` or `http://127.0.0.1:3765`.
+
+VS Code exposes the same commands as tasks under `Codex Remote:*`.
+
+Codex App, CLI, and IDE can use the repo skill `$codex-remote-companion`, stored at `.agents/skills/codex-remote-companion/SKILL.md`.
+
+Official Codex docs name the CI integration `Codex GitHub Action` and describe local reusable workflows as `skills`. This task uses a repo skill for local Mac startup, because launching Companion and macOS Scout depends on the developer's interactive Mac session and Accessibility permission. A future GitHub Action can cover CI checks for scripts, builds, and smoke prompts.
+
+Verified:
+
+- `bash -n scripts/codex-remote-companion.sh`
+- `jq empty .vscode/tasks.json`
+- `./scripts/codex-remote-companion.sh scout`
+- `./scripts/codex-remote-companion.sh companion`
+- `./scripts/codex-remote-companion.sh smoke`
