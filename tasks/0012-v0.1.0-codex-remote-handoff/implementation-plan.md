@@ -153,6 +153,23 @@ Verified:
 - `swift run --package-path Companion/scouts/macos codex-macos-scout --pretty`
 - local run found `com.openai.codex`, AX trusted state, and visible Codex windows
 
+## Slice 3 Outcome
+
+Windows Desktop Scout now exists in `Companion/scouts/windows/`.
+
+Implemented:
+
+- C#/.NET executable project `CodexWindowsScout`
+- Windows UI Automation snapshot for Codex top-level windows, focused element, shell elements, bounds, and confidence
+- finite-bound sanitization for UIA rectangles
+- SSH-based development smoke harness in `scripts/windows-smoke/run-codex-windows-scout.sh`
+
+Verified:
+
+- `dotnet build Companion/scouts/windows/CodexWindowsScout.csproj`
+- `scripts/windows-smoke/run-codex-windows-scout.sh ws.yyh`
+- real Windows smoke found the Codex window, WebView shell, Chrome render host, and emitted `confidence: Low` with no scout errors
+
 ## Open Technical Questions
 
 - First companion transport: HTTP plus WebSocket, or one WebSocket RPC channel.

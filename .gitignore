@@ -21,6 +21,10 @@ DerivedData/
 # Rust
 target/
 
+# .NET
+bin/
+obj/
+
 # Swift Package Manager
 .build/
 Packages/
