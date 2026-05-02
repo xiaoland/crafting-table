@@ -5,6 +5,7 @@ enum AppRoute: Equatable {
     case workSession(String)
     case remoteControl
     case localLLM
+    case codexRemote
 }
 
 enum RemoteConnectionState {

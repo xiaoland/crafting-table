@@ -28,6 +28,9 @@ struct RootView: View {
                 openLocalLLM: {
                     route = .localLLM
                 },
+                openCodexRemote: {
+                    route = .codexRemote
+                },
                 openSession: { session in
                     route = .workSession(session.id)
                 }
@@ -36,10 +39,12 @@ struct RootView: View {
             ZStack(alignment: .bottomTrailing) {
                 detailView
 
-                CaptureButton {
-                    activeSheet = .capture
+                if showsCaptureButton {
+                    CaptureButton {
+                        activeSheet = .capture
+                    }
+                    .padding(24)
                 }
-                .padding(24)
             }
             .background(Color(uiColor: .systemGroupedBackground))
         }
@@ -120,6 +125,17 @@ struct RootView: View {
                 store: localLLMStore,
                 server: localLLMServer
             )
+        case .codexRemote:
+            CodexRemoteScreen()
+        }
+    }
+
+    private var showsCaptureButton: Bool {
+        switch route {
+        case .goalForest, .workSession, .remoteControl:
+            return true
+        case .localLLM, .codexRemote:
+            return false
         }
     }
 
