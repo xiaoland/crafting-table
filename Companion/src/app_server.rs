@@ -13,8 +13,9 @@ use crate::{
     codex,
     config::Config,
     models::{
-        SemanticThreadSummary, ThreadListResponse, ThreadResumeResponse, ThreadSummary,
-        TurnSubmitResponse,
+        CodexModelSummary, ModelListResponse, SemanticThreadDetail, SemanticThreadSummary,
+        ThreadDetailResponse, ThreadListResponse, ThreadMessage, ThreadResumeResponse,
+        ThreadSummary, TurnSubmitResponse,
     },
 };
 
@@ -51,6 +52,29 @@ pub async fn list_threads(config: &Config, limit: usize) -> anyhow::Result<Threa
         codex_home: config.codex_home.display().to_string(),
         skipped_records: 0,
         threads,
+    })
+}
+
+pub async fn read_thread(config: &Config, thread_id: &str) -> anyhow::Result<ThreadDetailResponse> {
+    let mut client = CodexAppServerClient::connect(config).await?;
+    let response = client
+        .request(
+            "thread/read",
+            json!({
+                "threadId": thread_id,
+                "includeTurns": true,
+            }),
+        )
+        .await?;
+
+    let thread = response
+        .get("thread")
+        .ok_or_else(|| anyhow!("thread/read response did not contain thread"))?;
+
+    Ok(ThreadDetailResponse {
+        source: "app_server",
+        thread: summarize_thread_detail(thread),
+        messages: summarize_thread_messages(thread),
     })
 }
 
@@ -92,6 +116,7 @@ pub async fn submit_turn(
     thread_id: &str,
     input: &str,
     cwd: Option<&str>,
+    model: Option<&str>,
 ) -> anyhow::Result<TurnSubmitResponse> {
     let mut client = CodexAppServerClient::connect(config).await?;
     client
@@ -105,22 +130,23 @@ pub async fn submit_turn(
         )
         .await?;
 
-    let turn_response = client
-        .request(
-            "turn/start",
-            json!({
-                "threadId": thread_id,
-                "input": [
-                    {
-                        "type": "text",
-                        "text": input,
-                        "text_elements": [],
-                    }
-                ],
-                "cwd": cwd,
-            }),
-        )
-        .await?;
+    let mut turn_params = json!({
+        "threadId": thread_id,
+        "input": [
+            {
+                "type": "text",
+                "text": input,
+                "text_elements": [],
+            }
+        ],
+        "cwd": cwd,
+    });
+
+    if let Some(model) = model.filter(|value| !value.trim().is_empty()) {
+        turn_params["model"] = Value::String(model.to_string());
+    }
+
+    let turn_response = client.request("turn/start", turn_params).await?;
 
     let turn = turn_response
         .get("turn")
@@ -134,6 +160,33 @@ pub async fn submit_turn(
         status: completion.status,
         assistant_text: completion.assistant_text,
         event_count: completion.event_count,
+    })
+}
+
+pub async fn list_models(config: &Config) -> anyhow::Result<ModelListResponse> {
+    let mut client = CodexAppServerClient::connect(config).await?;
+    let response = client
+        .request(
+            "model/list",
+            json!({
+                "limit": 50,
+                "includeHidden": false,
+            }),
+        )
+        .await?;
+
+    let models = response
+        .get("data")
+        .and_then(Value::as_array)
+        .ok_or_else(|| anyhow!("model/list response did not contain data"))?
+        .iter()
+        .map(summarize_model)
+        .filter(|model| !model.id.is_empty())
+        .collect::<Vec<_>>();
+
+    Ok(ModelListResponse {
+        source: "app_server",
+        models,
     })
 }
 
@@ -431,6 +484,177 @@ fn summarize_semantic_thread(thread: &Value) -> SemanticThreadSummary {
     }
 }
 
+fn summarize_thread_detail(thread: &Value) -> SemanticThreadDetail {
+    let summary = summarize_semantic_thread(thread);
+    let turn_count = thread
+        .get("turns")
+        .and_then(Value::as_array)
+        .map(Vec::len)
+        .unwrap_or_default();
+
+    SemanticThreadDetail {
+        id: summary.id,
+        title: summary.title,
+        preview: summary.preview,
+        cwd: summary.cwd,
+        status: summary.status,
+        updated_at: summary.updated_at,
+        source: summary.source,
+        model_provider: string_field(thread, "modelProvider"),
+        turn_count,
+    }
+}
+
+fn summarize_thread_messages(thread: &Value) -> Vec<ThreadMessage> {
+    let Some(turns) = thread.get("turns").and_then(Value::as_array) else {
+        return Vec::new();
+    };
+
+    turns
+        .iter()
+        .flat_map(|turn| {
+            let turn_id = string_field(turn, "id").unwrap_or_default();
+            let turn_status = string_field(turn, "status");
+            let created_at = number_or_string_field(turn, "startedAt")
+                .or_else(|| number_or_string_field(turn, "completedAt"));
+
+            turn.get("items")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(move |item| {
+                    summarize_thread_item(
+                        item,
+                        &turn_id,
+                        turn_status.as_deref(),
+                        created_at.clone(),
+                    )
+                })
+        })
+        .collect()
+}
+
+fn summarize_thread_item(
+    item: &Value,
+    turn_id: &str,
+    turn_status: Option<&str>,
+    created_at: Option<String>,
+) -> Option<ThreadMessage> {
+    let kind = string_field(item, "type")?;
+    let id = string_field(item, "id").unwrap_or_else(|| format!("{turn_id}:{kind}"));
+
+    let (role, text) = match kind.as_str() {
+        "userMessage" => ("user", user_message_text(item)),
+        "agentMessage" => ("assistant", string_field(item, "text").unwrap_or_default()),
+        "commandExecution" => ("tool", command_execution_text(item)),
+        "mcpToolCall" | "dynamicToolCall" | "collabAgentToolCall" => ("tool", tool_call_text(item)),
+        "webSearch" => ("tool", web_search_text(item)),
+        "fileChange" => ("tool", file_change_text(item)),
+        "contextCompaction" => ("event", "Context compacted".to_string()),
+        "imageGeneration" => ("tool", image_generation_text(item)),
+        _ => ("event", generic_item_text(item, &kind)),
+    };
+
+    let text = text.trim().to_string();
+    if text.is_empty() {
+        return None;
+    }
+
+    Some(ThreadMessage {
+        id,
+        turn_id: turn_id.to_string(),
+        role: role.to_string(),
+        kind,
+        text,
+        status: string_field(item, "status").or_else(|| turn_status.map(ToString::to_string)),
+        phase: string_field(item, "phase"),
+        created_at,
+    })
+}
+
+fn user_message_text(item: &Value) -> String {
+    item.get("content")
+        .and_then(Value::as_array)
+        .map(|content| {
+            content
+                .iter()
+                .filter_map(|entry| string_field(entry, "text"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        })
+        .unwrap_or_default()
+}
+
+fn command_execution_text(item: &Value) -> String {
+    let command = string_field(item, "command").unwrap_or_default();
+    let output = string_field(item, "aggregatedOutput").unwrap_or_default();
+
+    if output.trim().is_empty() {
+        command
+    } else {
+        format!("{command}\n\n{output}")
+    }
+}
+
+fn tool_call_text(item: &Value) -> String {
+    let tool = string_field(item, "tool").unwrap_or_else(|| "tool".to_string());
+    let status = string_field(item, "status").unwrap_or_else(|| "unknown".to_string());
+    let prompt = string_field(item, "prompt");
+
+    match prompt {
+        Some(prompt) if !prompt.trim().is_empty() => format!("{tool} ({status})\n\n{prompt}"),
+        _ => format!("{tool} ({status})"),
+    }
+}
+
+fn web_search_text(item: &Value) -> String {
+    let query = string_field(item, "query").unwrap_or_default();
+    let url = item
+        .get("action")
+        .and_then(|action| action.get("url"))
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+
+    [query, url.to_string()]
+        .into_iter()
+        .filter(|part| !part.trim().is_empty())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn file_change_text(item: &Value) -> String {
+    let count = item
+        .get("changes")
+        .and_then(Value::as_array)
+        .map(Vec::len)
+        .unwrap_or_default();
+    format!("{count} file changes")
+}
+
+fn image_generation_text(item: &Value) -> String {
+    string_field(item, "result").unwrap_or_else(|| "Image generation".to_string())
+}
+
+fn generic_item_text(item: &Value, kind: &str) -> String {
+    string_field(item, "text")
+        .or_else(|| string_field(item, "review"))
+        .or_else(|| string_field(item, "result"))
+        .unwrap_or_else(|| kind.to_string())
+}
+
+fn summarize_model(model: &Value) -> CodexModelSummary {
+    CodexModelSummary {
+        id: string_field(model, "id").unwrap_or_default(),
+        model: string_field(model, "model").unwrap_or_default(),
+        display_name: string_field(model, "displayName").unwrap_or_default(),
+        description: string_field(model, "description").unwrap_or_default(),
+        is_default: model
+            .get("isDefault")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+    }
+}
+
 fn string_field(value: &Value, field: &str) -> Option<String> {
     value
         .get(field)
@@ -466,7 +690,9 @@ fn completion_matches(params: &Value, thread_id: &str, turn_id: &str) -> bool {
 mod tests {
     use serde_json::json;
 
-    use super::{completion_matches, summarize_thread_for_list};
+    use super::{
+        completion_matches, summarize_model, summarize_thread_for_list, summarize_thread_messages,
+    };
 
     #[test]
     fn maps_thread_list_summary_from_name() {
@@ -509,5 +735,65 @@ mod tests {
 
         assert!(completion_matches(&params, "thread-a", "turn-a"));
         assert!(!completion_matches(&params, "thread-a", "turn-b"));
+    }
+
+    #[test]
+    fn flattens_thread_messages() {
+        let thread = json!({
+            "turns": [
+                {
+                    "id": "turn-a",
+                    "status": "completed",
+                    "startedAt": 1777700000,
+                    "items": [
+                        {
+                            "type": "userMessage",
+                            "id": "item-user",
+                            "content": [
+                                { "type": "text", "text": "hello" }
+                            ]
+                        },
+                        {
+                            "type": "agentMessage",
+                            "id": "item-agent",
+                            "text": "world",
+                            "phase": "final_answer"
+                        },
+                        {
+                            "type": "commandExecution",
+                            "id": "item-command",
+                            "command": "echo ok",
+                            "aggregatedOutput": "ok"
+                        }
+                    ]
+                }
+            ]
+        });
+
+        let messages = summarize_thread_messages(&thread);
+
+        assert_eq!(messages.len(), 3);
+        assert_eq!(messages[0].role, "user");
+        assert_eq!(messages[1].role, "assistant");
+        assert_eq!(messages[1].phase.as_deref(), Some("final_answer"));
+        assert_eq!(messages[2].role, "tool");
+        assert_eq!(messages[2].text, "echo ok\n\nok");
+    }
+
+    #[test]
+    fn maps_model_summary() {
+        let model = json!({
+            "id": "gpt-5.5",
+            "model": "gpt-5.5",
+            "displayName": "GPT-5.5",
+            "description": "Frontier model",
+            "isDefault": true
+        });
+
+        let summary = summarize_model(&model);
+
+        assert_eq!(summary.id, "gpt-5.5");
+        assert_eq!(summary.display_name, "GPT-5.5");
+        assert!(summary.is_default);
     }
 }

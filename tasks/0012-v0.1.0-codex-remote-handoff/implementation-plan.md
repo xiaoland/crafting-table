@@ -250,6 +250,26 @@ Verified:
 - Amount of approval and user-input resolution in the first CraftingTable UI.
 - CLI PTY fallback ownership between this task and task 0011.
 
+## Slice 8 Outcome
+
+Companion can now serve the data needed by a Codex-like Thread Page.
+
+Implemented:
+
+- `GET /threads/{thread_id}` backed by app-server `thread/read` with `includeTurns: true`
+- normalized thread detail with cwd, status, source, model provider, and turn count
+- normalized message history flattened from app-server turn items
+- `GET /models` backed by app-server `model/list`
+- optional `model` field on `POST /threads/{thread_id}/turns`, forwarded to app-server `turn/start`
+
+Verified:
+
+- `cargo fmt --manifest-path Companion/Cargo.toml`
+- `cargo test --manifest-path Companion/Cargo.toml`
+- live Companion smoke on `127.0.0.1:3769`
+- `GET /threads/019ddd34-e1aa-7600-a7c8-179a67b56908` returned 16 turns and 660 normalized messages
+- `GET /models` returned 6 visible models with `gpt-5.5` marked as default
+
 ## Launch Entrypoints
 
 Codex Remote Companion now has shared local launch entrypoints:

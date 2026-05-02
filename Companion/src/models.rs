@@ -62,10 +62,18 @@ pub struct ThreadSummary {
     pub updated_at: String,
 }
 
+#[derive(Debug, Serialize)]
+pub struct ThreadDetailResponse {
+    pub source: &'static str,
+    pub thread: SemanticThreadDetail,
+    pub messages: Vec<ThreadMessage>,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct TurnSubmitRequest {
     pub input: String,
     pub cwd: Option<String>,
+    pub model: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -86,6 +94,31 @@ pub struct SemanticThreadSummary {
     pub source: Option<String>,
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub struct SemanticThreadDetail {
+    pub id: String,
+    pub title: String,
+    pub preview: String,
+    pub cwd: Option<String>,
+    pub status: String,
+    pub updated_at: String,
+    pub source: Option<String>,
+    pub model_provider: Option<String>,
+    pub turn_count: usize,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+pub struct ThreadMessage {
+    pub id: String,
+    pub turn_id: String,
+    pub role: String,
+    pub kind: String,
+    pub text: String,
+    pub status: Option<String>,
+    pub phase: Option<String>,
+    pub created_at: Option<String>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct TurnSubmitResponse {
     pub thread_id: String,
@@ -93,6 +126,21 @@ pub struct TurnSubmitResponse {
     pub status: String,
     pub assistant_text: String,
     pub event_count: usize,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ModelListResponse {
+    pub source: &'static str,
+    pub models: Vec<CodexModelSummary>,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+pub struct CodexModelSummary {
+    pub id: String,
+    pub model: String,
+    pub display_name: String,
+    pub description: String,
+    pub is_default: bool,
 }
 
 #[derive(Debug, Serialize)]

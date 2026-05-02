@@ -36,8 +36,10 @@ pub fn router(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/health", get(health))
         .route("/threads", get(list_threads))
+        .route("/threads/:thread_id", get(read_thread))
         .route("/threads/:thread_id/resume", post(resume_thread))
         .route("/threads/:thread_id/turns", post(submit_turn))
+        .route("/models", get(list_models))
         .route("/desktop/snapshot", get(desktop_snapshot))
         .with_state(state)
 }
@@ -97,6 +99,16 @@ async fn resume_thread(
     }
 }
 
+async fn read_thread(
+    State(state): State<Arc<AppState>>,
+    Path(thread_id): Path<String>,
+) -> impl IntoResponse {
+    match app_server::read_thread(&state.config, &thread_id).await {
+        Ok(response) => (StatusCode::OK, Json(response)).into_response(),
+        Err(error) => api_error(StatusCode::BAD_GATEWAY, error),
+    }
+}
+
 async fn submit_turn(
     State(state): State<Arc<AppState>>,
     Path(thread_id): Path<String>,
@@ -114,9 +126,17 @@ async fn submit_turn(
         &thread_id,
         &request.input,
         request.cwd.as_deref(),
+        request.model.as_deref(),
     )
     .await
     {
+        Ok(response) => (StatusCode::OK, Json(response)).into_response(),
+        Err(error) => api_error(StatusCode::BAD_GATEWAY, error),
+    }
+}
+
+async fn list_models(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    match app_server::list_models(&state.config).await {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(error) => api_error(StatusCode::BAD_GATEWAY, error),
     }
