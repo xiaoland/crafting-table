@@ -1,0 +1,15 @@
+version = 1
+name = "Crafting Table"
+
+[setup]
+script = ""
+
+[[actions]]
+name = "Launch iPad Simulator"
+icon = "play"
+command = "./scripts/launch-ipad-simulator.sh"
+
+[[actions]]
+name = "Launch Connected iPad"
+icon = "play"
+command = "./scripts/launch-ipad-device.sh"

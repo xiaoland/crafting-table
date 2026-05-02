@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch CraftingTable on iPad",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "./scripts/launch-ipad-device.sh",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Launch CraftingTable in iPad Simulator",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "./scripts/launch-ipad-simulator.sh",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

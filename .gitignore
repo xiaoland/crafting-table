@@ -58,3 +58,4 @@ playground.xcworkspace
 *.moved-aside
 *.pbxuser
 !default.pbxuser
+scratch/
