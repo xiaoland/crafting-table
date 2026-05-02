@@ -62,7 +62,7 @@ Observed health still reports scout configuration as platform availability, with
 
 ## CraftingTable Surface
 
-`CodexRemoteScreen` now includes a `Desktop Handoff` panel showing:
+`CodexRemoteScreen` now includes compact Desktop Handoff status in the sidebar and selected thread header showing:
 
 - scout confidence
 - detected window count

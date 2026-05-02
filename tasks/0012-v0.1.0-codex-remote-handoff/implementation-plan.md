@@ -270,6 +270,24 @@ Verified:
 - `GET /threads/019ddd34-e1aa-7600-a7c8-179a67b56908` returned 16 turns and 660 normalized messages
 - `GET /models` returned 6 visible models with `gpt-5.5` marked as default
 
+## Slice 9 Outcome
+
+CraftingTable now has an iPad-first Codex Remote Thread Page.
+
+Implemented:
+
+- split layout with Companion/Host/Desktop/Threads sidebar and a selected-thread page
+- selected thread header with status, turn count, cwd, updated time, and desktop handoff confidence
+- transcript rendering for normalized user, assistant, and tool/event messages
+- bottom composer with model picker backed by Companion `GET /models`
+- `CodexRemoteClient` support for thread detail, model list, optional model override, and graceful model-list fallback
+- `CodexRemoteThreadPage.swift` split from the root screen to keep state ownership and transcript UI easier to scan
+
+Verified:
+
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+- `git diff --check`
+
 ## Launch Entrypoints
 
 Codex Remote Companion now has shared local launch entrypoints:

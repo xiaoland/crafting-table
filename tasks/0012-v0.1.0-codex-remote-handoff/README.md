@@ -25,6 +25,7 @@ Executing
 - `windows-smoke-findings.md`: `ws.yyh` probing results, Windows UI Automation findings, and smoke-runner implications.
 - `semantic-handoff-findings.md`: app-server protocol facts, Companion adapter shape, and semantic smoke results.
 - `desktop-handoff-findings.md`: Companion Desktop Scout route, normalized snapshot contract, and hot-handoff smoke result.
+- `thread-page-findings.md`: iPad Thread Page UI slice, client contract usage, and verification notes.
 
 ## Current Decision
 

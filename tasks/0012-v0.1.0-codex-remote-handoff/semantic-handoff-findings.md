@@ -12,8 +12,10 @@
 ## Methods Used
 
 - `thread/list`: list semantic thread metadata
+- `thread/read`: load one thread with turns for message history
 - `thread/resume`: load a selected thread into the app-server runtime
 - `turn/start`: submit one user text input
+- `model/list`: load Codex model choices
 - `item/agentMessage/delta`: stream assistant text deltas
 - `turn/completed`: mark synchronous MVP completion
 - `error`: report turn failure
@@ -23,10 +25,14 @@
 The Companion owns app-server lifecycle and protocol churn. CraftingTable speaks these MVP routes:
 
 - `GET /threads?limit=20`
+- `GET /threads/{thread_id}`
+- `GET /models`
 - `POST /threads/{thread_id}/resume`
 - `POST /threads/{thread_id}/turns`
 
 `GET /threads` prefers app-server metadata and falls back to `session_index.jsonl` when app-server startup or protocol calls fail.
+
+`GET /threads/{thread_id}` normalizes app-server turn items into a CraftingTable message list. `GET /models` normalizes visible model choices. `POST /threads/{thread_id}/turns` accepts an optional `model` field and forwards it to app-server `turn/start`.
 
 ## Smoke Evidence
 

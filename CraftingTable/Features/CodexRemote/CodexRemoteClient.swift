@@ -3,6 +3,7 @@ import Foundation
 struct CodexRemoteSnapshot {
     let health: CodexRemoteHealth
     let threadList: CodexRemoteThreadList
+    let modelList: CodexRemoteModelList
 }
 
 struct CodexRemoteDesktopSnapshot: Decodable {
@@ -67,12 +68,61 @@ struct CodexRemoteThread: Decodable, Identifiable {
     let updatedAt: String
 
     var displayUpdatedAt: String {
-        guard let seconds = Double(updatedAt) else {
-            return updatedAt
-        }
+        CodexRemoteDateDisplay.format(updatedAt) ?? updatedAt
+    }
+}
 
-        return Date(timeIntervalSince1970: seconds)
-            .formatted(date: .abbreviated, time: .shortened)
+struct CodexRemoteThreadDetailResponse: Decodable {
+    let source: String
+    let thread: CodexRemoteThreadDetail
+    let messages: [CodexRemoteThreadMessage]
+}
+
+struct CodexRemoteThreadDetail: Decodable, Identifiable {
+    let id: String
+    let title: String
+    let preview: String
+    let cwd: String?
+    let status: String
+    let updatedAt: String
+    let source: String?
+    let modelProvider: String?
+    let turnCount: Int
+
+    var displayUpdatedAt: String {
+        CodexRemoteDateDisplay.format(updatedAt) ?? updatedAt
+    }
+}
+
+struct CodexRemoteThreadMessage: Decodable, Identifiable {
+    let id: String
+    let turnId: String
+    let role: String
+    let kind: String
+    let text: String
+    let status: String?
+    let phase: String?
+    let createdAt: String?
+
+    var displayCreatedAt: String? {
+        CodexRemoteDateDisplay.format(createdAt)
+    }
+}
+
+struct CodexRemoteModelList: Decodable {
+    let source: String
+    let models: [CodexRemoteModelOption]
+}
+
+struct CodexRemoteModelOption: Decodable, Identifiable {
+    let id: String
+    let model: String
+    let displayName: String
+    let description: String
+    let isDefault: Bool
+
+    var displayLabel: String {
+        displayName.isEmpty ? model : displayName
     }
 }
 
@@ -89,20 +139,31 @@ struct CodexRemoteClient {
         let baseURL = try normalizedBaseURL(from: endpoint)
         let healthURL = baseURL.appendingPathComponent("health")
         let threadsURL = try threadsURL(from: baseURL)
+        let modelsURL = baseURL.appendingPathComponent("models")
 
         async let health = fetch(CodexRemoteHealth.self, from: healthURL)
         async let threadList = fetch(CodexRemoteThreadList.self, from: threadsURL)
+        async let modelList = loadOptionalModelList(from: modelsURL)
 
-        return try await CodexRemoteSnapshot(health: health, threadList: threadList)
+        return try await CodexRemoteSnapshot(health: health, threadList: threadList, modelList: modelList)
     }
 
-    func submitTurn(endpoint: String, threadID: String, input: String, cwd: String? = nil) async throws -> CodexRemoteTurnResult {
+    func loadThreadDetail(endpoint: String, threadID: String) async throws -> CodexRemoteThreadDetailResponse {
+        let baseURL = try normalizedBaseURL(from: endpoint)
+        let threadURL = baseURL
+            .appendingPathComponent("threads")
+            .appendingPathComponent(threadID)
+
+        return try await fetch(CodexRemoteThreadDetailResponse.self, from: threadURL)
+    }
+
+    func submitTurn(endpoint: String, threadID: String, input: String, cwd: String? = nil, model: String? = nil) async throws -> CodexRemoteTurnResult {
         let baseURL = try normalizedBaseURL(from: endpoint)
         let turnURL = baseURL
             .appendingPathComponent("threads")
             .appendingPathComponent(threadID)
             .appendingPathComponent("turns")
-        let payload = CodexRemoteTurnSubmitPayload(input: input, cwd: cwd)
+        let payload = CodexRemoteTurnSubmitPayload(input: input, cwd: cwd, model: model)
 
         return try await send(payload, to: turnURL)
     }
@@ -120,6 +181,14 @@ struct CodexRemoteClient {
         let (data, response) = try await URLSession.shared.data(from: url)
 
         return try decode(type, from: data, response: response)
+    }
+
+    private func loadOptionalModelList(from url: URL) async -> CodexRemoteModelList {
+        do {
+            return try await fetch(CodexRemoteModelList.self, from: url)
+        } catch {
+            return CodexRemoteModelList(source: "unavailable", models: [])
+        }
     }
 
     private func send<Body: Encodable, Response: Decodable>(_ body: Body, to url: URL) async throws -> Response {
@@ -186,6 +255,7 @@ struct CodexRemoteClient {
 private struct CodexRemoteTurnSubmitPayload: Encodable {
     let input: String
     let cwd: String?
+    let model: String?
 }
 
 private struct CodexRemoteAPIError: Decodable {
@@ -207,4 +277,27 @@ enum CodexRemoteClientError: LocalizedError {
             return message
         }
     }
+}
+
+enum CodexRemoteDateDisplay {
+    static func format(_ rawValue: String?) -> String? {
+        guard let rawValue,
+              rawValue.isEmpty == false
+        else {
+            return nil
+        }
+
+        if let seconds = Double(rawValue) {
+            return Date(timeIntervalSince1970: seconds)
+                .formatted(date: .abbreviated, time: .shortened)
+        }
+
+        if let date = iso8601Formatter.date(from: rawValue) {
+            return date.formatted(date: .abbreviated, time: .shortened)
+        }
+
+        return rawValue
+    }
+
+    private static let iso8601Formatter = ISO8601DateFormatter()
 }
