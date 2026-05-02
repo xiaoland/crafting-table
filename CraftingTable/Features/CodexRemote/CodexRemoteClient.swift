@@ -157,13 +157,25 @@ struct CodexRemoteClient {
         return try await fetch(CodexRemoteThreadDetailResponse.self, from: threadURL)
     }
 
-    func submitTurn(endpoint: String, threadID: String, input: String, cwd: String? = nil, model: String? = nil) async throws -> CodexRemoteTurnResult {
+    func submitTurn(
+        endpoint: String,
+        threadID: String,
+        input: String,
+        cwd: String? = nil,
+        model: String? = nil,
+        waitForCompletion: Bool = false
+    ) async throws -> CodexRemoteTurnResult {
         let baseURL = try normalizedBaseURL(from: endpoint)
         let turnURL = baseURL
             .appendingPathComponent("threads")
             .appendingPathComponent(threadID)
             .appendingPathComponent("turns")
-        let payload = CodexRemoteTurnSubmitPayload(input: input, cwd: cwd, model: model)
+        let payload = CodexRemoteTurnSubmitPayload(
+            input: input,
+            cwd: cwd,
+            model: model,
+            waitForCompletion: waitForCompletion
+        )
 
         return try await send(payload, to: turnURL)
     }
@@ -256,6 +268,14 @@ private struct CodexRemoteTurnSubmitPayload: Encodable {
     let input: String
     let cwd: String?
     let model: String?
+    let waitForCompletion: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case input
+        case cwd
+        case model
+        case waitForCompletion = "wait_for_completion"
+    }
 }
 
 private struct CodexRemoteAPIError: Decodable {

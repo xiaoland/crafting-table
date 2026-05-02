@@ -200,7 +200,8 @@ struct CodexRemoteScreen: View {
             )
             turnResult = result
             turnInput = ""
-            await refresh()
+            await loadThreadDetail(threadID: selectedThreadID)
+            scheduleThreadRefreshes(threadID: selectedThreadID)
         } catch {
             turnErrorMessage = error.localizedDescription
         }
@@ -248,6 +249,17 @@ struct CodexRemoteScreen: View {
 
     private func sidebarWidth(for availableWidth: CGFloat) -> CGFloat {
         min(max(availableWidth * 0.30, 300), 380)
+    }
+
+    private func scheduleThreadRefreshes(threadID: String) {
+        Task {
+            let refreshDelays: [UInt64] = [2_000_000_000, 8_000_000_000]
+
+            for delay in refreshDelays {
+                try? await Task.sleep(nanoseconds: delay)
+                await loadThreadDetail(threadID: threadID)
+            }
+        }
     }
 }
 

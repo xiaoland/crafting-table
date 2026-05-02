@@ -11,7 +11,7 @@ The Codex Remote screen now uses a thread-first structure:
 - left sidebar: Companion endpoint, host health, desktop handoff status, and Codex thread list
 - right page: selected thread header, message history, and bottom composer
 - model picker: populated from Companion `GET /models`
-- message submission: `POST /threads/{thread_id}/turns` with optional `model`
+- message submission: `POST /threads/{thread_id}/turns` with optional `model` and nonblocking completion wait
 
 The screen remains standalone. It has no Goal Forest, Work Session, or Remote Control dependency.
 
@@ -27,6 +27,29 @@ CraftingTable now calls:
 - `POST /threads/{thread_id}/turns`
 
 Model list loading is a non-critical companion call in the iPad client. If `GET /models` fails, the page keeps host health and thread listing available, then shows an unavailable model picker state.
+
+Thread submission uses `wait_for_completion: false` from the iPad client. The UI treats the immediate response as a started turn, reloads the selected thread detail, then schedules short follow-up refreshes so completed assistant output appears without holding the composer request open.
+
+## iPad Send Diagnosis
+
+Reported symptom: thread turns and model list loaded from the iPad, but sending a message appeared to fail.
+
+Observed evidence:
+
+- `GET /health`, `GET /threads?limit=1`, and `GET /models` against `http://192.168.4.16:3765` all succeeded.
+- Direct LAN `POST /threads/019ddd34-e1aa-7600-a7c8-179a67b56908/turns` with `gpt-5.5` succeeded and returned `CRAFTINGTABLE_IPAD_SEND_DIAG_OK`.
+- The direct POST took about 20 seconds because Companion waited for full Codex turn completion before returning.
+- Physical iPad build succeeded with device destination `00008132-000245583AD1401C`.
+- After the async fix, updated LAN Companion on `http://192.168.4.16:3765` returned `status: started` in about 2.2 seconds, then thread detail showed completed turn `019de7ac-5e0f-71b1-b7dd-b9219bce3876` with `CRAFTINGTABLE_LAN_ASYNC_SEND_OK`.
+
+Conclusion: the iPad transport and Companion turn route were reachable. The fragile point was the synchronous wait inside the submit request, which made a normal Codex response latency look like a failed send path on-device.
+
+Implemented fix:
+
+- Companion accepts optional `wait_for_completion`.
+- CraftingTable sends `wait_for_completion: false`.
+- Companion returns `status: started` immediately and waits for turn completion in a background task.
+- CraftingTable reloads the selected thread detail immediately and again after short delays.
 
 ## UI Decisions
 

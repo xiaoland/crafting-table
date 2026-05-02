@@ -288,6 +288,29 @@ Verified:
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
 - `git diff --check`
 
+## Slice 10 Outcome
+
+CraftingTable can now submit Codex Remote turns from iPad without holding the request open for full model completion.
+
+Implemented:
+
+- optional `wait_for_completion` field on Companion `POST /threads/{thread_id}/turns`
+- background Companion completion wait for nonblocking turn submissions
+- CraftingTable `submitTurn` payload support for `wait_for_completion`
+- iPad Thread Page submission path that reloads selected thread detail immediately, then schedules short follow-up refreshes
+- task packet diagnosis for the physical-iPad send failure report
+
+Verified:
+
+- LAN Companion `GET /health`, `GET /threads?limit=1`, and `GET /models` against `http://192.168.4.16:3765`
+- direct LAN synchronous `POST /threads/019ddd34-e1aa-7600-a7c8-179a67b56908/turns` returned `CRAFTINGTABLE_IPAD_SEND_DIAG_OK`
+- local async Companion smoke with `wait_for_completion: false` returned `status: started` quickly, then thread detail showed `CRAFTINGTABLE_ASYNC_SEND_OK`
+- updated LAN Companion on `http://192.168.4.16:3765` returned `status: started` in about 2.2 seconds, then thread detail showed `CRAFTINGTABLE_LAN_ASYNC_SEND_OK`
+- `cargo fmt --manifest-path Companion/Cargo.toml`
+- `cargo test --manifest-path Companion/Cargo.toml`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
+
 ## Launch Entrypoints
 
 Codex Remote Companion now has shared local launch entrypoints:

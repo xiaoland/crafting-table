@@ -117,6 +117,7 @@ pub async fn submit_turn(
     input: &str,
     cwd: Option<&str>,
     model: Option<&str>,
+    wait_for_completion: bool,
 ) -> anyhow::Result<TurnSubmitResponse> {
     let mut client = CodexAppServerClient::connect(config).await?;
     client
@@ -152,6 +153,41 @@ pub async fn submit_turn(
         .get("turn")
         .ok_or_else(|| anyhow!("turn/start response did not contain turn"))?;
     let turn_id = string_field(turn, "id").unwrap_or_default();
+
+    if !wait_for_completion {
+        let background_thread_id = thread_id.to_string();
+        let background_turn_id = turn_id.clone();
+
+        tokio::spawn(async move {
+            match client
+                .wait_for_turn(&background_thread_id, &background_turn_id)
+                .await
+            {
+                Ok(completion) => tracing::info!(
+                    thread_id = %background_thread_id,
+                    turn_id = %background_turn_id,
+                    status = %completion.status,
+                    event_count = completion.event_count,
+                    "background Codex turn completed"
+                ),
+                Err(error) => tracing::warn!(
+                    thread_id = %background_thread_id,
+                    turn_id = %background_turn_id,
+                    error = %error,
+                    "background Codex turn failed"
+                ),
+            }
+        });
+
+        return Ok(TurnSubmitResponse {
+            thread_id: thread_id.to_string(),
+            turn_id,
+            status: "started".to_string(),
+            assistant_text: String::new(),
+            event_count: 0,
+        });
+    }
+
     let completion = client.wait_for_turn(thread_id, &turn_id).await?;
 
     Ok(TurnSubmitResponse {

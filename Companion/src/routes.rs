@@ -127,6 +127,7 @@ async fn submit_turn(
         &request.input,
         request.cwd.as_deref(),
         request.model.as_deref(),
+        request.wait_for_completion.unwrap_or(true),
     )
     .await
     {

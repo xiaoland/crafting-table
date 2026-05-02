@@ -74,6 +74,7 @@ pub struct TurnSubmitRequest {
     pub input: String,
     pub cwd: Option<String>,
     pub model: Option<String>,
+    pub wait_for_completion: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]

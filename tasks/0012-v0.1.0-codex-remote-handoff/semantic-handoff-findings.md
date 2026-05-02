@@ -32,7 +32,7 @@ The Companion owns app-server lifecycle and protocol churn. CraftingTable speaks
 
 `GET /threads` prefers app-server metadata and falls back to `session_index.jsonl` when app-server startup or protocol calls fail.
 
-`GET /threads/{thread_id}` normalizes app-server turn items into a CraftingTable message list. `GET /models` normalizes visible model choices. `POST /threads/{thread_id}/turns` accepts an optional `model` field and forwards it to app-server `turn/start`.
+`GET /threads/{thread_id}` normalizes app-server turn items into a CraftingTable message list. `GET /models` normalizes visible model choices. `POST /threads/{thread_id}/turns` accepts optional `model` and `wait_for_completion` fields. Companion forwards `model` to app-server `turn/start`. `wait_for_completion` defaults to `true` for compatibility. When `wait_for_completion` is `false`, Companion returns `status: started` after `turn/start` and keeps waiting for completion in a background task.
 
 ## Smoke Evidence
 
@@ -55,6 +55,15 @@ Observed turn result:
   "event_count": 31
 }
 ```
+
+Additional iPad-send diagnosis smoke:
+
+- LAN Companion endpoint: `http://192.168.4.16:3765`
+- Direct synchronous POST returned `CRAFTINGTABLE_IPAD_SEND_DIAG_OK` after about 20 seconds.
+- Local async POST to `http://127.0.0.1:3769` with `wait_for_completion: false` returned `status: started` in about 2.3 seconds.
+- A follow-up `GET /threads/019ddd34-e1aa-7600-a7c8-179a67b56908` showed `CRAFTINGTABLE_ASYNC_SEND_OK` and completed turn `019de7a7-66a5-7b12-a459-df78c2ed0b14`.
+- Updated LAN Companion on `http://192.168.4.16:3765` returned `status: started` in about 2.2 seconds for async turn `019de7ac-5e0f-71b1-b7dd-b9219bce3876`.
+- Follow-up thread detail on the same LAN endpoint showed `CRAFTINGTABLE_LAN_ASYNC_SEND_OK` and completed status for that turn.
 
 ## Next Cut
 
