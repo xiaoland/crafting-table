@@ -1,7 +1,7 @@
 # Task 0013 - v0.1.0 local LLM HTTP server
 
 ## Status
-Proposed
+In implementation
 
 ## Date
 2026-05-02
@@ -60,6 +60,14 @@ Keep the runtime boundary explicit:
 - `LocalLLMRuntime` owns load, unload, generate, cancel, and runtime status.
 - `LlamaCppRuntime` is the first implementation.
 - MLC LLM remains a later adapter after the first GGUF path proves the product need.
+
+Current implementation state:
+
+- `LocalLLMRuntime` is the Swift boundary used by the HTTP server and local chat UI.
+- `LlamaCppRuntimeAdapter` links the official llama.cpp XCFramework through a local SwiftPM wrapper.
+- The adapter loads the active verified GGUF file, tokenizes a prompt, decodes synchronously, samples with temperature/top-p controls, and returns token counts.
+- Simulator builds force CPU execution; iPad device builds request Metal offload through `n_gpu_layers`.
+- Chat template handling is intentionally minimal for the first runtime spike.
 
 ## HTTP API Direction
 

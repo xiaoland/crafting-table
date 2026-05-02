@@ -4,11 +4,17 @@ import Foundation
 final class LocalLLMServerController: ObservableObject {
     enum ControllerError: LocalizedError {
         case noActiveModel
+        case modelNotFound(String)
+        case modelUnavailable(String)
 
         var errorDescription: String? {
             switch self {
             case .noActiveModel:
                 return "Choose an active verified model first."
+            case .modelNotFound(let modelID):
+                return "Model \(modelID) is not in the local manifest."
+            case .modelUnavailable(let displayName):
+                return "Model \(displayName) must be downloaded and verified before inference."
             }
         }
     }
@@ -19,14 +25,17 @@ final class LocalLLMServerController: ObservableObject {
 
     private let server: LocalLLMHTTPServer
     private let store: LocalLLMStore
+    private let runtime: LocalLLMRuntime
 
     init(
         store: LocalLLMStore,
         server: LocalLLMHTTPServer = LocalLLMHTTPServer(),
+        runtime: LocalLLMRuntime = LlamaCppRuntimeAdapter(),
         bearerToken: String? = nil
     ) {
         self.store = store
         self.server = server
+        self.runtime = runtime
         self.bearerToken = bearerToken ?? Self.generateBearerToken()
     }
 
@@ -67,10 +76,7 @@ final class LocalLLMServerController: ObservableObject {
     }
 
     func generate(_ request: LocalLLMGenerationRequest) async throws -> LocalLLMGenerationResult {
-        let modelID = request.modelID ?? store.activeModel?.id
-        guard let modelID else {
-            throw ControllerError.noActiveModel
-        }
+        let model = try generationModel(modelID: request.modelID)
 
         let previousState = state
         if case .listening(let url) = state {
@@ -83,12 +89,7 @@ final class LocalLLMServerController: ObservableObject {
             }
         }
 
-        return LocalLLMGenerationResult(
-            modelID: modelID,
-            outputText: "Runtime adapter pending. Prompt received: \(request.input)",
-            inputTokens: nil,
-            outputTokens: nil
-        )
+        return try await runtime.generate(model: model, request: request)
     }
 
     func stop() {
@@ -111,6 +112,31 @@ final class LocalLLMServerController: ObservableObject {
 
     private func displayURL(port: UInt16) -> URL {
         URL(string: "http://0.0.0.0:\(port)")!
+    }
+
+    private func generationModel(modelID: String?) throws -> LocalLLMModelRecord {
+        let model: LocalLLMModelRecord?
+        if let modelID {
+            model = store.models.first { $0.id == modelID }
+            if model == nil {
+                throw ControllerError.modelNotFound(modelID)
+            }
+        } else {
+            model = store.activeModel
+        }
+
+        guard let model else {
+            throw ControllerError.noActiveModel
+        }
+
+        guard model.downloadState == .downloaded,
+              model.verificationState == .verified,
+              model.localPath != nil
+        else {
+            throw ControllerError.modelUnavailable(model.displayName)
+        }
+
+        return model
     }
 
     private static func generateBearerToken() -> String {

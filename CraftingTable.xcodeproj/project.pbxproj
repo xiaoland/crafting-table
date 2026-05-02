@@ -27,6 +27,9 @@
 		B13000010000000000000008 /* LocalLLMServerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13000110000000000000008 /* LocalLLMServerController.swift */; };
 		B13000010000000000000009 /* LocalLLMScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13000110000000000000009 /* LocalLLMScreen.swift */; };
 		B1300001000000000000000A /* LocalLLMChatPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1300011000000000000000A /* LocalLLMChatPanel.swift */; };
+		B1300001000000000000000B /* LocalLLMRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1300011000000000000000B /* LocalLLMRuntime.swift */; };
+		B1300001000000000000000C /* LlamaCppRuntimeAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1300011000000000000000C /* LlamaCppRuntimeAdapter.swift */; };
+		B13000020000000000000001 /* LlamaFramework in Frameworks */ = {isa = PBXBuildFile; productRef = B13001020000000000000001 /* LlamaFramework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -52,6 +55,8 @@
 		B13000110000000000000008 /* LocalLLMServerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalLLMServerController.swift; sourceTree = "<group>"; };
 		B13000110000000000000009 /* LocalLLMScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalLLMScreen.swift; sourceTree = "<group>"; };
 		B1300011000000000000000A /* LocalLLMChatPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalLLMChatPanel.swift; sourceTree = "<group>"; };
+		B1300011000000000000000B /* LocalLLMRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalLLMRuntime.swift; sourceTree = "<group>"; };
+		B1300011000000000000000C /* LlamaCppRuntimeAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaCppRuntimeAdapter.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +64,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B13000020000000000000001 /* LlamaFramework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -160,6 +166,8 @@
 				B13000110000000000000008 /* LocalLLMServerController.swift */,
 				B13000110000000000000009 /* LocalLLMScreen.swift */,
 				B1300011000000000000000A /* LocalLLMChatPanel.swift */,
+				B1300011000000000000000B /* LocalLLMRuntime.swift */,
+				B1300011000000000000000C /* LlamaCppRuntimeAdapter.swift */,
 				B13000110000000000000003 /* OpenAIResponsesModels.swift */,
 			);
 			path = LocalLLM;
@@ -197,6 +205,9 @@
 			dependencies = (
 			);
 			name = CraftingTable;
+			packageProductDependencies = (
+				B13001020000000000000001 /* LlamaFramework */,
+			);
 			productName = CraftingTable;
 			productReference = A10000110000000000000005 /* CraftingTable.app */;
 			productType = "com.apple.product-type.application";
@@ -225,6 +236,9 @@
 				Base,
 			);
 			mainGroup = A10000310000000000000001;
+			packageReferences = (
+				B13001010000000000000001 /* XCLocalSwiftPackageReference "ThirdParty/LlamaFrameworkPackage" */,
+			);
 			productRefGroup = A10000310000000000000006 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -265,6 +279,8 @@
 				B13000010000000000000008 /* LocalLLMServerController.swift in Sources */,
 				B13000010000000000000009 /* LocalLLMScreen.swift in Sources */,
 				B1300001000000000000000A /* LocalLLMChatPanel.swift in Sources */,
+				B1300001000000000000000B /* LocalLLMRuntime.swift in Sources */,
+				B1300001000000000000000C /* LlamaCppRuntimeAdapter.swift in Sources */,
 				B13000010000000000000003 /* OpenAIResponsesModels.swift in Sources */,
 				A10000010000000000000009 /* GoalForestScreen.swift in Sources */,
 				A1000001000000000000000A /* WorkSessionScreen.swift in Sources */,
@@ -398,6 +414,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		B13001010000000000000001 /* XCLocalSwiftPackageReference "ThirdParty/LlamaFrameworkPackage" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ThirdParty/LlamaFrameworkPackage;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B13001020000000000000001 /* LlamaFramework */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B13001010000000000000001 /* XCLocalSwiftPackageReference "ThirdParty/LlamaFrameworkPackage" */;
+			productName = LlamaFramework;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 	};
 	rootObject = A10000610000000000000001 /* Project object */;
