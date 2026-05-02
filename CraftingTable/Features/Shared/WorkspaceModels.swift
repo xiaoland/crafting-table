@@ -4,6 +4,7 @@ enum AppRoute: Equatable {
     case goalForest
     case workSession(String)
     case remoteControl
+    case codexRemote
 }
 
 enum RemoteConnectionState {

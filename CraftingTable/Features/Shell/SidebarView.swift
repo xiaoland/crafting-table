@@ -6,6 +6,7 @@ struct SidebarView: View {
     let route: AppRoute
     let openGoalForest: () -> Void
     let openRemoteControl: () -> Void
+    let openCodexRemote: () -> Void
     let openSession: (WorkSession) -> Void
 
     var body: some View {
@@ -40,6 +41,15 @@ struct SidebarView: View {
                             isSelected: route == .remoteControl,
                             accessibilityIdentifier: "sidebar-remote-control",
                             action: openRemoteControl
+                        )
+
+                        SidebarRow(
+                            title: "Codex Remote",
+                            subtitle: "Companion, threads, handoff",
+                            systemImage: "rectangle.connected.to.line.below",
+                            isSelected: route == .codexRemote,
+                            accessibilityIdentifier: "sidebar-codex-remote",
+                            action: openCodexRemote
                         )
                     }
 

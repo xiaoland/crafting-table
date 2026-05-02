@@ -17,6 +17,8 @@
 		A1000001000000000000000B /* RemoteControlScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000011000000000000000B /* RemoteControlScreen.swift */; };
 		A1000001000000000000000C /* CaptureSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000011000000000000000C /* CaptureSheets.swift */; };
 		A1000001000000000000000D /* WorkspaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000011000000000000000D /* WorkspaceStore.swift */; };
+		A1000001000000000000000E /* CodexRemoteScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000011000000000000000E /* CodexRemoteScreen.swift */; };
+		A1000001000000000000000F /* CodexRemoteClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000110000000000000010 /* CodexRemoteClient.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +34,9 @@
 		A1000011000000000000000B /* RemoteControlScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteControlScreen.swift; sourceTree = "<group>"; };
 		A1000011000000000000000C /* CaptureSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSheets.swift; sourceTree = "<group>"; };
 		A1000011000000000000000D /* WorkspaceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceStore.swift; sourceTree = "<group>"; };
+		A1000011000000000000000E /* CodexRemoteScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexRemoteScreen.swift; sourceTree = "<group>"; };
+		A1000011000000000000000F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10000110000000000000010 /* CodexRemoteClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexRemoteClient.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,6 +73,7 @@
 			children = (
 				A10000110000000000000001 /* CraftingTableApp.swift */,
 				A10000110000000000000002 /* RootView.swift */,
+				A1000011000000000000000F /* Info.plist */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -80,6 +86,7 @@
 				A10000310000000000000009 /* GoalForest */,
 				A1000031000000000000000A /* WorkSession */,
 				A1000031000000000000000B /* RemoteControl */,
+				A1000031000000000000000D /* CodexRemote */,
 				A1000031000000000000000C /* Capture */,
 			);
 			path = Features;
@@ -125,6 +132,15 @@
 				A1000011000000000000000B /* RemoteControlScreen.swift */,
 			);
 			path = RemoteControl;
+			sourceTree = "<group>";
+		};
+		A1000031000000000000000D /* CodexRemote */ = {
+			isa = PBXGroup;
+			children = (
+				A1000011000000000000000E /* CodexRemoteScreen.swift */,
+				A10000110000000000000010 /* CodexRemoteClient.swift */,
+			);
+			path = CodexRemote;
 			sourceTree = "<group>";
 		};
 		A1000031000000000000000C /* Capture */ = {
@@ -221,6 +237,8 @@
 				A10000010000000000000009 /* GoalForestScreen.swift in Sources */,
 				A1000001000000000000000A /* WorkSessionScreen.swift in Sources */,
 				A1000001000000000000000B /* RemoteControlScreen.swift in Sources */,
+				A1000001000000000000000E /* CodexRemoteScreen.swift in Sources */,
+				A1000001000000000000000F /* CodexRemoteClient.swift in Sources */,
 				A1000001000000000000000C /* CaptureSheets.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -282,6 +300,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CraftingTable/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Crafting Table";
 				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -308,6 +327,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CraftingTable/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Crafting Table";
 				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
