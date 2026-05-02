@@ -20,6 +20,9 @@
 		B13000010000000000000001 /* LocalLLMModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13000110000000000000001 /* LocalLLMModels.swift */; };
 		B13000010000000000000002 /* HuggingFaceGGUFSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13000110000000000000002 /* HuggingFaceGGUFSource.swift */; };
 		B13000010000000000000003 /* OpenAIResponsesModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13000110000000000000003 /* OpenAIResponsesModels.swift */; };
+		B13000010000000000000004 /* HuggingFaceModelSourceClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13000110000000000000004 /* HuggingFaceModelSourceClient.swift */; };
+		B13000010000000000000005 /* LocalLLMFileVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13000110000000000000005 /* LocalLLMFileVerifier.swift */; };
+		B13000010000000000000006 /* LocalLLMStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B13000110000000000000006 /* LocalLLMStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +41,9 @@
 		B13000110000000000000001 /* LocalLLMModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalLLMModels.swift; sourceTree = "<group>"; };
 		B13000110000000000000002 /* HuggingFaceGGUFSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HuggingFaceGGUFSource.swift; sourceTree = "<group>"; };
 		B13000110000000000000003 /* OpenAIResponsesModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIResponsesModels.swift; sourceTree = "<group>"; };
+		B13000110000000000000004 /* HuggingFaceModelSourceClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HuggingFaceModelSourceClient.swift; sourceTree = "<group>"; };
+		B13000110000000000000005 /* LocalLLMFileVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalLLMFileVerifier.swift; sourceTree = "<group>"; };
+		B13000110000000000000006 /* LocalLLMStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalLLMStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -139,6 +145,9 @@
 			children = (
 				B13000110000000000000001 /* LocalLLMModels.swift */,
 				B13000110000000000000002 /* HuggingFaceGGUFSource.swift */,
+				B13000110000000000000004 /* HuggingFaceModelSourceClient.swift */,
+				B13000110000000000000005 /* LocalLLMFileVerifier.swift */,
+				B13000110000000000000006 /* LocalLLMStore.swift */,
 				B13000110000000000000003 /* OpenAIResponsesModels.swift */,
 			);
 			path = LocalLLM;
@@ -237,6 +246,9 @@
 				A10000010000000000000008 /* SidebarView.swift in Sources */,
 				B13000010000000000000001 /* LocalLLMModels.swift in Sources */,
 				B13000010000000000000002 /* HuggingFaceGGUFSource.swift in Sources */,
+				B13000010000000000000004 /* HuggingFaceModelSourceClient.swift in Sources */,
+				B13000010000000000000005 /* LocalLLMFileVerifier.swift in Sources */,
+				B13000010000000000000006 /* LocalLLMStore.swift in Sources */,
 				B13000010000000000000003 /* OpenAIResponsesModels.swift in Sources */,
 				A10000010000000000000009 /* GoalForestScreen.swift in Sources */,
 				A1000001000000000000000A /* WorkSessionScreen.swift in Sources */,
