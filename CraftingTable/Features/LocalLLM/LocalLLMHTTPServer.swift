@@ -2,8 +2,8 @@ import Foundation
 import Network
 
 final class LocalLLMHTTPServer {
-    typealias ModelsProvider = @Sendable () async -> [LocalLLMModelRecord]
-    typealias GenerateHandler = @Sendable (LocalLLMGenerationRequest) async throws -> LocalLLMGenerationResult
+    typealias ModelsProvider = () async -> [LocalLLMModelRecord]
+    typealias GenerateHandler = (LocalLLMGenerationRequest) async throws -> LocalLLMGenerationResult
 
     enum ServerError: LocalizedError {
         case invalidPort
