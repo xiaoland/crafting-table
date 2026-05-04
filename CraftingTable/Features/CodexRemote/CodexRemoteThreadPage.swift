@@ -6,6 +6,8 @@ struct CodexRemoteThreadPage: View {
     let detailResponse: CodexRemoteThreadDetailResponse?
     let models: [CodexRemoteModelOption]
     @Binding var selectedModel: String
+    @Binding var selectedReasoningEffort: String
+    @Binding var fastServiceTierEnabled: Bool
     @Binding var input: String
     let desktopSnapshot: CodexRemoteDesktopSnapshot?
     let desktopErrorMessage: String?
@@ -51,6 +53,8 @@ struct CodexRemoteThreadPage: View {
                     CodexRemoteComposer(
                         input: $input,
                         selectedModel: $selectedModel,
+                        selectedReasoningEffort: $selectedReasoningEffort,
+                        fastServiceTierEnabled: $fastServiceTierEnabled,
                         models: models,
                         isSubmitting: isSubmitting,
                         errorMessage: turnErrorMessage,
@@ -273,7 +277,7 @@ private struct CodexRemoteStreamingMessageRow: View {
                     ProgressView()
                         .controlSize(.small)
                 } else {
-                    Text(text)
+                    CodexRemoteMarkdownText(text: text)
                         .font(.body)
                         .foregroundStyle(.primary)
                         .textSelection(.enabled)
@@ -328,11 +332,7 @@ private struct CodexRemoteMessageRow: View {
                     }
                 }
 
-                Text(messageText)
-                    .font(.body)
-                    .foregroundStyle(isUserMessage ? .white : .primary)
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
+                messageBody
             }
             .padding(.horizontal, 13)
             .padding(.vertical, 11)
@@ -355,7 +355,7 @@ private struct CodexRemoteMessageRow: View {
     private var eventRow: some View {
         DisclosureGroup {
             Text(messageText)
-                .font(.callout)
+                .font(eventTextFont)
                 .foregroundStyle(.primary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -427,12 +427,46 @@ private struct CodexRemoteMessageRow: View {
         message.text.isEmpty ? message.kind : message.text
     }
 
-    private var eventTitle: String {
-        if message.kind.isEmpty {
-            return message.role.capitalized
+    @ViewBuilder
+    private var messageBody: some View {
+        if isUserMessage {
+            Text(messageText)
+                .font(.body)
+                .foregroundStyle(.white)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            CodexRemoteMarkdownText(text: messageText)
+                .font(.body)
+                .foregroundStyle(.primary)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
         }
+    }
 
-        return message.kind
+    private var eventTitle: String {
+        switch message.kind {
+        case "":
+            return message.role.capitalized
+        case "commandExecution":
+            return "Command"
+        case "fileChange":
+            return "File changes"
+        case "webSearch":
+            return "Web search"
+        case "mcpToolCall":
+            return "MCP tool"
+        case "dynamicToolCall":
+            return "Tool call"
+        case "collabAgentToolCall":
+            return "Agent tool"
+        case "contextCompaction":
+            return "Context"
+        case "imageGeneration":
+            return "Image generation"
+        default:
+            return message.kind
+        }
     }
 
     private var eventImage: String {
@@ -443,15 +477,48 @@ private struct CodexRemoteMessageRow: View {
             return "doc.text"
         case "webSearch":
             return "magnifyingglass"
+        case "mcpToolCall", "dynamicToolCall", "collabAgentToolCall":
+            return "wrench.and.screwdriver"
+        case "contextCompaction":
+            return "arrow.triangle.2.circlepath"
+        case "imageGeneration":
+            return "photo"
         default:
             return "gearshape"
         }
+    }
+
+    private var eventTextFont: Font {
+        switch message.kind {
+        case "commandExecution":
+            return .system(.callout, design: .monospaced)
+        default:
+            return .callout
+        }
+    }
+}
+
+private struct CodexRemoteMarkdownText: View {
+    let text: String
+
+    var body: some View {
+        Text(renderedText)
+    }
+
+    private var renderedText: AttributedString {
+        let options = AttributedString.MarkdownParsingOptions(
+            interpretedSyntax: .inlineOnlyPreservingWhitespace
+        )
+
+        return (try? AttributedString(markdown: text, options: options)) ?? AttributedString(text)
     }
 }
 
 private struct CodexRemoteComposer: View {
     @Binding var input: String
     @Binding var selectedModel: String
+    @Binding var selectedReasoningEffort: String
+    @Binding var fastServiceTierEnabled: Bool
     let models: [CodexRemoteModelOption]
     let isSubmitting: Bool
     let errorMessage: String?
@@ -477,26 +544,7 @@ private struct CodexRemoteComposer: View {
                 .disabled(isSubmitting)
                 .accessibilityIdentifier("codex-remote-turn-input")
 
-            HStack(alignment: .center, spacing: 10) {
-                CodexRemoteModelPicker(
-                    models: models,
-                    selectedModel: $selectedModel
-                )
-
-                Spacer(minLength: 0)
-
-                if isSubmitting {
-                    ProgressView()
-                        .controlSize(.small)
-                }
-
-                Button(action: submit) {
-                    Label("Send", systemImage: "paperplane.fill")
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(canSend == false)
-                .accessibilityIdentifier("codex-remote-turn-send-button")
-            }
+            controls
 
             if let errorMessage {
                 CodexRemoteErrorLine(message: errorMessage)
@@ -527,6 +575,75 @@ private struct CodexRemoteComposer: View {
     private var canSend: Bool {
         isSubmitting == false && input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
     }
+
+    private var selectedModelOption: CodexRemoteModelOption? {
+        models.first { model in
+            model.model == selectedModel
+        }
+    }
+
+    private var reasoningOptions: [CodexRemoteReasoningEffortOption] {
+        selectedModelOption?.supportedReasoningEfforts ?? []
+    }
+
+    private var showsFastToggle: Bool {
+        selectedModelOption?.supportsFast == true
+    }
+
+    private var controls: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 10) {
+                composerOptions
+                Spacer(minLength: 0)
+                sendControls
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                composerOptions
+                HStack(spacing: 10) {
+                    Spacer(minLength: 0)
+                    sendControls
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var composerOptions: some View {
+        HStack(alignment: .center, spacing: 10) {
+            CodexRemoteModelPicker(
+                models: models,
+                selectedModel: $selectedModel
+            )
+
+            if reasoningOptions.isEmpty == false {
+                CodexRemoteReasoningPicker(
+                    options: reasoningOptions,
+                    selectedReasoningEffort: $selectedReasoningEffort
+                )
+            }
+
+            if showsFastToggle {
+                CodexRemoteFastToggle(isEnabled: $fastServiceTierEnabled)
+            }
+        }
+    }
+
+    private var sendControls: some View {
+        HStack(alignment: .center, spacing: 10) {
+            if isSubmitting {
+                ProgressView()
+                    .controlSize(.small)
+            }
+
+            Button(action: submit) {
+                Label("Send", systemImage: "paperplane.fill")
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(canSend == false)
+            .accessibilityIdentifier("codex-remote-turn-send-button")
+        }
+    }
 }
 
 private struct CodexRemoteModelPicker: View {
@@ -554,5 +671,42 @@ private struct CodexRemoteModelPicker: View {
 
     private var selectedModelLabel: String {
         models.first(where: { $0.model == selectedModel })?.displayLabel ?? "Model"
+    }
+}
+
+private struct CodexRemoteReasoningPicker: View {
+    let options: [CodexRemoteReasoningEffortOption]
+    @Binding var selectedReasoningEffort: String
+
+    var body: some View {
+        Picker(selection: $selectedReasoningEffort) {
+            ForEach(options) { option in
+                Text(option.displayLabel)
+                    .tag(option.reasoningEffort)
+            }
+        } label: {
+            Label(selectedReasoningLabel, systemImage: "brain")
+        }
+        .pickerStyle(.menu)
+        .accessibilityIdentifier("codex-remote-reasoning-picker")
+    }
+
+    private var selectedReasoningLabel: String {
+        options.first { option in
+            option.reasoningEffort == selectedReasoningEffort
+        }?.displayLabel ?? "Reasoning"
+    }
+}
+
+private struct CodexRemoteFastToggle: View {
+    @Binding var isEnabled: Bool
+
+    var body: some View {
+        Toggle(isOn: $isEnabled) {
+            Label("Fast", systemImage: "bolt.fill")
+        }
+        .toggleStyle(.switch)
+        .fixedSize()
+        .accessibilityIdentifier("codex-remote-fast-toggle")
     }
 }

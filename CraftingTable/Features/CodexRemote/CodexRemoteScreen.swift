@@ -34,6 +34,8 @@ private struct CodexRemoteHostRuntime {
     var desktopErrorMessage: String?
     var selectedThreadID: String?
     var selectedModel = ""
+    var selectedReasoningEffort = ""
+    var fastServiceTierEnabled = false
     var threadDetailResponse: CodexRemoteThreadDetailResponse?
     var isLoadingThread = false
     var threadErrorMessage: String?
@@ -138,6 +140,8 @@ struct CodexRemoteScreen: View {
             detailResponse: activeState.threadDetailResponse,
             models: activeState.modelList?.models ?? [],
             selectedModel: activeSelectedModelBinding,
+            selectedReasoningEffort: activeSelectedReasoningEffortBinding,
+            fastServiceTierEnabled: activeFastServiceTierEnabledBinding,
             input: activeTurnInputBinding,
             desktopSnapshot: activeState.desktopSnapshot,
             desktopErrorMessage: activeState.desktopErrorMessage,
@@ -317,7 +321,9 @@ struct CodexRemoteScreen: View {
                 endpoint: profile.endpoint,
                 threadID: selectedThreadID,
                 input: trimmedInput,
-                model: runtime.selectedModel.isEmpty ? nil : runtime.selectedModel
+                model: runtime.selectedModel.isEmpty ? nil : runtime.selectedModel,
+                reasoningEffort: runtime.selectedReasoningEffort.isEmpty ? nil : runtime.selectedReasoningEffort,
+                serviceTier: runtime.fastServiceTierEnabled ? "fast" : nil
             )
 
             updateHostState(hostID) { state in
@@ -391,16 +397,44 @@ struct CodexRemoteScreen: View {
     }
 
     private func preserveOrSelectModel(from models: [CodexRemoteModelOption], hostID: String) {
-        let selectedModel = hostStates[hostID]?.selectedModel ?? ""
+        updateHostState(hostID) { state in
+            if state.selectedModel.isEmpty || models.contains(where: { $0.model == state.selectedModel }) == false {
+                state.selectedModel = models.first(where: { $0.isDefault })?.model ?? models.first?.model ?? ""
+            }
 
-        if selectedModel.isEmpty == false,
-           models.contains(where: { $0.model == selectedModel })
-        {
+            reconcileComposerControls(models: models, state: &state)
+        }
+    }
+
+    private func updateSelectedModel(_ model: String, hostID: String) {
+        updateHostState(hostID) { state in
+            state.selectedModel = model
+            reconcileComposerControls(models: state.modelList?.models ?? [], state: &state)
+        }
+    }
+
+    private func reconcileComposerControls(
+        models: [CodexRemoteModelOption],
+        state: inout CodexRemoteHostRuntime
+    ) {
+        guard let selectedModel = models.first(where: { $0.model == state.selectedModel }) else {
+            state.selectedReasoningEffort = ""
+            state.fastServiceTierEnabled = false
             return
         }
 
-        updateHostState(hostID) { state in
-            state.selectedModel = models.first(where: { $0.isDefault })?.model ?? models.first?.model ?? ""
+        let supportedEfforts = selectedModel.supportedReasoningEfforts.map(\.reasoningEffort)
+
+        if supportedEfforts.isEmpty {
+            state.selectedReasoningEffort = ""
+        } else if supportedEfforts.contains(state.selectedReasoningEffort) == false {
+            let defaultEffort = selectedModel.defaultReasoningEffort
+                .flatMap { supportedEfforts.contains($0) ? $0 : nil }
+            state.selectedReasoningEffort = defaultEffort ?? supportedEfforts[0]
+        }
+
+        if selectedModel.supportsFast == false {
+            state.fastServiceTierEnabled = false
         }
     }
 
@@ -453,8 +487,32 @@ struct CodexRemoteScreen: View {
                 activeState.selectedModel
             },
             set: { newValue in
+                updateSelectedModel(newValue, hostID: selectedHostID)
+            }
+        )
+    }
+
+    private var activeSelectedReasoningEffortBinding: Binding<String> {
+        Binding(
+            get: {
+                activeState.selectedReasoningEffort
+            },
+            set: { newValue in
                 updateHostState(selectedHostID) { state in
-                    state.selectedModel = newValue
+                    state.selectedReasoningEffort = newValue
+                }
+            }
+        )
+    }
+
+    private var activeFastServiceTierEnabledBinding: Binding<Bool> {
+        Binding(
+            get: {
+                activeState.fastServiceTierEnabled
+            },
+            set: { newValue in
+                updateHostState(selectedHostID) { state in
+                    state.fastServiceTierEnabled = newValue
                 }
             }
         )
@@ -597,6 +655,9 @@ struct CodexRemoteScreen: View {
             state.errorMessage = nil
             state.desktopErrorMessage = nil
             state.selectedThreadID = nil
+            state.selectedModel = ""
+            state.selectedReasoningEffort = ""
+            state.fastServiceTierEnabled = false
             state.threadDetailResponse = nil
             state.threadErrorMessage = nil
             state.turnResult = nil

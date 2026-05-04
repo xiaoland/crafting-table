@@ -77,6 +77,8 @@ pub struct TurnSubmitRequest {
     pub input: String,
     pub cwd: Option<String>,
     pub model: Option<String>,
+    pub reasoning_effort: Option<String>,
+    pub service_tier: Option<String>,
     pub wait_for_completion: Option<bool>,
 }
 
@@ -145,6 +147,15 @@ pub struct CodexModelSummary {
     pub display_name: String,
     pub description: String,
     pub is_default: bool,
+    pub default_reasoning_effort: Option<String>,
+    pub supported_reasoning_efforts: Vec<CodexReasoningEffortSummary>,
+    pub additional_speed_tiers: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+pub struct CodexReasoningEffortSummary {
+    pub reasoning_effort: String,
+    pub description: String,
 }
 
 #[derive(Debug, Serialize)]

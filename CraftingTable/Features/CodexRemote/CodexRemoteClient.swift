@@ -213,9 +213,69 @@ struct CodexRemoteModelOption: Decodable, Identifiable {
     let displayName: String
     let description: String
     let isDefault: Bool
+    let defaultReasoningEffort: String?
+    let supportedReasoningEfforts: [CodexRemoteReasoningEffortOption]
+    let additionalSpeedTiers: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case model
+        case displayName
+        case description
+        case isDefault
+        case defaultReasoningEffort
+        case supportedReasoningEfforts
+        case additionalSpeedTiers
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        id = try container.decode(String.self, forKey: .id)
+        model = try container.decode(String.self, forKey: .model)
+        displayName = try container.decode(String.self, forKey: .displayName)
+        description = try container.decode(String.self, forKey: .description)
+        isDefault = try container.decode(Bool.self, forKey: .isDefault)
+        defaultReasoningEffort = try container.decodeIfPresent(String.self, forKey: .defaultReasoningEffort)
+        supportedReasoningEfforts = try container.decodeIfPresent(
+            [CodexRemoteReasoningEffortOption].self,
+            forKey: .supportedReasoningEfforts
+        ) ?? []
+        additionalSpeedTiers = try container.decodeIfPresent([String].self, forKey: .additionalSpeedTiers) ?? []
+    }
 
     var displayLabel: String {
         displayName.isEmpty ? model : displayName
+    }
+
+    var supportsFast: Bool {
+        additionalSpeedTiers.contains { speedTier in
+            speedTier.caseInsensitiveCompare("fast") == .orderedSame
+        }
+    }
+}
+
+struct CodexRemoteReasoningEffortOption: Decodable, Identifiable {
+    let reasoningEffort: String
+    let description: String
+
+    var id: String {
+        reasoningEffort
+    }
+
+    var displayLabel: String {
+        switch reasoningEffort {
+        case "low":
+            return "Low"
+        case "medium":
+            return "Medium"
+        case "high":
+            return "High"
+        case "xhigh":
+            return "X High"
+        default:
+            return reasoningEffort
+        }
     }
 }
 
@@ -288,6 +348,8 @@ struct CodexRemoteClient {
         input: String,
         cwd: String? = nil,
         model: String? = nil,
+        reasoningEffort: String? = nil,
+        serviceTier: String? = nil,
         waitForCompletion: Bool = false
     ) async throws -> CodexRemoteTurnResult {
         let baseURL = try normalizedBaseURL(from: endpoint)
@@ -299,6 +361,8 @@ struct CodexRemoteClient {
             input: input,
             cwd: cwd,
             model: model,
+            reasoningEffort: reasoningEffort,
+            serviceTier: serviceTier,
             waitForCompletion: waitForCompletion
         )
 
@@ -467,12 +531,16 @@ private struct CodexRemoteTurnSubmitPayload: Encodable {
     let input: String
     let cwd: String?
     let model: String?
+    let reasoningEffort: String?
+    let serviceTier: String?
     let waitForCompletion: Bool
 
     enum CodingKeys: String, CodingKey {
         case input
         case cwd
         case model
+        case reasoningEffort = "reasoning_effort"
+        case serviceTier = "service_tier"
         case waitForCompletion = "wait_for_completion"
     }
 }

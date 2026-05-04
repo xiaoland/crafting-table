@@ -377,30 +377,31 @@ Verified:
 - short live Companion stream smoke on `127.0.0.1:3771` returned `CRAFTINGTABLE_STREAM_TIMEOUT_FIX_OK` through assistant delta frames, then `turn_completed`
 - `git diff --check`
 
-## Next Experience Slices
+## Slice 13 Outcome
 
-### Slice 13 Planned: Composer Controls and Codex-like Rendering
+Codex Remote composer controls now support model, reasoning effort, and Fast service tier selection.
 
-Expand composer controls and improve transcript rendering after streaming foundations exist.
+Implemented:
 
-Objective:
+- Companion `GET /models` returns `default_reasoning_effort`, `supported_reasoning_efforts`, and `additional_speed_tiers`.
+- Companion `POST /threads/{thread_id}/turns` accepts optional `reasoning_effort` and `service_tier`.
+- Companion maps public `reasoning_effort` to app-server `effort`.
+- Companion maps public `service_tier` to app-server `serviceTier`.
+- CraftingTable keeps reasoning and Fast selections in the active host runtime, alongside the selected model.
+- Thread Page composer shows model, reasoning effort, and Fast controls from selected-model capabilities.
+- Fast appears only when the selected model advertises the `fast` speed tier.
+- Assistant and streaming assistant messages render with native Markdown attributed text.
+- Tool and event rows use clearer labels and monospaced command output.
 
-- choose model, reasoning effort, and Fast speed tier from the composer
-- render Thread Page messages closer to Codex App's transcript shape
+Verified:
 
-Implementation shape:
-
-- `GET /models` includes `default_reasoning_level`, `supported_reasoning_levels`, and `additional_speed_tiers` from Codex model metadata where available.
-- `POST /threads/{thread_id}/turns` accepts model, reasoning effort, and speed tier once app-server `turn/start` parameter names are verified.
-- Composer presents model as a menu, reasoning effort as a compact segmented/menu control, and Fast as a toggle when supported by the selected model.
-- Transcript rows move toward Codex-style blocks: user prompt, assistant markdown, tool call disclosure, command output, file changes, web search, and status/progress rows.
-- Raw app-server item kinds stay behind Companion's normalized message/event contract.
-
-Verification:
-
-- app-server smoke verifies the accepted `turn/start` parameter names for reasoning effort and speed tier before the UI sends them.
-- model-list smoke verifies the selected model's supported efforts and speed tiers.
-- iPad build and visual pass cover long text, tool output, and streaming assistant deltas.
+- app-server `model/list` probe showed six visible models with reasoning effort metadata.
+- embedded app-server `TurnStartParams` schema exposes `model`, `effort`, and `serviceTier`.
+- local Companion smoke on `127.0.0.1:3773` returned `gpt-5.5` with default effort `medium`, four supported efforts, and `priority` plus `fast` speed tiers.
+- `cargo fmt --manifest-path Companion/Cargo.toml`
+- `cargo test --manifest-path Companion/Cargo.toml`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
 
 ## Launch Entrypoints
 

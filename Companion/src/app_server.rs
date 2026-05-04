@@ -13,9 +13,9 @@ use crate::{
     codex,
     config::Config,
     models::{
-        CodexModelSummary, ModelListResponse, SemanticThreadDetail, SemanticThreadSummary,
-        ThreadDetailResponse, ThreadListResponse, ThreadMessage, ThreadResumeResponse,
-        ThreadSummary, TurnSubmitResponse,
+        CodexModelSummary, CodexReasoningEffortSummary, ModelListResponse, SemanticThreadDetail,
+        SemanticThreadSummary, ThreadDetailResponse, ThreadListResponse, ThreadMessage,
+        ThreadResumeResponse, ThreadSummary, TurnSubmitResponse,
     },
     turn_events::TurnEventBroker,
 };
@@ -118,6 +118,8 @@ pub async fn submit_turn(
     input: &str,
     cwd: Option<&str>,
     model: Option<&str>,
+    reasoning_effort: Option<&str>,
+    service_tier: Option<&str>,
     wait_for_completion: bool,
     event_broker: Option<TurnEventBroker>,
 ) -> anyhow::Result<TurnSubmitResponse> {
@@ -147,6 +149,12 @@ pub async fn submit_turn(
 
     if let Some(model) = model.filter(|value| !value.trim().is_empty()) {
         turn_params["model"] = Value::String(model.to_string());
+    }
+    if let Some(reasoning_effort) = reasoning_effort.filter(|value| !value.trim().is_empty()) {
+        turn_params["effort"] = Value::String(reasoning_effort.to_string());
+    }
+    if let Some(service_tier) = service_tier.filter(|value| !value.trim().is_empty()) {
+        turn_params["serviceTier"] = Value::String(service_tier.to_string());
     }
 
     let turn_response = client.request("turn/start", turn_params).await?;
@@ -749,7 +757,34 @@ fn summarize_model(model: &Value) -> CodexModelSummary {
             .get("isDefault")
             .and_then(Value::as_bool)
             .unwrap_or(false),
+        default_reasoning_effort: string_field(model, "defaultReasoningEffort"),
+        supported_reasoning_efforts: summarize_reasoning_efforts(model),
+        additional_speed_tiers: string_array_field(model, "additionalSpeedTiers"),
     }
+}
+
+fn summarize_reasoning_efforts(model: &Value) -> Vec<CodexReasoningEffortSummary> {
+    model
+        .get("supportedReasoningEfforts")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|effort| {
+            if let Some(reasoning_effort) = effort.as_str() {
+                return Some(CodexReasoningEffortSummary {
+                    reasoning_effort: reasoning_effort.to_string(),
+                    description: String::new(),
+                });
+            }
+
+            let reasoning_effort = string_field(effort, "reasoningEffort")?;
+            Some(CodexReasoningEffortSummary {
+                reasoning_effort,
+                description: string_field(effort, "description").unwrap_or_default(),
+            })
+        })
+        .filter(|effort| !effort.reasoning_effort.trim().is_empty())
+        .collect()
 }
 
 fn project_metadata(cwd: Option<&str>) -> (String, String) {
@@ -773,6 +808,18 @@ fn string_field(value: &Value, field: &str) -> Option<String> {
         .get(field)
         .and_then(Value::as_str)
         .map(ToString::to_string)
+}
+
+fn string_array_field(value: &Value, field: &str) -> Vec<String> {
+    value
+        .get(field)
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(ToString::to_string)
+        .filter(|value| !value.trim().is_empty())
+        .collect()
 }
 
 fn number_or_string_field(value: &Value, field: &str) -> Option<String> {
@@ -932,7 +979,19 @@ mod tests {
             "model": "gpt-5.5",
             "displayName": "GPT-5.5",
             "description": "Frontier model",
-            "isDefault": true
+            "isDefault": true,
+            "defaultReasoningEffort": "medium",
+            "supportedReasoningEfforts": [
+                {
+                    "reasoningEffort": "low",
+                    "description": "Fast responses with lighter reasoning"
+                },
+                {
+                    "reasoningEffort": "medium",
+                    "description": "Balances speed and reasoning depth"
+                }
+            ],
+            "additionalSpeedTiers": ["priority", "fast"]
         });
 
         let summary = summarize_model(&model);
@@ -940,5 +999,12 @@ mod tests {
         assert_eq!(summary.id, "gpt-5.5");
         assert_eq!(summary.display_name, "GPT-5.5");
         assert!(summary.is_default);
+        assert_eq!(summary.default_reasoning_effort.as_deref(), Some("medium"));
+        assert_eq!(summary.supported_reasoning_efforts.len(), 2);
+        assert_eq!(
+            summary.supported_reasoning_efforts[0].reasoning_effort,
+            "low"
+        );
+        assert_eq!(summary.additional_speed_tiers, vec!["priority", "fast"]);
     }
 }

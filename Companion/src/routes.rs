@@ -141,6 +141,8 @@ async fn submit_turn(
         &request.input,
         request.cwd.as_deref(),
         request.model.as_deref(),
+        request.reasoning_effort.as_deref(),
+        request.service_tier.as_deref(),
         request.wait_for_completion.unwrap_or(true),
         Some(state.turn_events.clone()),
     )
