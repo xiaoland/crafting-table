@@ -311,6 +311,82 @@ Verified:
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
 
+## Next Experience Slices
+
+### Slice 11 Planned: Remote Profiles and Project Threads
+
+Combine multi-host support and project-based thread navigation in one slice.
+
+Objective:
+
+- CraftingTable can manage more than one trusted Companion endpoint.
+- Thread navigation is grouped by Codex project instead of one flat recency list.
+
+Implementation shape:
+
+- iPad owns remote host profiles for the MVP, persisted locally with endpoint, label, last health, and last-used time.
+- The active host owns its own health, desktop snapshot, model list, thread list, selected thread, selected model, and transient submit state.
+- Companion remains a single-host service; it reports richer thread metadata for the host it is running on.
+- `GET /threads` extends each summary with `cwd`, `project_key`, and `project_name`.
+- CraftingTable groups thread summaries by `project_key`, sorts projects by newest contained thread, then sorts threads by updated time inside each project.
+- Threads without a usable cwd are grouped under `Unknown Project`.
+
+Verification:
+
+- unit coverage for project summary derivation in Companion
+- iPad preview/build coverage for multiple saved hosts and grouped project sections
+- smoke with at least two endpoints, such as LAN Companion plus loopback Companion, when both are available
+- `cargo fmt --manifest-path Companion/Cargo.toml`
+- `cargo test --manifest-path Companion/Cargo.toml`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+
+### Slice 12 Planned: Streaming Turns
+
+Add a CraftingTable-owned live event projection so the Thread Page can update while Codex is still working.
+
+Objective:
+
+- submit returns quickly
+- assistant deltas and tool/status events appear without polling the full thread detail
+- final thread detail remains the reconciliation source after completion
+
+Implementation shape:
+
+- Companion introduces an active-turn event broker keyed by host-local `thread_id` and `turn_id`.
+- Background app-server notification reads publish normalized events to the broker.
+- CraftingTable subscribes over a WebSocket route for active turn events.
+- The event stream includes `turn_started`, `assistant_delta`, `item_updated`, `turn_completed`, and `error` for the MVP.
+- The iPad keeps polling fallback behavior for hosts that do not expose the streaming route.
+
+Verification:
+
+- Companion smoke proves deltas arrive before `turn_completed`.
+- iPad build proves the stream client compiles and lifecycle cancellation is explicit when switching thread or host.
+- Existing nonblocking submit smoke remains valid.
+
+### Slice 13 Planned: Composer Controls and Codex-like Rendering
+
+Expand composer controls and improve transcript rendering after streaming foundations exist.
+
+Objective:
+
+- choose model, reasoning effort, and Fast speed tier from the composer
+- render Thread Page messages closer to Codex App's transcript shape
+
+Implementation shape:
+
+- `GET /models` includes `default_reasoning_level`, `supported_reasoning_levels`, and `additional_speed_tiers` from Codex model metadata where available.
+- `POST /threads/{thread_id}/turns` accepts model, reasoning effort, and speed tier once app-server `turn/start` parameter names are verified.
+- Composer presents model as a menu, reasoning effort as a compact segmented/menu control, and Fast as a toggle when supported by the selected model.
+- Transcript rows move toward Codex-style blocks: user prompt, assistant markdown, tool call disclosure, command output, file changes, web search, and status/progress rows.
+- Raw app-server item kinds stay behind Companion's normalized message/event contract.
+
+Verification:
+
+- app-server smoke verifies the accepted `turn/start` parameter names for reasoning effort and speed tier before the UI sends them.
+- model-list smoke verifies the selected model's supported efforts and speed tiers.
+- iPad build and visual pass cover long text, tool output, and streaming assistant deltas.
+
 ## Launch Entrypoints
 
 Codex Remote Companion now has shared local launch entrypoints:

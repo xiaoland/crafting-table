@@ -20,6 +20,15 @@
 - `turn/completed`: mark synchronous MVP completion
 - `error`: report turn failure
 
+## Protocol Discovery Needed
+
+Before implementing composer controls, verify app-server `turn/start` parameter names for:
+
+- reasoning effort
+- Fast or speed-tier selection
+
+Local Codex metadata already exposes model capabilities through `models_cache.json`, including `default_reasoning_level`, `supported_reasoning_levels`, and `additional_speed_tiers`. Companion should still treat app-server request parameter names as runtime protocol facts and verify them with smoke tests before CraftingTable sends those fields.
+
 ## Companion Contract
 
 The Companion owns app-server lifecycle and protocol churn. CraftingTable speaks these MVP routes:
@@ -33,6 +42,21 @@ The Companion owns app-server lifecycle and protocol churn. CraftingTable speaks
 `GET /threads` prefers app-server metadata and falls back to `session_index.jsonl` when app-server startup or protocol calls fail.
 
 `GET /threads/{thread_id}` normalizes app-server turn items into a CraftingTable message list. `GET /models` normalizes visible model choices. `POST /threads/{thread_id}/turns` accepts optional `model` and `wait_for_completion` fields. Companion forwards `model` to app-server `turn/start`. `wait_for_completion` defaults to `true` for compatibility. When `wait_for_completion` is `false`, Companion returns `status: started` after `turn/start` and keeps waiting for completion in a background task.
+
+Planned route extensions:
+
+- `GET /threads` includes `cwd`, `project_key`, and `project_name` on each thread summary so CraftingTable can group by project without reading every thread detail first.
+- `GET /models` includes default reasoning level, supported reasoning levels, and speed tiers when app-server or local metadata exposes them.
+- `POST /threads/{thread_id}/turns` accepts reasoning effort and speed tier after their app-server parameter names are verified.
+- a WebSocket event route publishes normalized active-turn events keyed by `thread_id` and `turn_id`.
+
+Candidate active-turn events:
+
+- `turn_started`: turn id, thread id, started timestamp, selected model controls
+- `assistant_delta`: turn id and text delta
+- `item_updated`: normalized tool/event item summary
+- `turn_completed`: turn id, status, event count, optional assistant text
+- `error`: turn id and message
 
 ## Smoke Evidence
 
@@ -67,4 +91,4 @@ Additional iPad-send diagnosis smoke:
 
 ## Next Cut
 
-Add live event projection for active turns, including status changes, assistant deltas, approval requests, user-input requests, and errors.
+First add remote profiles and project-thread grouping. Then add live event projection for active turns, including status changes, assistant deltas, approval requests, user-input requests, and errors.

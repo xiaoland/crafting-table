@@ -15,6 +15,37 @@ The Codex Remote screen now uses a thread-first structure:
 
 The screen remains standalone. It has no Goal Forest, Work Session, or Remote Control dependency.
 
+## Next UX Direction
+
+The next Thread Page slice combines remote profiles and project-thread navigation.
+
+Remote profiles:
+
+- The sidebar should start with a compact host switcher instead of a single endpoint field.
+- Each host profile stores endpoint, label, last health status, and last-used time locally on iPad.
+- Selecting a host swaps the active health, desktop snapshot, model list, thread list, selected thread, composer state, and error state together.
+- Direct endpoint editing remains available for MVP setup.
+
+Project threads:
+
+- Thread navigation should group by project, using Companion-provided `project_key` and `project_name`.
+- Project sections sort by newest contained thread.
+- Thread rows keep title, updated time, and id, with project-level counts replacing one global flat count.
+- `Unknown Project` is the fallback group for threads whose cwd is missing or unusable.
+
+Thread rendering:
+
+- Move transcript presentation from chat bubbles toward Codex App-style blocks.
+- Assistant content should support markdown-like text rendering.
+- Tool and event rows should keep compact default state with disclosure for command output, file changes, web search, and other item kinds.
+- Streaming deltas should append into the active assistant block, then reconcile from `GET /threads/{thread_id}` after completion.
+
+Composer controls:
+
+- Keep model selection in the bottom composer.
+- Add reasoning effort once Companion exposes supported reasoning levels for the selected model.
+- Add Fast as a model-dependent toggle when the selected model advertises a fast speed tier.
+
 ## Client Contract Usage
 
 CraftingTable now calls:
