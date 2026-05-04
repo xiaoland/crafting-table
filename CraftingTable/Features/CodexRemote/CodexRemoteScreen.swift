@@ -27,6 +27,7 @@ private struct CodexRemoteHostProfile: Identifiable, Codable, Equatable {
 private struct CodexRemoteHostRuntime {
     var health: CodexRemoteHealth?
     var threadList: CodexRemoteThreadList?
+    var locallyCreatedThreads: [CodexRemoteThread] = []
     var modelList: CodexRemoteModelList?
     var desktopSnapshot: CodexRemoteDesktopSnapshot?
     var isLoading = false
@@ -40,6 +41,8 @@ private struct CodexRemoteHostRuntime {
     var threadDetailResponse: CodexRemoteThreadDetailResponse?
     var isLoadingThread = false
     var threadErrorMessage: String?
+    var isCreatingThread = false
+    var threadCreateErrorMessage: String?
     var turnInput = ""
     var turnResult: CodexRemoteTurnResult?
     var isSubmittingTurn = false
@@ -125,6 +128,8 @@ struct CodexRemoteScreen: View {
             desktopErrorMessage: activeState.desktopErrorMessage,
             selectedThreadID: activeState.selectedThreadID,
             isLoading: activeState.isLoading,
+            isCreatingThread: activeState.isCreatingThread,
+            threadCreateErrorMessage: activeState.threadCreateErrorMessage,
             refresh: {
                 Task {
                     await refresh()
@@ -132,6 +137,11 @@ struct CodexRemoteScreen: View {
             },
             addHost: addHost,
             deleteSelectedHost: deleteSelectedHost,
+            createThread: { group in
+                Task {
+                    await createThread(in: group)
+                }
+            },
             selectThread: selectThread
         )
     }
@@ -194,13 +204,16 @@ struct CodexRemoteScreen: View {
 
         do {
             let snapshot = try await client.loadSnapshot(endpoint: endpoint)
+            let mergedThreadList = snapshot.threadList.mergingCreatedThreads(
+                hostStates[hostID]?.locallyCreatedThreads ?? []
+            )
 
             updateHostState(hostID) { state in
                 state.health = snapshot.health
-                state.threadList = snapshot.threadList
+                state.threadList = mergedThreadList
                 state.modelList = snapshot.modelList
             }
-            preserveOrSelectThread(from: snapshot.threadList.threads, hostID: hostID)
+            preserveOrSelectThread(from: mergedThreadList.threads, hostID: hostID)
             preserveOrSelectModel(from: snapshot.modelList.models, hostID: hostID)
             updateHostProfile(hostID) { hostProfile in
                 hostProfile.lastHealthStatus = snapshot.health.codex.appServerAvailable ? "online" : "app server down"
@@ -378,12 +391,71 @@ struct CodexRemoteScreen: View {
             state.selectedThreadID = thread.id
             state.threadDetailResponse = nil
             state.threadErrorMessage = nil
+            state.threadCreateErrorMessage = nil
             state.turnResult = nil
             state.turnErrorMessage = nil
         }
 
         Task {
             await loadThreadDetail(threadID: thread.id)
+        }
+    }
+
+    @MainActor
+    private func createThread(in group: CodexRemoteProjectThreadGroup) async {
+        guard let profile = activeProfile else {
+            return
+        }
+
+        let hostID = profile.id
+        let runtime = hostStates[hostID] ?? .empty
+
+        guard let cwd = group.threadCreationCWD else {
+            updateHostState(hostID) { state in
+                state.threadCreateErrorMessage = "Project path is unavailable."
+            }
+            return
+        }
+
+        updateHostState(hostID) { state in
+            state.isCreatingThread = true
+            state.threadCreateErrorMessage = nil
+        }
+
+        do {
+            let response = try await client.createThread(
+                endpoint: profile.endpoint,
+                cwd: cwd,
+                model: runtime.selectedModel.isEmpty ? nil : runtime.selectedModel,
+                serviceTier: runtime.fastServiceTierEnabled ? "fast" : nil
+            )
+            let createdThread = response.thread.asListThread()
+
+            cancelTurnStream(hostID: hostID)
+            updateHostState(hostID) { state in
+                state.locallyCreatedThreads.removeAll { $0.id == createdThread.id }
+                state.locallyCreatedThreads.insert(createdThread, at: 0)
+                if let threadList = state.threadList {
+                    state.threadList = threadList.mergingCreatedThreads(state.locallyCreatedThreads)
+                }
+                state.selectedThreadID = createdThread.id
+                state.threadDetailResponse = nil
+                state.threadErrorMessage = nil
+                state.turnResult = nil
+                state.turnErrorMessage = nil
+            }
+
+            if selectedHostID == hostID {
+                await refresh()
+            }
+        } catch {
+            updateHostState(hostID) { state in
+                state.threadCreateErrorMessage = error.localizedDescription
+            }
+        }
+
+        updateHostState(hostID) { state in
+            state.isCreatingThread = false
         }
     }
 
@@ -679,6 +751,8 @@ struct CodexRemoteScreen: View {
             state.selectedPermissionMode = "sandbox"
             state.threadDetailResponse = nil
             state.threadErrorMessage = nil
+            state.isCreatingThread = false
+            state.threadCreateErrorMessage = nil
             state.turnResult = nil
             state.turnErrorMessage = nil
             state.streamingThreadID = nil
@@ -1054,9 +1128,12 @@ private struct CodexRemoteSidebar: View {
     let desktopErrorMessage: String?
     let selectedThreadID: String?
     let isLoading: Bool
+    let isCreatingThread: Bool
+    let threadCreateErrorMessage: String?
     let refresh: () -> Void
     let addHost: () -> Void
     let deleteSelectedHost: () -> Void
+    let createThread: (CodexRemoteProjectThreadGroup) -> Void
     let selectThread: (CodexRemoteThread) -> Void
 
     var body: some View {
@@ -1220,6 +1297,15 @@ private struct CodexRemoteSidebar: View {
                         .foregroundStyle(.secondary)
                 }
 
+                if isCreatingThread {
+                    ProgressView("Creating thread")
+                        .font(.caption)
+                }
+
+                if let threadCreateErrorMessage {
+                    CodexRemoteErrorLine(message: threadCreateErrorMessage)
+                }
+
                 if threadList.threads.isEmpty {
                     ContentUnavailableView("No Codex threads", systemImage: "tray")
                         .frame(maxWidth: .infinity, minHeight: 140)
@@ -1238,6 +1324,16 @@ private struct CodexRemoteSidebar: View {
                                     Text("\(group.threads.count)")
                                         .font(.caption2.weight(.semibold))
                                         .foregroundStyle(.secondary)
+
+                                    Button {
+                                        createThread(group)
+                                    } label: {
+                                        Image(systemName: "plus")
+                                            .font(.caption.weight(.semibold))
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .disabled(isCreatingThread || group.threadCreationCWD == nil)
+                                    .accessibilityLabel("Create thread in \(group.projectName)")
                                 }
 
                                 LazyVStack(spacing: 8) {

@@ -17,8 +17,8 @@ use crate::{
     config::Config,
     desktop_scout,
     models::{
-        ApiError, HealthResponse, PlatformInfo, ScoutHealth, ScoutStatus, ThreadListQuery,
-        TurnSubmitRequest,
+        ApiError, HealthResponse, PlatformInfo, ScoutHealth, ScoutStatus, ThreadCreateRequest,
+        ThreadListQuery, TurnSubmitRequest,
     },
     thread_store,
     turn_events::{TurnEventBroker, TurnStreamEvent},
@@ -47,7 +47,7 @@ impl AppState {
 pub fn router(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/health", get(health))
-        .route("/threads", get(list_threads))
+        .route("/threads", get(list_threads).post(create_thread))
         .route("/threads/:thread_id", get(read_thread))
         .route("/threads/:thread_id/resume", post(resume_thread))
         .route("/threads/:thread_id/turns", post(submit_turn))
@@ -80,6 +80,27 @@ async fn health(State(state): State<Arc<AppState>>) -> Json<HealthResponse> {
             },
         },
     })
+}
+
+async fn create_thread(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<ThreadCreateRequest>,
+) -> impl IntoResponse {
+    if request.cwd.trim().is_empty() {
+        return api_error(StatusCode::BAD_REQUEST, anyhow::anyhow!("cwd is required"));
+    }
+
+    match app_server::create_thread(
+        &state.config,
+        &request.cwd,
+        request.model.as_deref(),
+        request.service_tier.as_deref(),
+    )
+    .await
+    {
+        Ok(response) => (StatusCode::OK, Json(response)).into_response(),
+        Err(error) => api_error(StatusCode::BAD_GATEWAY, error),
+    }
 }
 
 async fn list_threads(

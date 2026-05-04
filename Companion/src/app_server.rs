@@ -14,8 +14,8 @@ use crate::{
     config::Config,
     models::{
         CodexModelSummary, CodexReasoningEffortSummary, ModelListResponse, SemanticThreadDetail,
-        SemanticThreadSummary, ThreadDetailResponse, ThreadListResponse, ThreadMessage,
-        ThreadResumeResponse, ThreadSummary, TurnPermissionMode, TurnSubmitResponse,
+        SemanticThreadSummary, ThreadCreateResponse, ThreadDetailResponse, ThreadListResponse,
+        ThreadMessage, ThreadResumeResponse, ThreadSummary, TurnPermissionMode, TurnSubmitResponse,
     },
     turn_events::TurnEventBroker,
 };
@@ -23,6 +23,7 @@ use crate::{
 const APP_SERVER_STARTUP_TIMEOUT: Duration = Duration::from_secs(10);
 const APP_SERVER_REQUEST_TIMEOUT: Duration = Duration::from_secs(20);
 const TURN_COMPLETION_TIMEOUT: Duration = Duration::from_secs(120);
+const CREATED_THREAD_NAME: &str = "New thread";
 
 type AppServerSocket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
@@ -76,6 +77,65 @@ pub async fn read_thread(config: &Config, thread_id: &str) -> anyhow::Result<Thr
         source: "app_server",
         thread: summarize_thread_detail(thread),
         messages: summarize_thread_messages(thread),
+    })
+}
+
+pub async fn create_thread(
+    config: &Config,
+    cwd: &str,
+    model: Option<&str>,
+    service_tier: Option<&str>,
+) -> anyhow::Result<ThreadCreateResponse> {
+    let mut client = CodexAppServerClient::connect(config).await?;
+    let response = client
+        .request(
+            "thread/start",
+            build_thread_start_params(cwd, model, service_tier),
+        )
+        .await?;
+
+    let thread = response
+        .get("thread")
+        .ok_or_else(|| anyhow!("thread/start response did not contain thread"))?;
+    let thread_id = string_field(thread, "id")
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| anyhow!("thread/start response did not contain thread id"))?;
+
+    client
+        .request("thread/name/set", build_thread_name_set_params(&thread_id))
+        .await?;
+    let thread_response = client
+        .request(
+            "thread/read",
+            json!({
+                "threadId": thread_id,
+                "includeTurns": true,
+            }),
+        )
+        .await?;
+    let refreshed_thread = thread_response
+        .get("thread")
+        .ok_or_else(|| anyhow!("thread/read response did not contain created thread"))?;
+
+    let mut created_thread = summarize_semantic_thread(refreshed_thread);
+    if created_thread.title == created_thread.id {
+        created_thread.title = CREATED_THREAD_NAME.to_string();
+    }
+
+    Ok(ThreadCreateResponse {
+        thread: created_thread,
+        model: response
+            .get("model")
+            .and_then(Value::as_str)
+            .map(ToString::to_string),
+        model_provider: response
+            .get("modelProvider")
+            .and_then(Value::as_str)
+            .map(ToString::to_string),
+        service_tier: response
+            .get("serviceTier")
+            .and_then(Value::as_str)
+            .map(ToString::to_string),
     })
 }
 
@@ -214,6 +274,29 @@ pub async fn submit_turn(
         status: completion.status,
         assistant_text: completion.assistant_text,
         event_count: completion.event_count,
+    })
+}
+
+fn build_thread_start_params(cwd: &str, model: Option<&str>, service_tier: Option<&str>) -> Value {
+    let mut params = json!({
+        "cwd": cwd,
+        "ephemeral": false,
+    });
+
+    if let Some(model) = model.filter(|value| !value.trim().is_empty()) {
+        params["model"] = Value::String(model.to_string());
+    }
+    if let Some(service_tier) = service_tier.filter(|value| !value.trim().is_empty()) {
+        params["serviceTier"] = Value::String(service_tier.to_string());
+    }
+
+    params
+}
+
+fn build_thread_name_set_params(thread_id: &str) -> Value {
+    json!({
+        "threadId": thread_id,
+        "name": CREATED_THREAD_NAME,
     })
 }
 
@@ -934,8 +1017,9 @@ mod tests {
     use crate::models::TurnPermissionMode;
 
     use super::{
-        build_turn_start_params, completion_matches, project_metadata, summarize_model,
-        summarize_thread_for_list, summarize_thread_messages,
+        build_thread_name_set_params, build_thread_start_params, build_turn_start_params,
+        completion_matches, project_metadata, summarize_model, summarize_thread_for_list,
+        summarize_thread_messages,
     };
 
     #[test]
@@ -1107,6 +1191,31 @@ mod tests {
         );
         assert_eq!(full_access["approvalPolicy"].as_str(), Some("never"));
         assert_eq!(full_access["approvalsReviewer"].as_str(), Some("user"));
+    }
+
+    #[test]
+    fn maps_thread_start_params() {
+        let params = build_thread_start_params(
+            "/Users/lanzhijiang/Development/workbench",
+            Some("gpt-5.5"),
+            Some("fast"),
+        );
+
+        assert_eq!(
+            params["cwd"].as_str(),
+            Some("/Users/lanzhijiang/Development/workbench")
+        );
+        assert_eq!(params["model"].as_str(), Some("gpt-5.5"));
+        assert_eq!(params["serviceTier"].as_str(), Some("fast"));
+        assert_eq!(params["ephemeral"].as_bool(), Some(false));
+    }
+
+    #[test]
+    fn maps_thread_name_set_params() {
+        let params = build_thread_name_set_params("thread-123");
+
+        assert_eq!(params["threadId"].as_str(), Some("thread-123"));
+        assert_eq!(params["name"].as_str(), Some("New thread"));
     }
 
     #[test]

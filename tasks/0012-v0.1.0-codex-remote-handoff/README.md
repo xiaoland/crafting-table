@@ -33,6 +33,7 @@ Executing
 - `live-agent-message-boundaries.md`: live assistant item boundary diagnosis, `item_id` propagation, and replay smoke evidence.
 - `permission-mode-findings.md`: permission mode schema findings, Companion mapping, and smoke evidence.
 - `composer-controls-layout-diagnosis.md`: simulator evidence for composer control wrapping and the single-line horizontal options fix.
+- `thread-creation-findings.md`: project-scoped thread creation contract, zero-turn app-server behavior, and smoke evidence.
 
 ## Current Decision
 

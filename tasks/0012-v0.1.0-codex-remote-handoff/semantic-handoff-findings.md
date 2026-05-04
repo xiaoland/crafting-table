@@ -14,6 +14,8 @@
 - `thread/list`: list semantic thread metadata
 - `thread/read`: load one thread with turns for message history
 - `thread/resume`: load a selected thread into the app-server runtime
+- `thread/start`: create a project-scoped semantic thread
+- `thread/name/set`: materialize a new zero-turn thread with an initial title
 - `turn/start`: submit one user text input
 - `model/list`: load Codex model choices
 - `item/agentMessage/delta`: stream assistant text deltas
@@ -34,6 +36,7 @@ Local Codex metadata already exposes model capabilities through `models_cache.js
 The Companion owns app-server lifecycle and protocol churn. CraftingTable speaks these MVP routes:
 
 - `GET /threads?limit=20`
+- `POST /threads`
 - `GET /threads/{thread_id}`
 - `GET /models`
 - `POST /threads/{thread_id}/resume`
@@ -46,6 +49,12 @@ The Companion owns app-server lifecycle and protocol churn. CraftingTable speaks
 Route extensions added in Slice 11:
 
 - `GET /threads` includes `cwd`, `project_key`, and `project_name` on each thread summary so CraftingTable can group by project without reading every thread detail first.
+
+Route extensions added for thread creation:
+
+- `POST /threads` accepts `cwd`, optional `model`, and optional `service_tier`.
+- Companion calls app-server `thread/start`, then `thread/name/set` with `New thread`, then `thread/read` to return readable metadata.
+- CraftingTable keeps a local projection for newly created zero-turn threads because app-server `thread/list` omits them until later activity.
 
 Planned route extensions:
 

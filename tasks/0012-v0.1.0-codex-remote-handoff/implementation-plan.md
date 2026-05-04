@@ -516,6 +516,28 @@ Verified:
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
 
+## Slice 13.4 Outcome
+
+Codex Remote can create a new thread under an existing project group.
+
+Implemented:
+
+- Companion exposes `POST /threads` with `cwd`, optional `model`, and optional `service_tier`.
+- Companion uses app-server `thread/start`, materializes the zero-turn thread with `thread/name/set`, then returns the readable thread metadata.
+- CraftingTable adds a project header plus action in the Codex Remote sidebar.
+- CraftingTable selects the newly created thread and clears stale turn/detail state.
+- CraftingTable merges local zero-turn thread projections into the sidebar until app-server `thread/list` includes them after later activity.
+
+Verified:
+
+- `cargo fmt --manifest-path Companion/Cargo.toml`
+- `cargo test --manifest-path Companion/Cargo.toml`
+- local Companion smoke on `127.0.0.1:3778` created thread `019df340-9ce8-7972-9034-cc4c5d897148`
+- follow-up `GET /threads/019df340-9ce8-7972-9034-cc4c5d897148` returned `New thread` with `turn_count: 0`
+- `thread/list` still omitted that zero-turn thread, confirming the need for the CraftingTable local projection
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
+
 ## Launch Entrypoints
 
 Codex Remote Companion now has shared local launch entrypoints:

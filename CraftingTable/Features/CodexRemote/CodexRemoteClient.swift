@@ -61,6 +61,18 @@ struct CodexRemoteThreadList: Decodable {
     let codexHome: String
     let skippedRecords: Int
     let threads: [CodexRemoteThread]
+
+    func mergingCreatedThreads(_ createdThreads: [CodexRemoteThread]) -> CodexRemoteThreadList {
+        let existingIDs = Set(threads.map(\.id))
+        let localOnlyThreads = createdThreads.filter { existingIDs.contains($0.id) == false }
+
+        return CodexRemoteThreadList(
+            source: source,
+            codexHome: codexHome,
+            skippedRecords: skippedRecords,
+            threads: (localOnlyThreads + threads).sortedForCodexRemoteDisplay()
+        )
+    }
 }
 
 struct CodexRemoteThread: Decodable, Identifiable {
@@ -117,10 +129,17 @@ struct CodexRemoteThread: Decodable, Identifiable {
 struct CodexRemoteProjectThreadGroup: Identifiable {
     let projectKey: String
     let projectName: String
+    let cwd: String?
     let threads: [CodexRemoteThread]
 
     var id: String {
         projectKey
+    }
+
+    var threadCreationCWD: String? {
+        let trimmedCWD = cwd?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        return trimmedCWD.isEmpty ? nil : trimmedCWD
     }
 
     var newestThreadDate: Date? {
@@ -132,22 +151,18 @@ struct CodexRemoteProjectThreadGroup: Identifiable {
 
         return groupedThreads
             .map { projectKey, threads in
-                let sortedThreads = threads.sorted { lhs, rhs in
-                    switch (lhs.sortDate, rhs.sortDate) {
-                    case let (lhsDate?, rhsDate?):
-                        return lhsDate > rhsDate
-                    case (_?, nil):
-                        return true
-                    case (nil, _?):
-                        return false
-                    case (nil, nil):
-                        return lhs.updatedAt > rhs.updatedAt
-                    }
-                }
+                let sortedThreads = threads.sortedForCodexRemoteDisplay()
+
+                let cwd = sortedThreads
+                    .compactMap(\.cwd)
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .first { $0.isEmpty == false }
+                    ?? (projectKey == "unknown" ? nil : projectKey)
 
                 return CodexRemoteProjectThreadGroup(
                     projectKey: projectKey,
                     projectName: sortedThreads.first?.effectiveProjectName ?? "Unknown Project",
+                    cwd: cwd,
                     threads: sortedThreads
                 )
             }
@@ -166,10 +181,59 @@ struct CodexRemoteProjectThreadGroup: Identifiable {
     }
 }
 
+private extension Array where Element == CodexRemoteThread {
+    func sortedForCodexRemoteDisplay() -> [CodexRemoteThread] {
+        sorted { lhs, rhs in
+            switch (lhs.sortDate, rhs.sortDate) {
+            case let (lhsDate?, rhsDate?):
+                return lhsDate > rhsDate
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            case (nil, nil):
+                return lhs.updatedAt > rhs.updatedAt
+            }
+        }
+    }
+}
+
 struct CodexRemoteThreadDetailResponse: Decodable {
     let source: String
     let thread: CodexRemoteThreadDetail
     let messages: [CodexRemoteThreadMessage]
+}
+
+struct CodexRemoteThreadCreateResponse: Decodable {
+    let thread: CodexRemoteSemanticThread
+    let model: String?
+    let modelProvider: String?
+    let serviceTier: String?
+}
+
+struct CodexRemoteSemanticThread: Decodable, Identifiable {
+    let id: String
+    let title: String
+    let preview: String
+    let cwd: String?
+    let status: String
+    let updatedAt: String
+    let source: String?
+
+    func asListThread() -> CodexRemoteThread {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedCWD = cwd?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let projectPath = trimmedCWD?.isEmpty == false ? trimmedCWD : nil
+
+        return CodexRemoteThread(
+            id: id,
+            title: trimmedTitle.isEmpty ? id : trimmedTitle,
+            updatedAt: updatedAt,
+            cwd: projectPath,
+            projectKey: projectPath,
+            projectName: nil
+        )
+    }
 }
 
 struct CodexRemoteThreadDetail: Decodable, Identifiable {
@@ -343,6 +407,23 @@ struct CodexRemoteClient {
             .appendingPathComponent(threadID)
 
         return try await fetch(CodexRemoteThreadDetailResponse.self, from: threadURL)
+    }
+
+    func createThread(
+        endpoint: String,
+        cwd: String,
+        model: String? = nil,
+        serviceTier: String? = nil
+    ) async throws -> CodexRemoteThreadCreateResponse {
+        let baseURL = try normalizedBaseURL(from: endpoint)
+        let threadsURL = baseURL.appendingPathComponent("threads")
+        let payload = CodexRemoteThreadCreatePayload(
+            cwd: cwd,
+            model: model,
+            serviceTier: serviceTier
+        )
+
+        return try await send(payload, to: threadsURL)
     }
 
     func submitTurn(
@@ -593,6 +674,18 @@ private struct CodexRemoteTurnSubmitPayload: Encodable {
         case serviceTier = "service_tier"
         case permissionMode = "permission_mode"
         case waitForCompletion = "wait_for_completion"
+    }
+}
+
+private struct CodexRemoteThreadCreatePayload: Encodable {
+    let cwd: String
+    let model: String?
+    let serviceTier: String?
+
+    enum CodingKeys: String, CodingKey {
+        case cwd
+        case model
+        case serviceTier = "service_tier"
     }
 }
 

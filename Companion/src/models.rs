@@ -83,6 +83,21 @@ pub struct TurnSubmitRequest {
     pub wait_for_completion: Option<bool>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ThreadCreateRequest {
+    pub cwd: String,
+    pub model: Option<String>,
+    pub service_tier: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ThreadCreateResponse {
+    pub thread: SemanticThreadSummary,
+    pub model: Option<String>,
+    pub model_provider: Option<String>,
+    pub service_tier: Option<String>,
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum TurnPermissionMode {
