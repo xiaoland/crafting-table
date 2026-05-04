@@ -162,12 +162,19 @@ final class LocalLLMStore: ObservableObject {
             return
         }
 
-        let record = manifest.models.remove(at: index)
+        let record = manifest.models[index]
         if let localPath = record.localPath,
            fileManager.fileExists(atPath: localPath) {
-            try? fileManager.removeItem(atPath: localPath)
+            do {
+                try fileManager.removeItem(atPath: localPath)
+                removeEmptyCacheDirectory(containing: localPath)
+            } catch {
+                lastError = error.localizedDescription
+                return
+            }
         }
 
+        manifest.models.remove(at: index)
         if manifest.activeModelID == modelID {
             manifest.activeModelID = nil
         }
@@ -218,6 +225,17 @@ final class LocalLLMStore: ObservableObject {
         }
 
         return try LocalLLMFileVerifier.verify(fileURL: fileURL, expectedSHA256: sha256)
+    }
+
+    private func removeEmptyCacheDirectory(containing localPath: String) {
+        let directoryURL = URL(fileURLWithPath: localPath).deletingLastPathComponent()
+        guard directoryURL.path.hasPrefix(cacheDirectoryURL.path),
+              (try? fileManager.contentsOfDirectory(atPath: directoryURL.path).isEmpty) == true
+        else {
+            return
+        }
+
+        try? fileManager.removeItem(at: directoryURL)
     }
 
     private func validateDownload(_ response: URLResponse) throws {

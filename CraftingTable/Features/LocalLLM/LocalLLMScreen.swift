@@ -7,6 +7,8 @@ struct LocalLLMScreen: View {
     @State private var repositoryID = "bartowski/Llama-3.2-1B-Instruct-GGUF"
     @State private var discoveredFiles: [HuggingFaceGGUFFile] = []
     @State private var isDiscovering = false
+    @State private var showsDeleteConfirmation = false
+    @State private var modelPendingDeletion: LocalLLMModelRecord?
 
     var body: some View {
         NavigationStack {
@@ -44,6 +46,24 @@ struct LocalLLMScreen: View {
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle("Local LLM")
             .accessibilityIdentifier("local-llm-screen")
+            .confirmationDialog(
+                "Delete Model",
+                isPresented: $showsDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                if let modelPendingDeletion {
+                    Button("Delete \(modelPendingDeletion.displayName)", role: .destructive) {
+                        store.removeModel(modelID: modelPendingDeletion.id)
+                        self.modelPendingDeletion = nil
+                    }
+                }
+
+                Button("Cancel", role: .cancel) {
+                    modelPendingDeletion = nil
+                }
+            } message: {
+                Text(deleteConfirmationMessage)
+            }
         }
     }
 
@@ -201,6 +221,17 @@ struct LocalLLMScreen: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(model.verificationState != .verified)
+
+            Button(role: .destructive) {
+                modelPendingDeletion = model
+                showsDeleteConfirmation = true
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+            .buttonStyle(.bordered)
+            .tint(.red)
+            .disabled(canDelete(model) == false)
+            .accessibilityIdentifier("local-llm-delete-model-\(model.id)")
         }
         .padding(12)
         .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
@@ -218,6 +249,38 @@ struct LocalLLMScreen: View {
         let size = fileSize.map(ByteCountFormatStyle().format) ?? "Unknown size"
         let digest = sha256.map { String($0.prefix(12)) } ?? "No sha256"
         return "\(size) · \(digest)"
+    }
+
+    private func canDelete(_ model: LocalLLMModelRecord) -> Bool {
+        switch model.downloadState {
+        case .downloading:
+            return false
+        case .notDownloaded, .downloaded, .failed:
+            break
+        }
+
+        switch model.verificationState {
+        case .verifying:
+            return false
+        case .unverified, .verified, .failed:
+            return true
+        }
+    }
+
+    private var deleteConfirmationMessage: String {
+        guard let model = modelPendingDeletion else {
+            return "This removes the model from Model Manager."
+        }
+
+        if model.activationState == .active {
+            return "This removes the local model file and clears it as the active model."
+        }
+
+        if model.localPath != nil {
+            return "This removes the local model file and its Model Manager record."
+        }
+
+        return "This removes the Model Manager record."
     }
 
     private var serverIsRunning: Bool {
