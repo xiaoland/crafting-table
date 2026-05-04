@@ -104,6 +104,7 @@ struct CodexRemoteScreen: View {
         CodexRemoteSidebar(
             profiles: hostProfiles,
             selectedHostID: selectedHostBinding,
+            hostLabel: activeHostLabelBinding,
             endpoint: activeEndpointBinding,
             health: activeState.health,
             threadList: activeState.threadList,
@@ -405,6 +406,17 @@ struct CodexRemoteScreen: View {
         )
     }
 
+    private var activeHostLabelBinding: Binding<String> {
+        Binding(
+            get: {
+                activeProfile?.label ?? ""
+            },
+            set: { newValue in
+                updateActiveHostLabel(newValue)
+            }
+        )
+    }
+
     private var activeSelectedModelBinding: Binding<String> {
         Binding(
             get: {
@@ -555,6 +567,13 @@ struct CodexRemoteScreen: View {
         }
     }
 
+    private func updateActiveHostLabel(_ label: String) {
+        updateHostProfile(selectedHostID) { profile in
+            profile.label = label
+            profile.lastUsedAt = Date()
+        }
+    }
+
     private func updateHostProfile(
         _ hostID: String,
         mutate: (inout CodexRemoteHostProfile) -> Void
@@ -604,6 +623,7 @@ struct CodexRemoteScreen: View {
 private struct CodexRemoteSidebar: View {
     let profiles: [CodexRemoteHostProfile]
     @Binding var selectedHostID: String
+    @Binding var hostLabel: String
     @Binding var endpoint: String
     let health: CodexRemoteHealth?
     let threadList: CodexRemoteThreadList?
@@ -671,6 +691,12 @@ private struct CodexRemoteSidebar: View {
                 .disabled(profiles.count <= 1)
                 .accessibilityLabel("Delete host")
             }
+
+            TextField("Host name", text: $hostLabel)
+                .textInputAutocapitalization(.words)
+                .autocorrectionDisabled()
+                .textFieldStyle(.roundedBorder)
+                .accessibilityIdentifier("codex-remote-host-name-field")
 
             HStack(spacing: 10) {
                 TextField("http://127.0.0.1:3765", text: $endpoint)

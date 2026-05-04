@@ -322,7 +322,7 @@ Implemented:
 - `session_index.jsonl` fallback emits `Unknown Project` for stable backward behavior when no cwd exists.
 - CraftingTable persists Codex Remote host profiles locally with endpoint, label, last health status, and last-used time.
 - The active host owns its own health, desktop snapshot, model list, thread list, selected thread, selected model, composer input, and submit state.
-- The Codex Remote sidebar now has a host picker, add/delete host controls, editable endpoint, and project-grouped thread sections.
+- The Codex Remote sidebar now has a host picker, editable host name, add/delete host controls, editable endpoint, and project-grouped thread sections.
 
 Verified:
 

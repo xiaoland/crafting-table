@@ -70,6 +70,7 @@ Implemented behavior:
 - The sidebar starts with a host picker and direct endpoint editor.
 - Add creates a new local host profile and selects it for endpoint editing.
 - Delete removes the selected profile when another profile remains.
+- The selected host name is editable from the sidebar and updates the host picker label immediately.
 - Each host keeps its own runtime state so switching hosts preserves selected thread, model choice, composer input, last result, and errors.
 - Host profile persistence uses local `@AppStorage` JSON because these MVP records are small endpoint preferences rather than shared workspace truth.
 - The active thread list is grouped by Companion-provided project metadata.
