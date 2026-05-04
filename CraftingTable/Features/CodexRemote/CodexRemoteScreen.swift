@@ -269,7 +269,6 @@ struct CodexRemoteScreen: View {
             }
 
             updateHostState(hostID) { state in
-                state.threadDetailResponse = nil
                 state.threadErrorMessage = error.localizedDescription
             }
         }

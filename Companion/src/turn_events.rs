@@ -43,6 +43,20 @@ impl TurnStreamEvent {
         }
     }
 
+    pub fn heartbeat(thread_id: &str, turn_id: &str) -> Self {
+        Self {
+            event_type: "heartbeat".to_string(),
+            thread_id: thread_id.to_string(),
+            turn_id: turn_id.to_string(),
+            sequence: 0,
+            text: None,
+            status: Some("waiting".to_string()),
+            message: None,
+            kind: None,
+            event_count: None,
+        }
+    }
+
     pub fn is_terminal(&self) -> bool {
         matches!(self.event_type.as_str(), "turn_completed" | "error")
     }
@@ -294,5 +308,14 @@ mod tests {
             .await
             .is_none());
         assert!(broker.subscribe("thread-a", "turn-a").await.is_none());
+    }
+
+    #[test]
+    fn heartbeat_is_non_terminal() {
+        let event = super::TurnStreamEvent::heartbeat("thread-a", "turn-a");
+
+        assert_eq!(event.event_type, "heartbeat");
+        assert_eq!(event.sequence, 0);
+        assert!(!event.is_terminal());
     }
 }

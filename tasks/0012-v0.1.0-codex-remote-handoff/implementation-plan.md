@@ -377,6 +377,28 @@ Verified:
 - short live Companion stream smoke on `127.0.0.1:3771` returned `CRAFTINGTABLE_STREAM_TIMEOUT_FIX_OK` through assistant delta frames, then `turn_completed`
 - `git diff --check`
 
+## Slice 12.2 Outcome
+
+Codex Remote active-turn streaming now keeps idle LAN WebSockets alive during long Codex work.
+
+Implemented:
+
+- Companion sends a non-terminal `heartbeat` stream event every 15 seconds while a turn event WebSocket is open.
+- Companion emits debug logs for stream subscription, unavailable streams, client closes, and send failures.
+- CraftingTable retries GET-style Companion requests once for transient URL/POSIX connection errors.
+- Thread refresh preserves the existing transcript when a refresh fails during or after stream fallback.
+
+Verified:
+
+- `cargo fmt --manifest-path Companion/Cargo.toml`
+- `cargo test --manifest-path Companion/Cargo.toml`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
+- installed and launched CraftingTable on the paired iPad through `devicectl`
+- debug Companion on `0.0.0.0:3765`
+- local long-turn WebSocket smoke received `heartbeat` while Codex was running `sleep 35`
+- post-completion `GET /threads/{thread_id}` returned `CRAFTINGTABLE_HEARTBEAT_SMOKE_OK`
+
 ## Slice 13 Outcome
 
 Codex Remote composer controls now support model, reasoning effort, and Fast service tier selection.

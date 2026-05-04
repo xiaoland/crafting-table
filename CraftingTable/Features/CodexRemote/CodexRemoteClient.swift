@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 struct CodexRemoteSnapshot {
@@ -405,9 +406,20 @@ struct CodexRemoteClient {
     }
 
     private func fetch<Response: Decodable>(_ type: Response.Type, from url: URL) async throws -> Response {
-        let (data, response) = try await URLSession.shared.data(from: url)
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
 
-        return try decode(type, from: data, response: response)
+            return try decode(type, from: data, response: response)
+        } catch {
+            guard isTransientNetworkError(error) else {
+                throw error
+            }
+
+            try await Task.sleep(nanoseconds: 350_000_000)
+            let (data, response) = try await URLSession.shared.data(from: url)
+
+            return try decode(type, from: data, response: response)
+        }
     }
 
     private func loadOptionalModelList(from url: URL) async -> CodexRemoteModelList {
@@ -444,6 +456,39 @@ struct CodexRemoteClient {
         }
 
         return try decoder.decode(type, from: data)
+    }
+
+    private func isTransientNetworkError(_ error: Error) -> Bool {
+        if let urlError = error as? URLError {
+            return [
+                .networkConnectionLost,
+                .cannotConnectToHost,
+                .timedOut,
+                .cannotFindHost,
+                .dnsLookupFailed
+            ].contains(urlError.code)
+        }
+
+        let nsError = error as NSError
+
+        if nsError.domain == NSURLErrorDomain {
+            let code = URLError.Code(rawValue: nsError.code)
+            return isTransientNetworkError(URLError(code))
+        }
+
+        if nsError.domain == NSPOSIXErrorDomain {
+            return [
+                ECONNABORTED,
+                ECONNRESET,
+                ETIMEDOUT
+            ].contains(Int32(nsError.code))
+        }
+
+        if let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
+            return isTransientNetworkError(underlyingError)
+        }
+
+        return false
     }
 
     private func decodeTurnStreamEvent(

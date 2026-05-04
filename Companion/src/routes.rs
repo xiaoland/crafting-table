@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use anyhow::Context;
 use axum::{
@@ -23,6 +23,8 @@ use crate::{
     thread_store,
     turn_events::{TurnEventBroker, TurnStreamEvent},
 };
+
+const TURN_STREAM_HEARTBEAT_INTERVAL: Duration = Duration::from_secs(15);
 
 #[derive(Clone)]
 pub struct AppState {
@@ -180,12 +182,30 @@ async fn stream_turn_events(
         let event = TurnStreamEvent::unavailable(&thread_id, &turn_id);
         let _ = send_turn_event(&mut socket, &event).await;
         let _ = socket.send(WebSocketMessage::Close(None)).await;
+        tracing::debug!(
+            thread_id = %thread_id,
+            turn_id = %turn_id,
+            "turn event websocket requested unavailable stream"
+        );
         return;
     };
 
+    tracing::debug!(
+        thread_id = %thread_id,
+        turn_id = %turn_id,
+        replay_count = subscription.replay.len(),
+        "turn event websocket subscribed"
+    );
+
     for event in subscription.replay {
         let is_terminal = event.is_terminal();
-        if send_turn_event(&mut socket, &event).await.is_err() {
+        if let Err(error) = send_turn_event(&mut socket, &event).await {
+            tracing::debug!(
+                thread_id = %thread_id,
+                turn_id = %turn_id,
+                error = %error,
+                "turn event websocket replay send failed"
+            );
             return;
         }
         if is_terminal {
@@ -194,13 +214,26 @@ async fn stream_turn_events(
         }
     }
 
+    let mut heartbeat = tokio::time::interval_at(
+        tokio::time::Instant::now() + TURN_STREAM_HEARTBEAT_INTERVAL,
+        TURN_STREAM_HEARTBEAT_INTERVAL,
+    );
+    heartbeat.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+
     loop {
         tokio::select! {
             event = subscription.receiver.recv() => {
                 match event {
                     Ok(event) => {
                         let is_terminal = event.is_terminal();
-                        if send_turn_event(&mut socket, &event).await.is_err() {
+                        if let Err(error) = send_turn_event(&mut socket, &event).await {
+                            tracing::debug!(
+                                thread_id = %thread_id,
+                                turn_id = %turn_id,
+                                event_type = %event.event_type,
+                                error = %error,
+                                "turn event websocket send failed"
+                            );
                             return;
                         }
                         if is_terminal {
@@ -212,9 +245,28 @@ async fn stream_turn_events(
                     Err(tokio::sync::broadcast::error::RecvError::Closed) => return,
                 }
             }
+            _ = heartbeat.tick() => {
+                let event = TurnStreamEvent::heartbeat(&thread_id, &turn_id);
+                if let Err(error) = send_turn_event(&mut socket, &event).await {
+                    tracing::debug!(
+                        thread_id = %thread_id,
+                        turn_id = %turn_id,
+                        error = %error,
+                        "turn event websocket heartbeat failed"
+                    );
+                    return;
+                }
+            }
             message = socket.recv() => {
                 match message {
-                    Some(Ok(WebSocketMessage::Close(_))) | None => return,
+                    Some(Ok(WebSocketMessage::Close(_))) | None => {
+                        tracing::debug!(
+                            thread_id = %thread_id,
+                            turn_id = %turn_id,
+                            "turn event websocket closed by client"
+                        );
+                        return;
+                    }
                     Some(Ok(_)) => {}
                     Some(Err(error)) => {
                         tracing::debug!(error = %error, "turn event websocket receive failed");

@@ -28,6 +28,7 @@ Executing
 - `thread-page-findings.md`: iPad Thread Page UI slice, client contract usage, and verification notes.
 - `streaming-turns-findings.md`: active-turn WebSocket contract, iPad stream lifecycle, and live smoke evidence.
 - `slice-13-protocol-findings.md`: model metadata, reasoning effort, Fast service tier, and turn-start parameter findings for composer controls.
+- `stream-abort-diagnosis.md`: idle WebSocket abort diagnosis, heartbeat fix, transient refresh retry, and smoke evidence.
 
 ## Current Decision
 
