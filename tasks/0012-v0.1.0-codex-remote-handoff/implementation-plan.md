@@ -399,6 +399,27 @@ Verified:
 - local long-turn WebSocket smoke received `heartbeat` while Codex was running `sleep 35`
 - post-completion `GET /threads/{thread_id}` returned `CRAFTINGTABLE_HEARTBEAT_SMOKE_OK`
 
+## Slice 12.3 Outcome
+
+Codex Remote active-turn streaming now renders live tool and event items as transcript rows.
+
+Implemented:
+
+- Companion `item_updated` events carry `item_id`, `text`, and `status` when the app-server notification includes an item payload.
+- Companion reuses the same item summarizer used by `GET /threads/{thread_id}` for live item text.
+- CraftingTable decodes stream `item_id` and keeps host-scoped `streamingEventMessages`.
+- Thread Page renders streaming tool/event rows before the active assistant draft.
+- Refreshed thread messages deduplicate streaming event rows by message id.
+
+Verified:
+
+- `cargo fmt --manifest-path Companion/Cargo.toml`
+- `cargo test --manifest-path Companion/Cargo.toml`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
+- local Companion smoke on `127.0.0.1:3774`
+- Swift WebSocket smoke saw live `commandExecution` `item_updated` events with stable item id, status changes from `inProgress` to `completed`, and non-empty text before `turn_completed`
+
 ## Slice 13 Outcome
 
 Codex Remote composer controls now support model, reasoning effort, and Fast service tier selection.

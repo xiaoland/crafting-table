@@ -297,6 +297,7 @@ struct CodexRemoteTurnStreamEvent: Decodable, Identifiable {
     let status: String?
     let message: String?
     let kind: String?
+    let itemId: String?
     let eventCount: Int?
 
     var id: String {
@@ -316,6 +317,7 @@ struct CodexRemoteTurnStreamEvent: Decodable, Identifiable {
         case status
         case message
         case kind
+        case itemId = "item_id"
         case eventCount = "event_count"
     }
 }

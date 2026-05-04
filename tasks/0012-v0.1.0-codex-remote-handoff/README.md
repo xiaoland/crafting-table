@@ -29,6 +29,7 @@ Executing
 - `streaming-turns-findings.md`: active-turn WebSocket contract, iPad stream lifecycle, and live smoke evidence.
 - `slice-13-protocol-findings.md`: model metadata, reasoning effort, Fast service tier, and turn-start parameter findings for composer controls.
 - `stream-abort-diagnosis.md`: idle WebSocket abort diagnosis, heartbeat fix, transient refresh retry, and smoke evidence.
+- `live-event-rendering-diagnosis.md`: live tool/event row rendering diagnosis, payload alignment, and WebSocket smoke evidence.
 
 ## Current Decision
 
@@ -48,7 +49,7 @@ Harden the standalone Codex Remote path behind the existing companion boundary:
 
 1. Surface approval and user-input request states from Companion.
 2. Use Desktop Scout confidence to guide manual thread selection or semantic resume.
-3. Improve transcript rendering for richer tool output, file changes, and progress/status events.
+3. Improve transcript rendering for approval, user-input, and richer progress/status states.
 4. Preserve useful stream state across reconnects and host switches where Companion has enough evidence.
 
 ## Promotion Candidates

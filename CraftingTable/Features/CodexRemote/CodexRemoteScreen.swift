@@ -46,6 +46,7 @@ private struct CodexRemoteHostRuntime {
     var streamingThreadID: String?
     var streamingTurnID: String?
     var streamingAssistantText = ""
+    var streamingEventMessages: [CodexRemoteThreadMessage] = []
     var streamingStatus: String?
     var streamingEventCount = 0
     var streamErrorMessage: String?
@@ -151,6 +152,7 @@ struct CodexRemoteScreen: View {
             turnErrorMessage: activeState.turnErrorMessage,
             turnResult: activeState.turnResult,
             streamingAssistantText: activeState.streamingAssistantText,
+            streamingEventMessages: activeState.streamingEventMessages,
             streamingStatus: activeState.streamingStatus,
             streamingEventCount: activeState.streamingEventCount,
             streamErrorMessage: activeState.streamErrorMessage,
@@ -331,6 +333,7 @@ struct CodexRemoteScreen: View {
                 state.streamingThreadID = selectedThreadID
                 state.streamingTurnID = result.turnId
                 state.streamingAssistantText = ""
+                state.streamingEventMessages = []
                 state.streamingStatus = result.status
                 state.streamingEventCount = 0
                 state.streamErrorMessage = nil
@@ -664,6 +667,7 @@ struct CodexRemoteScreen: View {
             state.streamingThreadID = nil
             state.streamingTurnID = nil
             state.streamingAssistantText = ""
+            state.streamingEventMessages = []
             state.streamingStatus = nil
             state.streamingEventCount = 0
             state.streamErrorMessage = nil
@@ -796,6 +800,9 @@ struct CodexRemoteScreen: View {
                 state.streamingStatus = "streaming"
             case "item_updated":
                 state.streamingStatus = event.kind ?? "working"
+                if let message = streamingEventMessage(from: event) {
+                    upsertStreamingEventMessage(message, state: &state)
+                }
             case "turn_completed":
                 let status = event.status ?? "completed"
                 state.streamingStatus = status
@@ -847,6 +854,7 @@ struct CodexRemoteScreen: View {
             state.streamingThreadID = nil
             state.streamingTurnID = nil
             state.streamingAssistantText = ""
+            state.streamingEventMessages = []
             state.streamingStatus = nil
             state.streamingEventCount = 0
             state.streamErrorMessage = nil
@@ -889,6 +897,7 @@ struct CodexRemoteScreen: View {
         state.streamingThreadID = nil
         state.streamingTurnID = nil
         state.streamingAssistantText = ""
+        state.streamingEventMessages = []
         state.streamingStatus = nil
         state.streamingEventCount = 0
         state.streamErrorMessage = nil
@@ -901,6 +910,51 @@ struct CodexRemoteScreen: View {
         }
 
         return ["completed", "failed", "cancelled", "canceled"].contains(status.lowercased())
+    }
+
+    private func streamingEventMessage(from event: CodexRemoteTurnStreamEvent) -> CodexRemoteThreadMessage? {
+        guard event.eventType == "item_updated",
+              let kind = event.kind?.trimmingCharacters(in: .whitespacesAndNewlines),
+              kind.isEmpty == false,
+              shouldRenderStreamingItem(kind)
+        else {
+            return nil
+        }
+
+        return CodexRemoteThreadMessage(
+            id: event.itemId ?? "\(event.turnId):\(kind):\(event.sequence)",
+            turnId: event.turnId,
+            role: streamingItemRole(kind),
+            kind: kind,
+            text: event.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+            status: event.status,
+            phase: nil,
+            createdAt: nil
+        )
+    }
+
+    private func shouldRenderStreamingItem(_ kind: String) -> Bool {
+        !["userMessage", "agentMessage"].contains(kind)
+    }
+
+    private func streamingItemRole(_ kind: String) -> String {
+        switch kind {
+        case "commandExecution", "mcpToolCall", "dynamicToolCall", "collabAgentToolCall", "webSearch", "fileChange", "imageGeneration":
+            return "tool"
+        default:
+            return "event"
+        }
+    }
+
+    private func upsertStreamingEventMessage(
+        _ message: CodexRemoteThreadMessage,
+        state: inout CodexRemoteHostRuntime
+    ) {
+        if let index = state.streamingEventMessages.firstIndex(where: { $0.id == message.id }) {
+            state.streamingEventMessages[index] = message
+        } else {
+            state.streamingEventMessages.append(message)
+        }
     }
 }
 

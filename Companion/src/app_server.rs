@@ -431,13 +431,39 @@ impl CodexAppServerClient {
                     && matches_thread_and_turn(params, thread_id, turn_id) =>
                 {
                     if let Some(broker) = event_broker {
+                        let item = params.get("item");
                         let kind = params
                             .get("item")
                             .and_then(|item| item.get("type"))
                             .and_then(Value::as_str)
                             .or_else(|| method.split('/').nth(1))
                             .unwrap_or(method);
-                        broker.publish_item_updated(thread_id, turn_id, kind).await;
+                        let summary =
+                            item.and_then(|item| summarize_thread_item(item, turn_id, None, None));
+                        let item_id = item
+                            .and_then(|item| string_field(item, "id"))
+                            .or_else(|| summary.as_ref().map(|message| message.id.clone()));
+                        let status = summary
+                            .as_ref()
+                            .and_then(|message| message.status.as_deref())
+                            .or_else(|| {
+                                item.and_then(|item| item.get("status"))
+                                    .and_then(Value::as_str)
+                            });
+                        let text = summary
+                            .as_ref()
+                            .map(|message| message.text.as_str())
+                            .filter(|text| !text.trim().is_empty());
+                        broker
+                            .publish_item_updated(
+                                thread_id,
+                                turn_id,
+                                kind,
+                                item_id.as_deref(),
+                                text,
+                                status,
+                            )
+                            .await;
                     }
                 }
                 "turn/completed" if completion_matches(params, thread_id, turn_id) => {

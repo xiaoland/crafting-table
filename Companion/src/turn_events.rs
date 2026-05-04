@@ -25,6 +25,8 @@ pub struct TurnStreamEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub item_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub event_count: Option<usize>,
 }
 
@@ -39,6 +41,7 @@ impl TurnStreamEvent {
             status: None,
             message: Some("turn stream is unavailable".to_string()),
             kind: None,
+            item_id: None,
             event_count: None,
         }
     }
@@ -53,6 +56,7 @@ impl TurnStreamEvent {
             status: Some("waiting".to_string()),
             message: None,
             kind: None,
+            item_id: None,
             event_count: None,
         }
     }
@@ -87,6 +91,7 @@ impl TurnEventBroker {
             status: Some("started"),
             message: None,
             kind: None,
+            item_id: None,
             event_count: None,
         })
         .await
@@ -106,6 +111,7 @@ impl TurnEventBroker {
             status: None,
             message: None,
             kind: None,
+            item_id: None,
             event_count: None,
         })
         .await
@@ -116,15 +122,19 @@ impl TurnEventBroker {
         thread_id: &str,
         turn_id: &str,
         kind: &str,
+        item_id: Option<&str>,
+        text: Option<&str>,
+        status: Option<&str>,
     ) -> Option<TurnStreamEvent> {
         self.publish(TurnEventDraft {
             event_type: "item_updated",
             thread_id,
             turn_id,
-            text: None,
-            status: None,
+            text,
+            status,
             message: None,
             kind: Some(kind),
+            item_id,
             event_count: None,
         })
         .await
@@ -145,6 +155,7 @@ impl TurnEventBroker {
             status: Some(status),
             message: None,
             kind: None,
+            item_id: None,
             event_count: Some(event_count),
         })
         .await
@@ -164,6 +175,7 @@ impl TurnEventBroker {
             status: None,
             message: Some(message),
             kind: None,
+            item_id: None,
             event_count: None,
         })
         .await
@@ -236,6 +248,7 @@ impl ActiveTurnEvents {
             status: draft.status.map(ToString::to_string),
             message: draft.message.map(ToString::to_string),
             kind: draft.kind.map(ToString::to_string),
+            item_id: draft.item_id.map(ToString::to_string),
             event_count: draft.event_count,
         };
         self.next_sequence += 1;
@@ -257,6 +270,7 @@ struct TurnEventDraft<'a> {
     status: Option<&'a str>,
     message: Option<&'a str>,
     kind: Option<&'a str>,
+    item_id: Option<&'a str>,
     event_count: Option<usize>,
 }
 
@@ -274,7 +288,17 @@ mod tests {
             .publish_assistant_delta("thread-a", "turn-a", "hello")
             .await;
         broker
-            .publish_completed("thread-a", "turn-a", "completed", 3)
+            .publish_item_updated(
+                "thread-a",
+                "turn-a",
+                "commandExecution",
+                Some("item-command"),
+                Some("echo ok"),
+                Some("running"),
+            )
+            .await;
+        broker
+            .publish_completed("thread-a", "turn-a", "completed", 4)
             .await;
 
         let subscription = broker
@@ -292,11 +316,26 @@ mod tests {
             .map(|event| event.event_type.as_str())
             .collect::<Vec<_>>();
 
-        assert_eq!(sequences, vec![1, 2, 3]);
+        assert_eq!(sequences, vec![1, 2, 3, 4]);
         assert_eq!(
             event_types,
-            vec!["turn_started", "assistant_delta", "turn_completed"]
+            vec![
+                "turn_started",
+                "assistant_delta",
+                "item_updated",
+                "turn_completed"
+            ]
         );
+        assert_eq!(
+            subscription.replay[2].kind.as_deref(),
+            Some("commandExecution")
+        );
+        assert_eq!(
+            subscription.replay[2].item_id.as_deref(),
+            Some("item-command")
+        );
+        assert_eq!(subscription.replay[2].text.as_deref(), Some("echo ok"));
+        assert_eq!(subscription.replay[2].status.as_deref(), Some("running"));
     }
 
     #[tokio::test]
