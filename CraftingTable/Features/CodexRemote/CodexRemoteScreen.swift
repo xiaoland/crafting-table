@@ -127,6 +127,7 @@ struct CodexRemoteScreen: View {
             errorMessage: activeState.errorMessage,
             desktopErrorMessage: activeState.desktopErrorMessage,
             selectedThreadID: activeState.selectedThreadID,
+            selectedThreadDetail: activeState.threadDetailResponse?.thread,
             isLoading: activeState.isLoading,
             isCreatingThread: activeState.isCreatingThread,
             threadCreateErrorMessage: activeState.threadCreateErrorMessage,
@@ -156,8 +157,6 @@ struct CodexRemoteScreen: View {
             fastServiceTierEnabled: activeFastServiceTierEnabledBinding,
             selectedPermissionMode: activeSelectedPermissionModeBinding,
             input: activeTurnInputBinding,
-            desktopSnapshot: activeState.desktopSnapshot,
-            desktopErrorMessage: activeState.desktopErrorMessage,
             isLoadingThread: activeState.isLoadingThread,
             threadErrorMessage: activeState.threadErrorMessage,
             isSubmitting: activeState.isSubmittingTurn,
@@ -168,15 +167,6 @@ struct CodexRemoteScreen: View {
             streamingStatus: activeState.streamingStatus,
             streamingEventCount: activeState.streamingEventCount,
             streamErrorMessage: activeState.streamErrorMessage,
-            refreshThread: {
-                guard let selectedThreadID = activeState.selectedThreadID else {
-                    return
-                }
-
-                Task {
-                    await loadThreadDetail(threadID: selectedThreadID)
-                }
-            },
             submit: {
                 Task {
                     await submitTurn()
@@ -1127,6 +1117,7 @@ private struct CodexRemoteSidebar: View {
     let errorMessage: String?
     let desktopErrorMessage: String?
     let selectedThreadID: String?
+    let selectedThreadDetail: CodexRemoteThreadDetail?
     let isLoading: Bool
     let isCreatingThread: Bool
     let threadCreateErrorMessage: String?
@@ -1313,11 +1304,22 @@ private struct CodexRemoteSidebar: View {
                     LazyVStack(alignment: .leading, spacing: 14) {
                         ForEach(CodexRemoteProjectThreadGroup.groups(from: threadList.threads)) { group in
                             VStack(alignment: .leading, spacing: 8) {
-                                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                    Label(group.projectName, systemImage: "folder")
-                                        .font(.subheadline.weight(.semibold))
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
+                                HStack(alignment: .top, spacing: 8) {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Label(group.projectName, systemImage: "folder")
+                                            .font(.subheadline.weight(.semibold))
+                                            .lineLimit(1)
+                                            .truncationMode(.middle)
+
+                                        if let projectPath = group.threadCreationCWD {
+                                            Text(projectPath)
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                                .lineLimit(1)
+                                                .truncationMode(.middle)
+                                                .textSelection(.enabled)
+                                        }
+                                    }
 
                                     Spacer(minLength: 0)
 
@@ -1340,6 +1342,7 @@ private struct CodexRemoteSidebar: View {
                                     ForEach(group.threads) { thread in
                                         CodexRemoteThreadRow(
                                             thread: thread,
+                                            detail: thread.id == selectedThreadID ? selectedThreadDetail : nil,
                                             isSelected: thread.id == selectedThreadID,
                                             select: {
                                                 selectThread(thread)
@@ -1421,6 +1424,7 @@ struct CodexRemoteDesktopSummary: View {
 
 private struct CodexRemoteThreadRow: View {
     let thread: CodexRemoteThread
+    let detail: CodexRemoteThreadDetail?
     let isSelected: Bool
     let select: () -> Void
 
@@ -1444,9 +1448,7 @@ private struct CodexRemoteThreadRow: View {
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text(thread.displayUpdatedAt)
-                            .font(.caption2)
-                            .foregroundStyle(isSelected ? .white.opacity(0.82) : .secondary)
+                        threadMetadata
                     }
 
                     Spacer(minLength: 0)
@@ -1467,6 +1469,30 @@ private struct CodexRemoteThreadRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("codex-remote-thread-\(thread.id)")
+    }
+
+    private var threadMetadata: some View {
+        Text(threadMetadataText)
+            .font(.caption2)
+            .foregroundStyle(isSelected ? .white.opacity(0.82) : .secondary)
+            .lineLimit(1)
+            .truncationMode(.tail)
+    }
+
+    private var threadMetadataText: String {
+        var parts = [detail?.displayUpdatedAt ?? thread.displayUpdatedAt]
+
+        if let status = detail?.status,
+           status.isEmpty == false
+        {
+            parts.append(status)
+        }
+
+        if let turnCount = detail?.turnCount {
+            parts.append("\(turnCount) turns")
+        }
+
+        return parts.joined(separator: " | ")
     }
 }
 

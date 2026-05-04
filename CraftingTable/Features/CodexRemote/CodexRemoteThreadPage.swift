@@ -10,8 +10,6 @@ struct CodexRemoteThreadPage: View {
     @Binding var fastServiceTierEnabled: Bool
     @Binding var selectedPermissionMode: String
     @Binding var input: String
-    let desktopSnapshot: CodexRemoteDesktopSnapshot?
-    let desktopErrorMessage: String?
     let isLoadingThread: Bool
     let threadErrorMessage: String?
     let isSubmitting: Bool
@@ -22,24 +20,12 @@ struct CodexRemoteThreadPage: View {
     let streamingStatus: String?
     let streamingEventCount: Int
     let streamErrorMessage: String?
-    let refreshThread: () -> Void
     let submit: () -> Void
 
     var body: some View {
         Group {
-            if let selectedThread {
+            if selectedThread != nil {
                 VStack(spacing: 0) {
-                    CodexRemoteThreadHeader(
-                        thread: selectedThread,
-                        detail: detailResponse?.thread,
-                        desktopSnapshot: desktopSnapshot,
-                        desktopErrorMessage: desktopErrorMessage,
-                        isLoading: isLoadingThread,
-                        refresh: refreshThread
-                    )
-
-                    Divider()
-
                     CodexRemoteTranscript(
                         messages: detailResponse?.messages ?? [],
                         isLoading: isLoadingThread,
@@ -77,79 +63,6 @@ struct CodexRemoteThreadPage: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(uiColor: .systemBackground))
-    }
-}
-
-private struct CodexRemoteThreadHeader: View {
-    let thread: CodexRemoteThread
-    let detail: CodexRemoteThreadDetail?
-    let desktopSnapshot: CodexRemoteDesktopSnapshot?
-    let desktopErrorMessage: String?
-    let isLoading: Bool
-    let refresh: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "bubble.left.and.text.bubble.right")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(.tint)
-                    .frame(width: 40, height: 40)
-                    .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(detail?.title ?? thread.title)
-                        .font(.title3.weight(.semibold))
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    HStack(spacing: 8) {
-                        CodexRemoteInlinePill(
-                            title: detail?.status ?? "selected",
-                            systemImage: "circle.fill"
-                        )
-
-                        if let turnCount = detail?.turnCount {
-                            CodexRemoteInlinePill(
-                                title: "\(turnCount) turns",
-                                systemImage: "arrow.triangle.2.circlepath"
-                            )
-                        }
-
-                        Text(detail?.displayUpdatedAt ?? thread.displayUpdatedAt)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Spacer(minLength: 0)
-
-                Button(action: refresh) {
-                    Image(systemName: "arrow.clockwise")
-                }
-                .buttonStyle(.bordered)
-                .disabled(isLoading)
-                .accessibilityLabel("Refresh thread")
-            }
-
-            if let cwd = detail?.cwd,
-               cwd.isEmpty == false
-            {
-                Label(cwd, systemImage: "folder")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .textSelection(.enabled)
-            }
-
-            CodexRemoteDesktopSummary(
-                snapshot: desktopSnapshot,
-                errorMessage: desktopErrorMessage
-            )
-        }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 16)
     }
 }
 

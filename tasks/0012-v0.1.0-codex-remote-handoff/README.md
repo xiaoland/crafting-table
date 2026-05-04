@@ -34,6 +34,7 @@ Executing
 - `permission-mode-findings.md`: permission mode schema findings, Companion mapping, and smoke evidence.
 - `composer-controls-layout-diagnosis.md`: simulator evidence for composer control wrapping and the single-line horizontal options fix.
 - `thread-creation-findings.md`: project-scoped thread creation contract, zero-turn app-server behavior, and smoke evidence.
+- `thread-detail-space-layout.md`: Thread Detail metadata removal, sidebar metadata placement, and build evidence.
 
 ## Current Decision
 

@@ -538,6 +538,23 @@ Verified:
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
 
+## Slice 13.5 Outcome
+
+Codex Remote Thread Detail gives more space to messages by moving metadata into the sidebar.
+
+Implemented:
+
+- Removed the Thread Detail metadata header.
+- Removed the duplicate Desktop status from the Thread Detail view.
+- Kept Desktop status in the sidebar Desktop section.
+- Added selected-thread status and turn count to the selected Thread Card.
+- Added project path / thread CWD under each project section title.
+
+Verified:
+
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
+
 ## Launch Entrypoints
 
 Codex Remote Companion now has shared local launch entrypoints:
