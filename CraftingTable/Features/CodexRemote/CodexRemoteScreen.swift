@@ -48,6 +48,7 @@ private struct CodexRemoteHostRuntime {
     var streamingEventCount = 0
     var streamErrorMessage: String?
     var turnStreamTask: Task<Void, Never>?
+    var streamingDidComplete = false
 
     static let empty = CodexRemoteHostRuntime()
 }
@@ -328,6 +329,7 @@ struct CodexRemoteScreen: View {
                 state.streamingStatus = result.status
                 state.streamingEventCount = 0
                 state.streamErrorMessage = nil
+                state.streamingDidComplete = false
             }
             startTurnEventStream(
                 endpoint: profile.endpoint,
@@ -605,6 +607,7 @@ struct CodexRemoteScreen: View {
             state.streamingStatus = nil
             state.streamingEventCount = 0
             state.streamErrorMessage = nil
+            state.streamingDidComplete = false
         }
     }
 
@@ -736,6 +739,7 @@ struct CodexRemoteScreen: View {
             case "turn_completed":
                 let status = event.status ?? "completed"
                 state.streamingStatus = status
+                state.streamingDidComplete = true
                 if let eventCount = event.eventCount {
                     state.streamingEventCount = eventCount
                     state.turnResult = CodexRemoteTurnResult(
@@ -786,6 +790,7 @@ struct CodexRemoteScreen: View {
             state.streamingStatus = nil
             state.streamingEventCount = 0
             state.streamErrorMessage = nil
+            state.streamingDidComplete = false
         }
     }
 
@@ -801,11 +806,21 @@ struct CodexRemoteScreen: View {
         with response: CodexRemoteThreadDetailResponse,
         state: inout CodexRemoteHostRuntime
     ) {
-        guard let streamingTurnID = state.streamingTurnID,
-              response.messages.contains(where: { message in
-                  message.turnId == streamingTurnID && message.role == "assistant"
-              })
+        guard let streamingTurnID = state.streamingTurnID
         else {
+            return
+        }
+
+        let hasAssistantForTurn = response.messages.contains { message in
+            message.turnId == streamingTurnID && message.role == "assistant"
+        }
+        let hasCompletedAssistantForTurn = response.messages.contains { message in
+            message.turnId == streamingTurnID
+                && message.role == "assistant"
+                && isTerminalTurnStatus(message.status)
+        }
+
+        guard (state.streamingDidComplete && hasAssistantForTurn) || hasCompletedAssistantForTurn else {
             return
         }
 
@@ -817,6 +832,15 @@ struct CodexRemoteScreen: View {
         state.streamingStatus = nil
         state.streamingEventCount = 0
         state.streamErrorMessage = nil
+        state.streamingDidComplete = false
+    }
+
+    private func isTerminalTurnStatus(_ status: String?) -> Bool {
+        guard let status else {
+            return false
+        }
+
+        return ["completed", "failed", "cancelled", "canceled"].contains(status.lowercased())
     }
 }
 

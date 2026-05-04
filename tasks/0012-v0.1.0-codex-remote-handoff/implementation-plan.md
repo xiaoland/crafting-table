@@ -356,6 +356,27 @@ Verified:
 - async submit returned `status: started` for turn `019df235-5a08-75c0-98c5-b9f189dee4ec`
 - Swift WebSocket smoke received `turn_started`, `item_updated`, multiple `assistant_delta` frames composing `CRAFTINGTABLE_STREAM_SMOKE_OK`, then `turn_completed`
 
+## Slice 12.1 Outcome
+
+Codex Remote streaming now handles long active turns and manual refresh more gracefully.
+
+Implemented:
+
+- async active-turn streaming no longer shares the 120 second synchronous completion timeout.
+- synchronous `wait_for_completion: true` submit keeps its bounded completion wait.
+- Thread Page refresh preserves an in-progress streaming assistant draft when thread detail only contains partial assistant items.
+- streaming draft cleanup requires terminal completion evidence from either the WebSocket stream or thread detail status.
+- stream errors keep the current draft visible and allow polling refresh to reconcile.
+
+Verified:
+
+- `cargo fmt --manifest-path Companion/Cargo.toml`
+- `cargo test --manifest-path Companion/Cargo.toml`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
+- short live Companion stream smoke on `127.0.0.1:3771` returned `CRAFTINGTABLE_STREAM_TIMEOUT_FIX_OK` through assistant delta frames, then `turn_completed`
+- `git diff --check`
+
 ## Next Experience Slices
 
 ### Slice 13 Planned: Composer Controls and Codex-like Rendering

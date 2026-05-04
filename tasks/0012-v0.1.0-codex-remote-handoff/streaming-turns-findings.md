@@ -73,3 +73,33 @@ This proves that deltas arrive through the Companion WebSocket before final thre
 - Tool/status rendering is still generic through `item_updated`.
 - Approval and user-input request states need a later normalized event shape.
 - Reasoning effort and Fast controls still depend on app-server parameter verification.
+
+## Slice 12.1 Timeout and Refresh Fix
+
+Observed symptom:
+
+- A long active turn showed `turn timed out before completion` after the background reader exceeded the 120 second synchronous completion timeout.
+- WebSocket labels and deltas were still visibly useful before the timeout.
+- Manual thread refresh could remove the streaming assistant draft while the turn was still running.
+
+Root cause:
+
+- The async `wait_for_completion: false` background reader reused the same 120 second timeout as synchronous submit.
+- Thread-detail reconciliation cleared the streaming draft as soon as any assistant item for the active turn appeared, including partial in-progress assistant items.
+
+Fix:
+
+- Synchronous submit keeps the 120 second completion timeout.
+- Async active-turn streaming now reads app-server notifications until app-server terminal completion or socket failure.
+- Thread refresh preserves the streaming draft while the active assistant item is partial.
+- Streaming draft cleanup now requires a received `turn_completed` event plus assistant detail, or a terminal assistant status in thread detail.
+- Stream errors keep the current assistant draft visible so the polling fallback can continue reconciliation.
+
+Verified:
+
+- `cargo fmt --manifest-path Companion/Cargo.toml`
+- `cargo test --manifest-path Companion/Cargo.toml`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
+- short live Companion stream smoke on `127.0.0.1:3771` returned `CRAFTINGTABLE_STREAM_TIMEOUT_FIX_OK` through assistant delta frames, then `turn_completed`
+- `git diff --check`

@@ -168,7 +168,7 @@ pub async fn submit_turn(
 
         tokio::spawn(async move {
             let wait_result = client
-                .wait_for_turn(
+                .stream_turn_until_completion(
                     &background_thread_id,
                     &background_turn_id,
                     background_event_broker.clone(),
@@ -373,6 +373,16 @@ impl CodexAppServerClient {
         )
         .await
         .with_context(|| format!("turn timed out before completion: {turn_id}"))?
+    }
+
+    async fn stream_turn_until_completion(
+        &mut self,
+        thread_id: &str,
+        turn_id: &str,
+        event_broker: Option<TurnEventBroker>,
+    ) -> anyhow::Result<TurnCompletion> {
+        self.read_turn_completion(thread_id, turn_id, event_broker.as_ref())
+            .await
     }
 
     async fn read_turn_completion(
