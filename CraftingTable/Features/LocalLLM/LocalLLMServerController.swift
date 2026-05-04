@@ -1,4 +1,5 @@
 import Foundation
+import Security
 
 @MainActor
 final class LocalLLMServerController: ObservableObject {
@@ -36,7 +37,15 @@ final class LocalLLMServerController: ObservableObject {
         self.store = store
         self.server = server
         self.runtime = runtime
-        self.bearerToken = bearerToken ?? Self.generateBearerToken()
+        if let bearerToken {
+            self.bearerToken = bearerToken
+        } else if let storedToken = LocalLLMBearerTokenStore.load() {
+            self.bearerToken = storedToken
+        } else {
+            let generatedToken = Self.generateBearerToken()
+            self.bearerToken = generatedToken
+            LocalLLMBearerTokenStore.save(generatedToken)
+        }
     }
 
     var listeningURL: URL? {
@@ -103,7 +112,9 @@ final class LocalLLMServerController: ObservableObject {
             stop()
         }
 
-        bearerToken = Self.generateBearerToken()
+        let token = Self.generateBearerToken()
+        bearerToken = token
+        LocalLLMBearerTokenStore.save(token)
 
         if wasListening {
             start()
@@ -148,6 +159,48 @@ final class LocalLLMServerController: ObservableObject {
         }
 
         return UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+    }
+}
+
+private enum LocalLLMBearerTokenStore {
+    private static let service = "dev.lanzhijiang.CraftingTable.local-llm"
+    private static let account = "http-bearer-token"
+
+    static func load() -> String? {
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(loadQuery as CFDictionary, &result)
+
+        guard status == errSecSuccess,
+              let data = result as? Data
+        else {
+            return nil
+        }
+
+        return String(data: data, encoding: .utf8)
+    }
+
+    static func save(_ token: String) {
+        SecItemDelete(baseQuery as CFDictionary)
+
+        var query = baseQuery
+        query[kSecValueData as String] = Data(token.utf8)
+        query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        SecItemAdd(query as CFDictionary, nil)
+    }
+
+    private static var baseQuery: [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+    }
+
+    private static var loadQuery: [String: Any] {
+        var query = baseQuery
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        return query
     }
 }
 

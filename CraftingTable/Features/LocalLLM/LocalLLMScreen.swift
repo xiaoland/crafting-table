@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct LocalLLMScreen: View {
     @ObservedObject var store: LocalLLMStore
@@ -8,6 +9,9 @@ struct LocalLLMScreen: View {
     @State private var discoveredFiles: [HuggingFaceGGUFFile] = []
     @State private var isDiscovering = false
     @State private var showsDeleteConfirmation = false
+    @State private var showsRotateTokenConfirmation = false
+    @State private var showsBearerToken = false
+    @State private var tokenCopyFeedbackVisible = false
     @State private var modelPendingDeletion: LocalLLMModelRecord?
 
     var body: some View {
@@ -64,6 +68,21 @@ struct LocalLLMScreen: View {
             } message: {
                 Text(deleteConfirmationMessage)
             }
+            .confirmationDialog(
+                "Rotate Bearer Token",
+                isPresented: $showsRotateTokenConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Rotate Token", role: .destructive) {
+                    server.rotateBearerToken()
+                    showsBearerToken = false
+                    tokenCopyFeedbackVisible = false
+                }
+
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Existing LAN clients must update their Authorization header after rotation.")
+            }
         }
     }
 
@@ -89,7 +108,7 @@ struct LocalLLMScreen: View {
                 MetricRow(label: "State", value: serverStatusTitle)
                 MetricRow(label: "Port", value: "\(server.port)")
                 MetricRow(label: "URL", value: server.listeningURL?.absoluteString ?? "Stopped")
-                MetricRow(label: "Token", value: server.bearerToken.isEmpty ? "Missing" : "Ready")
+                bearerTokenRow
 
                 HStack {
                     Button {
@@ -111,7 +130,7 @@ struct LocalLLMScreen: View {
                     .accessibilityIdentifier("local-llm-stop-server")
 
                     Button {
-                        server.rotateBearerToken()
+                        showsRotateTokenConfirmation = true
                     } label: {
                         Label("Rotate", systemImage: "arrow.clockwise")
                     }
@@ -120,6 +139,53 @@ struct LocalLLMScreen: View {
                 }
             }
         }
+    }
+
+    private var bearerTokenRow: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text("Bearer Token")
+                    .foregroundStyle(.secondary)
+
+                Spacer(minLength: 0)
+
+                Text(tokenDisplayValue)
+                    .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
+                    .accessibilityIdentifier("local-llm-bearer-token-value")
+            }
+            .font(.subheadline)
+
+            HStack(spacing: 8) {
+                Button {
+                    showsBearerToken.toggle()
+                } label: {
+                    Label(showsBearerToken ? "Hide" : "Reveal", systemImage: showsBearerToken ? "eye.slash" : "eye")
+                }
+                .buttonStyle(.bordered)
+                .disabled(server.bearerToken.isEmpty)
+                .accessibilityIdentifier("local-llm-reveal-token")
+
+                Button {
+                    copyBearerToken()
+                } label: {
+                    Label("Copy", systemImage: "doc.on.doc")
+                }
+                .buttonStyle(.bordered)
+                .disabled(server.bearerToken.isEmpty)
+                .accessibilityIdentifier("local-llm-copy-token")
+
+                if tokenCopyFeedbackVisible {
+                    Label("Copied", systemImage: "checkmark.circle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.green)
+                }
+            }
+        }
+        .padding(12)
+        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var modelManagerPanel: some View {
@@ -249,6 +315,40 @@ struct LocalLLMScreen: View {
         let size = fileSize.map(ByteCountFormatStyle().format) ?? "Unknown size"
         let digest = sha256.map { String($0.prefix(12)) } ?? "No sha256"
         return "\(size) · \(digest)"
+    }
+
+    private func copyBearerToken() {
+        guard server.bearerToken.isEmpty == false else {
+            return
+        }
+
+        UIPasteboard.general.string = server.bearerToken
+        tokenCopyFeedbackVisible = true
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            tokenCopyFeedbackVisible = false
+        }
+    }
+
+    private var tokenDisplayValue: String {
+        guard server.bearerToken.isEmpty == false else {
+            return "Missing"
+        }
+
+        if showsBearerToken {
+            return server.bearerToken
+        }
+
+        return maskedBearerToken
+    }
+
+    private var maskedBearerToken: String {
+        let token = server.bearerToken
+        guard token.count > 18 else {
+            return "Hidden"
+        }
+
+        return "\(token.prefix(10))...\(token.suffix(6))"
     }
 
     private func canDelete(_ model: LocalLLMModelRecord) -> Bool {
