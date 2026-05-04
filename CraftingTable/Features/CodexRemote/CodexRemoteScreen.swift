@@ -47,7 +47,7 @@ private struct CodexRemoteHostRuntime {
     var streamingThreadID: String?
     var streamingTurnID: String?
     var streamingAssistantText = ""
-    var streamingEventMessages: [CodexRemoteThreadMessage] = []
+    var streamingMessages: [CodexRemoteThreadMessage] = []
     var streamingStatus: String?
     var streamingEventCount = 0
     var streamErrorMessage: String?
@@ -154,7 +154,7 @@ struct CodexRemoteScreen: View {
             turnErrorMessage: activeState.turnErrorMessage,
             turnResult: activeState.turnResult,
             streamingAssistantText: activeState.streamingAssistantText,
-            streamingEventMessages: activeState.streamingEventMessages,
+            streamingMessages: activeState.streamingMessages,
             streamingStatus: activeState.streamingStatus,
             streamingEventCount: activeState.streamingEventCount,
             streamErrorMessage: activeState.streamErrorMessage,
@@ -336,7 +336,7 @@ struct CodexRemoteScreen: View {
                 state.streamingThreadID = selectedThreadID
                 state.streamingTurnID = result.turnId
                 state.streamingAssistantText = ""
-                state.streamingEventMessages = []
+                state.streamingMessages = []
                 state.streamingStatus = result.status
                 state.streamingEventCount = 0
                 state.streamErrorMessage = nil
@@ -684,7 +684,7 @@ struct CodexRemoteScreen: View {
             state.streamingThreadID = nil
             state.streamingTurnID = nil
             state.streamingAssistantText = ""
-            state.streamingEventMessages = []
+            state.streamingMessages = []
             state.streamingStatus = nil
             state.streamingEventCount = 0
             state.streamErrorMessage = nil
@@ -813,12 +813,12 @@ struct CodexRemoteScreen: View {
             case "turn_started":
                 state.streamingStatus = event.status ?? "started"
             case "assistant_delta":
-                state.streamingAssistantText += event.text ?? ""
+                appendStreamingAssistantDelta(from: event, state: &state)
                 state.streamingStatus = "streaming"
             case "item_updated":
                 state.streamingStatus = event.kind ?? "working"
-                if let message = streamingEventMessage(from: event) {
-                    upsertStreamingEventMessage(message, state: &state)
+                if let message = streamingMessage(from: event) {
+                    upsertStreamingMessage(message, state: &state)
                 }
             case "turn_completed":
                 let status = event.status ?? "completed"
@@ -830,7 +830,7 @@ struct CodexRemoteScreen: View {
                         threadId: event.threadId,
                         turnId: event.turnId,
                         status: status,
-                        assistantText: state.streamingAssistantText,
+                        assistantText: streamingAssistantResultText(state),
                         eventCount: eventCount
                     )
                 }
@@ -871,7 +871,7 @@ struct CodexRemoteScreen: View {
             state.streamingThreadID = nil
             state.streamingTurnID = nil
             state.streamingAssistantText = ""
-            state.streamingEventMessages = []
+            state.streamingMessages = []
             state.streamingStatus = nil
             state.streamingEventCount = 0
             state.streamErrorMessage = nil
@@ -914,7 +914,7 @@ struct CodexRemoteScreen: View {
         state.streamingThreadID = nil
         state.streamingTurnID = nil
         state.streamingAssistantText = ""
-        state.streamingEventMessages = []
+        state.streamingMessages = []
         state.streamingStatus = nil
         state.streamingEventCount = 0
         state.streamErrorMessage = nil
@@ -929,11 +929,11 @@ struct CodexRemoteScreen: View {
         return ["completed", "failed", "cancelled", "canceled"].contains(status.lowercased())
     }
 
-    private func streamingEventMessage(from event: CodexRemoteTurnStreamEvent) -> CodexRemoteThreadMessage? {
+    private func streamingMessage(from event: CodexRemoteTurnStreamEvent) -> CodexRemoteThreadMessage? {
         guard event.eventType == "item_updated",
               let kind = event.kind?.trimmingCharacters(in: .whitespacesAndNewlines),
               kind.isEmpty == false,
-              shouldRenderStreamingItem(kind)
+              shouldRenderStreamingItem(kind, text: event.text)
         else {
             return nil
         }
@@ -950,11 +950,23 @@ struct CodexRemoteScreen: View {
         )
     }
 
-    private func shouldRenderStreamingItem(_ kind: String) -> Bool {
-        !["userMessage", "agentMessage"].contains(kind)
+    private func shouldRenderStreamingItem(_ kind: String, text: String?) -> Bool {
+        if kind == "userMessage" {
+            return false
+        }
+
+        if kind == "agentMessage" {
+            return text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        }
+
+        return true
     }
 
     private func streamingItemRole(_ kind: String) -> String {
+        if kind == "agentMessage" {
+            return "assistant"
+        }
+
         switch kind {
         case "commandExecution", "mcpToolCall", "dynamicToolCall", "collabAgentToolCall", "webSearch", "fileChange", "imageGeneration":
             return "tool"
@@ -963,15 +975,70 @@ struct CodexRemoteScreen: View {
         }
     }
 
-    private func upsertStreamingEventMessage(
+    private func appendStreamingAssistantDelta(
+        from event: CodexRemoteTurnStreamEvent,
+        state: inout CodexRemoteHostRuntime
+    ) {
+        let delta = event.text ?? ""
+        guard delta.isEmpty == false else {
+            return
+        }
+
+        guard let itemID = event.itemId?.trimmingCharacters(in: .whitespacesAndNewlines),
+              itemID.isEmpty == false
+        else {
+            state.streamingAssistantText += delta
+            return
+        }
+
+        if let index = state.streamingMessages.firstIndex(where: { $0.id == itemID }) {
+            let existing = state.streamingMessages[index]
+            state.streamingMessages[index] = CodexRemoteThreadMessage(
+                id: existing.id,
+                turnId: existing.turnId,
+                role: existing.role,
+                kind: existing.kind,
+                text: existing.text + delta,
+                status: event.status ?? existing.status,
+                phase: existing.phase,
+                createdAt: existing.createdAt
+            )
+        } else {
+            state.streamingMessages.append(
+                CodexRemoteThreadMessage(
+                    id: itemID,
+                    turnId: event.turnId,
+                    role: "assistant",
+                    kind: "agentMessage",
+                    text: delta,
+                    status: event.status,
+                    phase: nil,
+                    createdAt: nil
+                )
+            )
+        }
+    }
+
+    private func upsertStreamingMessage(
         _ message: CodexRemoteThreadMessage,
         state: inout CodexRemoteHostRuntime
     ) {
-        if let index = state.streamingEventMessages.firstIndex(where: { $0.id == message.id }) {
-            state.streamingEventMessages[index] = message
+        if let index = state.streamingMessages.firstIndex(where: { $0.id == message.id }) {
+            state.streamingMessages[index] = message
         } else {
-            state.streamingEventMessages.append(message)
+            state.streamingMessages.append(message)
         }
+    }
+
+    private func streamingAssistantResultText(_ state: CodexRemoteHostRuntime) -> String {
+        let messageTexts = state.streamingMessages
+            .filter { $0.role == "assistant" }
+            .map(\.text)
+            .filter { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }
+
+        return ([state.streamingAssistantText] + messageTexts)
+            .filter { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }
+            .joined(separator: "\n\n")
     }
 }
 

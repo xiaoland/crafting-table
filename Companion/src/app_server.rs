@@ -473,10 +473,11 @@ impl CodexAppServerClient {
                     if matches_thread_and_turn(params, thread_id, turn_id) =>
                 {
                     if let Some(delta) = params.get("delta").and_then(Value::as_str) {
+                        let item_id = params.get("itemId").and_then(Value::as_str);
                         assistant_text.push_str(delta);
                         if let Some(broker) = event_broker {
                             broker
-                                .publish_assistant_delta(thread_id, turn_id, delta)
+                                .publish_assistant_delta(thread_id, turn_id, item_id, delta)
                                 .await;
                         }
                     }

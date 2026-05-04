@@ -101,6 +101,7 @@ impl TurnEventBroker {
         &self,
         thread_id: &str,
         turn_id: &str,
+        item_id: Option<&str>,
         text: &str,
     ) -> Option<TurnStreamEvent> {
         self.publish(TurnEventDraft {
@@ -110,8 +111,8 @@ impl TurnEventBroker {
             text: Some(text),
             status: None,
             message: None,
-            kind: None,
-            item_id: None,
+            kind: Some("agentMessage"),
+            item_id,
             event_count: None,
         })
         .await
@@ -285,7 +286,7 @@ mod tests {
 
         broker.publish_started("thread-a", "turn-a").await;
         broker
-            .publish_assistant_delta("thread-a", "turn-a", "hello")
+            .publish_assistant_delta("thread-a", "turn-a", Some("item-agent"), "hello")
             .await;
         broker
             .publish_item_updated(
@@ -326,6 +327,11 @@ mod tests {
                 "turn_completed"
             ]
         );
+        assert_eq!(subscription.replay[1].kind.as_deref(), Some("agentMessage"));
+        assert_eq!(
+            subscription.replay[1].item_id.as_deref(),
+            Some("item-agent")
+        );
         assert_eq!(
             subscription.replay[2].kind.as_deref(),
             Some("commandExecution")
@@ -343,7 +349,7 @@ mod tests {
         let broker = TurnEventBroker::new();
 
         assert!(broker
-            .publish_assistant_delta("thread-a", "turn-a", "hello")
+            .publish_assistant_delta("thread-a", "turn-a", Some("item-agent"), "hello")
             .await
             .is_none());
         assert!(broker.subscribe("thread-a", "turn-a").await.is_none());

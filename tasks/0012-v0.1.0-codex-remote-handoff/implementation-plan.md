@@ -407,7 +407,7 @@ Implemented:
 
 - Companion `item_updated` events carry `item_id`, `text`, and `status` when the app-server notification includes an item payload.
 - Companion reuses the same item summarizer used by `GET /threads/{thread_id}` for live item text.
-- CraftingTable decodes stream `item_id` and keeps host-scoped `streamingEventMessages`.
+- CraftingTable decodes stream `item_id` and keeps host-scoped `streamingMessages`.
 - Thread Page renders streaming tool/event rows before the active assistant draft.
 - Refreshed thread messages deduplicate streaming event rows by message id.
 
@@ -467,6 +467,29 @@ Verified:
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
 - local async Companion smoke on `127.0.0.1:3775` started and reconciled `sandbox`, `auto_review`, `full_access`, then a final `sandbox` reset turn
+
+## Slice 13.2 Outcome
+
+Codex Remote active-turn streaming now preserves live assistant message item boundaries.
+
+Implemented:
+
+- Companion forwards app-server `item/agentMessage/delta` `itemId` as stream `item_id`.
+- Companion marks assistant delta stream events as `kind: agentMessage`.
+- CraftingTable appends assistant deltas to host-scoped `streamingMessages` by `item_id`.
+- CraftingTable still uses `streamingAssistantText` as a fallback for deltas without item ids.
+- Live `agentMessage` `item_updated` rows upsert the same assistant message shape used by thread refresh.
+- Thread Page renders live assistant rows through the normal message row renderer.
+- Thread Page scrolls on streaming row content changes, not only row count changes.
+
+Verified:
+
+- generated app-server schema for `AgentMessageDeltaNotification`
+- `cargo fmt --manifest-path Companion/Cargo.toml`
+- `cargo test --manifest-path Companion/Cargo.toml`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
+- local Companion smoke on `127.0.0.1:3776` replayed `assistant_delta` frames with a stable `item_id`, accumulated `CRAFTINGTABLE_AGENT_ITEM_ID_OK` by item id, then received `turn_completed`
 
 ## Launch Entrypoints
 

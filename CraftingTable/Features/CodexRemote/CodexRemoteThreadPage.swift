@@ -18,7 +18,7 @@ struct CodexRemoteThreadPage: View {
     let turnErrorMessage: String?
     let turnResult: CodexRemoteTurnResult?
     let streamingAssistantText: String
-    let streamingEventMessages: [CodexRemoteThreadMessage]
+    let streamingMessages: [CodexRemoteThreadMessage]
     let streamingStatus: String?
     let streamingEventCount: Int
     let streamErrorMessage: String?
@@ -45,7 +45,7 @@ struct CodexRemoteThreadPage: View {
                         isLoading: isLoadingThread,
                         errorMessage: threadErrorMessage,
                         streamingAssistantText: streamingAssistantText,
-                        streamingEventMessages: streamingEventMessages,
+                        streamingMessages: streamingMessages,
                         streamingStatus: streamingStatus,
                         streamingEventCount: streamingEventCount,
                         streamErrorMessage: streamErrorMessage
@@ -158,7 +158,7 @@ private struct CodexRemoteTranscript: View {
     let isLoading: Bool
     let errorMessage: String?
     let streamingAssistantText: String
-    let streamingEventMessages: [CodexRemoteThreadMessage]
+    let streamingMessages: [CodexRemoteThreadMessage]
     let streamingStatus: String?
     let streamingEventCount: Int
     let streamErrorMessage: String?
@@ -179,11 +179,11 @@ private struct CodexRemoteTranscript: View {
                             CodexRemoteMessageRow(message: message)
                         }
 
-                        ForEach(visibleStreamingEventMessages) { message in
+                        ForEach(visibleStreamingMessages) { message in
                             CodexRemoteMessageRow(message: message)
                         }
 
-                        if hasStreamingMessage {
+                        if hasFallbackStreamingMessage {
                             CodexRemoteStreamingMessageRow(
                                 text: streamingAssistantText,
                                 status: streamingStatus,
@@ -222,7 +222,7 @@ private struct CodexRemoteTranscript: View {
             .onChange(of: streamingAssistantText) { _, _ in
                 scrollToBottom(proxy)
             }
-            .onChange(of: visibleStreamingEventMessages.count) { _, _ in
+            .onChange(of: visibleStreamingMessagesFingerprint) { _, _ in
                 scrollToBottom(proxy)
             }
             .onChange(of: streamingStatus) { _, _ in
@@ -233,19 +233,25 @@ private struct CodexRemoteTranscript: View {
     }
 
     private var hasStreamingActivity: Bool {
-        hasStreamingMessage || visibleStreamingEventMessages.isEmpty == false || streamErrorMessage != nil
+        hasFallbackStreamingMessage || visibleStreamingMessages.isEmpty == false || streamErrorMessage != nil
     }
 
-    private var hasStreamingMessage: Bool {
-        streamingAssistantText.isEmpty == false || streamingStatus != nil
+    private var hasFallbackStreamingMessage: Bool {
+        streamingAssistantText.isEmpty == false || (streamingStatus != nil && visibleStreamingMessages.isEmpty)
     }
 
-    private var visibleStreamingEventMessages: [CodexRemoteThreadMessage] {
+    private var visibleStreamingMessages: [CodexRemoteThreadMessage] {
         let existingMessageIDs = Set(messages.map(\.id))
 
-        return streamingEventMessages.filter { message in
+        return streamingMessages.filter { message in
             existingMessageIDs.contains(message.id) == false
         }
+    }
+
+    private var visibleStreamingMessagesFingerprint: String {
+        visibleStreamingMessages
+            .map { "\($0.id):\($0.status ?? ""):\($0.text.count)" }
+            .joined(separator: "|")
     }
 
     private var emptyState: some View {

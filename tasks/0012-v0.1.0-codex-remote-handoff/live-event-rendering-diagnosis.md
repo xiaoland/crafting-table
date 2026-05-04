@@ -21,9 +21,9 @@ The live WebSocket path published `item_updated` with only `kind`. CraftingTable
 - Companion `item_updated` stream events now include `item_id`, `text`, and `status` when app-server notification payloads contain an item.
 - Companion reuses the existing refresh-path item summarizer for live item text, keeping live and refresh rendering aligned.
 - CraftingTable decodes `item_id` from stream events.
-- CraftingTable stores host-scoped `streamingEventMessages` for active tool/event rows.
+- CraftingTable stores host-scoped `streamingMessages` for active tool, event, and assistant rows.
 - Thread Page renders streaming tool/event rows before the active assistant draft and deduplicates them against refreshed thread messages by id.
-- User and assistant item updates stay out of the streaming event row list; assistant text continues through `assistant_delta`.
+- User item updates stay out of the streaming row list. Assistant item boundaries are covered by `live-agent-message-boundaries.md`.
 
 ## Verification
 
@@ -36,4 +36,4 @@ The live WebSocket path published `item_updated` with only `kind`. CraftingTable
 
 ## Remaining Risk
 
-The smoke proved the shared Companion/WebSocket contract and iPad build. Visual confirmation on the physical iPad should focus on row placement and scroll behavior while tool rows arrive interleaved with assistant deltas.
+The smoke proved the shared Companion/WebSocket contract and iPad build. Visual confirmation on the physical iPad should focus on row placement and scroll behavior while tool rows and assistant rows arrive interleaved.
