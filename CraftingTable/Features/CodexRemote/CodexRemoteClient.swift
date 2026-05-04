@@ -227,6 +227,38 @@ struct CodexRemoteTurnResult: Decodable {
     let eventCount: Int
 }
 
+struct CodexRemoteTurnStreamEvent: Decodable, Identifiable {
+    let eventType: String
+    let threadId: String
+    let turnId: String
+    let sequence: UInt64
+    let text: String?
+    let status: String?
+    let message: String?
+    let kind: String?
+    let eventCount: Int?
+
+    var id: String {
+        "\(turnId)-\(sequence)"
+    }
+
+    var isTerminal: Bool {
+        eventType == "turn_completed" || eventType == "error"
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case eventType = "type"
+        case threadId = "thread_id"
+        case turnId = "turn_id"
+        case sequence
+        case text
+        case status
+        case message
+        case kind
+        case eventCount = "event_count"
+    }
+}
+
 struct CodexRemoteClient {
     func loadSnapshot(endpoint: String) async throws -> CodexRemoteSnapshot {
         let baseURL = try normalizedBaseURL(from: endpoint)
@@ -282,6 +314,32 @@ struct CodexRemoteClient {
         return try await fetch(CodexRemoteDesktopSnapshot.self, from: desktopURL)
     }
 
+    func streamTurnEvents(
+        endpoint: String,
+        threadID: String,
+        turnID: String,
+        onEvent: @escaping @Sendable (CodexRemoteTurnStreamEvent) async -> Void
+    ) async throws {
+        let baseURL = try normalizedBaseURL(from: endpoint)
+        let eventsURL = try turnEventsURL(from: baseURL, threadID: threadID, turnID: turnID)
+        let webSocket = URLSession.shared.webSocketTask(with: eventsURL)
+        webSocket.resume()
+
+        defer {
+            webSocket.cancel(with: .goingAway, reason: nil)
+        }
+
+        while Task.isCancelled == false {
+            let message = try await webSocket.receive()
+            let event = try decodeTurnStreamEvent(from: message)
+            await onEvent(event)
+
+            if event.isTerminal {
+                return
+            }
+        }
+    }
+
     private func fetch<Response: Decodable>(_ type: Response.Type, from url: URL) async throws -> Response {
         let (data, response) = try await URLSession.shared.data(from: url)
 
@@ -324,6 +382,26 @@ struct CodexRemoteClient {
         return try decoder.decode(type, from: data)
     }
 
+    private func decodeTurnStreamEvent(
+        from message: URLSessionWebSocketTask.Message
+    ) throws -> CodexRemoteTurnStreamEvent {
+        let data: Data
+
+        switch message {
+        case .data(let messageData):
+            data = messageData
+        case .string(let text):
+            guard let messageData = text.data(using: .utf8) else {
+                throw CodexRemoteClientError.invalidWebSocketMessage
+            }
+            data = messageData
+        @unknown default:
+            throw CodexRemoteClientError.invalidWebSocketMessage
+        }
+
+        return try JSONDecoder().decode(CodexRemoteTurnStreamEvent.self, from: data)
+    }
+
     private func normalizedBaseURL(from endpoint: String) throws -> URL {
         let trimmedEndpoint = endpoint.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -355,6 +433,34 @@ struct CodexRemoteClient {
 
         return threadsURL
     }
+
+    private func turnEventsURL(from baseURL: URL, threadID: String, turnID: String) throws -> URL {
+        let url = baseURL
+            .appendingPathComponent("threads")
+            .appendingPathComponent(threadID)
+            .appendingPathComponent("turns")
+            .appendingPathComponent(turnID)
+            .appendingPathComponent("events")
+
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            throw CodexRemoteClientError.invalidEndpoint
+        }
+
+        switch components.scheme {
+        case "http":
+            components.scheme = "ws"
+        case "https":
+            components.scheme = "wss"
+        default:
+            throw CodexRemoteClientError.invalidEndpoint
+        }
+
+        guard let eventsURL = components.url else {
+            throw CodexRemoteClientError.invalidEndpoint
+        }
+
+        return eventsURL
+    }
 }
 
 private struct CodexRemoteTurnSubmitPayload: Encodable {
@@ -377,6 +483,7 @@ private struct CodexRemoteAPIError: Decodable {
 
 enum CodexRemoteClientError: LocalizedError {
     case invalidEndpoint
+    case invalidWebSocketMessage
     case badStatus(Int)
     case server(String)
 
@@ -384,6 +491,8 @@ enum CodexRemoteClientError: LocalizedError {
         switch self {
         case .invalidEndpoint:
             return "Enter a valid Companion endpoint."
+        case .invalidWebSocketMessage:
+            return "Companion returned an invalid stream event."
         case .badStatus(let statusCode):
             return statusCode > 0 ? "Companion returned HTTP \(statusCode)." : "Companion returned an invalid response."
         case .server(let message):

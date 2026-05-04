@@ -26,6 +26,7 @@ Executing
 - `semantic-handoff-findings.md`: app-server protocol facts, Companion adapter shape, and semantic smoke results.
 - `desktop-handoff-findings.md`: Companion Desktop Scout route, normalized snapshot contract, and hot-handoff smoke result.
 - `thread-page-findings.md`: iPad Thread Page UI slice, client contract usage, and verification notes.
+- `streaming-turns-findings.md`: active-turn WebSocket contract, iPad stream lifecycle, and live smoke evidence.
 
 ## Current Decision
 
@@ -43,10 +44,10 @@ Goal Forest, Work Session, and Remote Control integration sit outside this MVP. 
 
 Harden the standalone Codex Remote path behind the existing companion boundary:
 
-1. Add live event projection for active turns.
-2. Surface approval and user-input request states from Companion.
-3. Add reasoning effort and Fast controls after app-server parameter names are verified.
-4. Use Desktop Scout confidence to guide manual thread selection or semantic resume.
+1. Surface approval and user-input request states from Companion.
+2. Add reasoning effort and Fast controls after app-server parameter names are verified.
+3. Use Desktop Scout confidence to guide manual thread selection or semantic resume.
+4. Improve transcript rendering for tool output, file changes, and markdown-like assistant text.
 
 ## Promotion Candidates
 

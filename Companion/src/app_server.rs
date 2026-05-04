@@ -17,6 +17,7 @@ use crate::{
         ThreadDetailResponse, ThreadListResponse, ThreadMessage, ThreadResumeResponse,
         ThreadSummary, TurnSubmitResponse,
     },
+    turn_events::TurnEventBroker,
 };
 
 const APP_SERVER_STARTUP_TIMEOUT: Duration = Duration::from_secs(10);
@@ -118,6 +119,7 @@ pub async fn submit_turn(
     cwd: Option<&str>,
     model: Option<&str>,
     wait_for_completion: bool,
+    event_broker: Option<TurnEventBroker>,
 ) -> anyhow::Result<TurnSubmitResponse> {
     let mut client = CodexAppServerClient::connect(config).await?;
     client
@@ -155,14 +157,25 @@ pub async fn submit_turn(
     let turn_id = string_field(turn, "id").unwrap_or_default();
 
     if !wait_for_completion {
+        if let Some(broker) = &event_broker {
+            broker.create(thread_id, &turn_id).await;
+            broker.publish_started(thread_id, &turn_id).await;
+        }
+
         let background_thread_id = thread_id.to_string();
         let background_turn_id = turn_id.clone();
+        let background_event_broker = event_broker.clone();
 
         tokio::spawn(async move {
-            match client
-                .wait_for_turn(&background_thread_id, &background_turn_id)
-                .await
-            {
+            let wait_result = client
+                .wait_for_turn(
+                    &background_thread_id,
+                    &background_turn_id,
+                    background_event_broker.clone(),
+                )
+                .await;
+
+            match wait_result {
                 Ok(completion) => tracing::info!(
                     thread_id = %background_thread_id,
                     turn_id = %background_turn_id,
@@ -170,12 +183,20 @@ pub async fn submit_turn(
                     event_count = completion.event_count,
                     "background Codex turn completed"
                 ),
-                Err(error) => tracing::warn!(
-                    thread_id = %background_thread_id,
-                    turn_id = %background_turn_id,
-                    error = %error,
-                    "background Codex turn failed"
-                ),
+                Err(error) => {
+                    let message = error.to_string();
+                    tracing::warn!(
+                        thread_id = %background_thread_id,
+                        turn_id = %background_turn_id,
+                        error = %message,
+                        "background Codex turn failed"
+                    );
+                    if let Some(broker) = background_event_broker {
+                        broker
+                            .publish_error(&background_thread_id, &background_turn_id, &message)
+                            .await;
+                    }
+                }
             }
         });
 
@@ -188,7 +209,7 @@ pub async fn submit_turn(
         });
     }
 
-    let completion = client.wait_for_turn(thread_id, &turn_id).await?;
+    let completion = client.wait_for_turn(thread_id, &turn_id, None).await?;
 
     Ok(TurnSubmitResponse {
         thread_id: thread_id.to_string(),
@@ -344,10 +365,11 @@ impl CodexAppServerClient {
         &mut self,
         thread_id: &str,
         turn_id: &str,
+        event_broker: Option<TurnEventBroker>,
     ) -> anyhow::Result<TurnCompletion> {
         timeout(
             TURN_COMPLETION_TIMEOUT,
-            self.read_turn_completion(thread_id, turn_id),
+            self.read_turn_completion(thread_id, turn_id, event_broker.as_ref()),
         )
         .await
         .with_context(|| format!("turn timed out before completion: {turn_id}"))?
@@ -357,6 +379,7 @@ impl CodexAppServerClient {
         &mut self,
         thread_id: &str,
         turn_id: &str,
+        event_broker: Option<&TurnEventBroker>,
     ) -> anyhow::Result<TurnCompletion> {
         let mut assistant_text = String::new();
         let mut event_count = 0;
@@ -379,6 +402,24 @@ impl CodexAppServerClient {
                 {
                     if let Some(delta) = params.get("delta").and_then(Value::as_str) {
                         assistant_text.push_str(delta);
+                        if let Some(broker) = event_broker {
+                            broker
+                                .publish_assistant_delta(thread_id, turn_id, delta)
+                                .await;
+                        }
+                    }
+                }
+                _ if method.starts_with("item/")
+                    && matches_thread_and_turn(params, thread_id, turn_id) =>
+                {
+                    if let Some(broker) = event_broker {
+                        let kind = params
+                            .get("item")
+                            .and_then(|item| item.get("type"))
+                            .and_then(Value::as_str)
+                            .or_else(|| method.split('/').nth(1))
+                            .unwrap_or(method);
+                        broker.publish_item_updated(thread_id, turn_id, kind).await;
                     }
                 }
                 "turn/completed" if completion_matches(params, thread_id, turn_id) => {
@@ -388,6 +429,11 @@ impl CodexAppServerClient {
                         .and_then(Value::as_str)
                         .unwrap_or("completed")
                         .to_string();
+                    if let Some(broker) = event_broker {
+                        broker
+                            .publish_completed(thread_id, turn_id, &status, event_count)
+                            .await;
+                    }
 
                     return Ok(TurnCompletion {
                         status,

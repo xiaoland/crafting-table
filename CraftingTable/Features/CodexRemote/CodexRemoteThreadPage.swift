@@ -14,6 +14,10 @@ struct CodexRemoteThreadPage: View {
     let isSubmitting: Bool
     let turnErrorMessage: String?
     let turnResult: CodexRemoteTurnResult?
+    let streamingAssistantText: String
+    let streamingStatus: String?
+    let streamingEventCount: Int
+    let streamErrorMessage: String?
     let refreshThread: () -> Void
     let submit: () -> Void
 
@@ -35,7 +39,11 @@ struct CodexRemoteThreadPage: View {
                     CodexRemoteTranscript(
                         messages: detailResponse?.messages ?? [],
                         isLoading: isLoadingThread,
-                        errorMessage: threadErrorMessage
+                        errorMessage: threadErrorMessage,
+                        streamingAssistantText: streamingAssistantText,
+                        streamingStatus: streamingStatus,
+                        streamingEventCount: streamingEventCount,
+                        streamErrorMessage: streamErrorMessage
                     )
 
                     Divider()
@@ -141,6 +149,10 @@ private struct CodexRemoteTranscript: View {
     let messages: [CodexRemoteThreadMessage]
     let isLoading: Bool
     let errorMessage: String?
+    let streamingAssistantText: String
+    let streamingStatus: String?
+    let streamingEventCount: Int
+    let streamErrorMessage: String?
 
     private let bottomAnchor = "codex-remote-transcript-bottom"
 
@@ -151,11 +163,24 @@ private struct CodexRemoteTranscript: View {
                     if let errorMessage {
                         CodexRemoteErrorLine(message: errorMessage)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                    } else if messages.isEmpty {
+                    } else if messages.isEmpty && hasStreamingActivity == false {
                         emptyState
                     } else {
                         ForEach(messages) { message in
                             CodexRemoteMessageRow(message: message)
+                        }
+
+                        if hasStreamingMessage {
+                            CodexRemoteStreamingMessageRow(
+                                text: streamingAssistantText,
+                                status: streamingStatus,
+                                eventCount: streamingEventCount
+                            )
+                        }
+
+                        if let streamErrorMessage {
+                            CodexRemoteErrorLine(message: streamErrorMessage)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
 
@@ -181,8 +206,22 @@ private struct CodexRemoteTranscript: View {
             .onChange(of: messages.count) { _, _ in
                 scrollToBottom(proxy)
             }
+            .onChange(of: streamingAssistantText) { _, _ in
+                scrollToBottom(proxy)
+            }
+            .onChange(of: streamingStatus) { _, _ in
+                scrollToBottom(proxy)
+            }
             .accessibilityIdentifier("codex-remote-thread-transcript")
         }
+    }
+
+    private var hasStreamingActivity: Bool {
+        hasStreamingMessage || streamErrorMessage != nil
+    }
+
+    private var hasStreamingMessage: Bool {
+        streamingAssistantText.isEmpty == false || streamingStatus != nil
     }
 
     private var emptyState: some View {
@@ -194,7 +233,7 @@ private struct CodexRemoteTranscript: View {
     }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
-        guard messages.isEmpty == false else {
+        guard messages.isEmpty == false || hasStreamingActivity else {
             return
         }
 
@@ -203,6 +242,57 @@ private struct CodexRemoteTranscript: View {
                 proxy.scrollTo(bottomAnchor, anchor: .bottom)
             }
         }
+    }
+}
+
+private struct CodexRemoteStreamingMessageRow: View {
+    let text: String
+    let status: String?
+    let eventCount: Int
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Text("Codex")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    if let status {
+                        CodexRemoteInlinePill(title: status, systemImage: "dot.radiowaves.left.and.right")
+                    }
+
+                    if eventCount > 0 {
+                        Text("\(eventCount) events")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if text.isEmpty {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Text(text)
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.horizontal, 13)
+            .padding(.vertical, 11)
+            .frame(maxWidth: 720, alignment: .leading)
+            .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 8))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.accentColor.opacity(0.45), lineWidth: 1)
+            }
+
+            Spacer(minLength: 80)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityIdentifier("codex-remote-streaming-message")
     }
 }
 

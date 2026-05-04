@@ -41,6 +41,13 @@ private struct CodexRemoteHostRuntime {
     var turnResult: CodexRemoteTurnResult?
     var isSubmittingTurn = false
     var turnErrorMessage: String?
+    var streamingThreadID: String?
+    var streamingTurnID: String?
+    var streamingAssistantText = ""
+    var streamingStatus: String?
+    var streamingEventCount = 0
+    var streamErrorMessage: String?
+    var turnStreamTask: Task<Void, Never>?
 
     static let empty = CodexRemoteHostRuntime()
 }
@@ -138,6 +145,10 @@ struct CodexRemoteScreen: View {
             isSubmitting: activeState.isSubmittingTurn,
             turnErrorMessage: activeState.turnErrorMessage,
             turnResult: activeState.turnResult,
+            streamingAssistantText: activeState.streamingAssistantText,
+            streamingStatus: activeState.streamingStatus,
+            streamingEventCount: activeState.streamingEventCount,
+            streamErrorMessage: activeState.streamErrorMessage,
             refreshThread: {
                 guard let selectedThreadID = activeState.selectedThreadID else {
                     return
@@ -244,6 +255,7 @@ struct CodexRemoteScreen: View {
 
             updateHostState(hostID) { state in
                 state.threadDetailResponse = response
+                reconcileStreamIfNeeded(with: response, state: &state)
             }
         } catch {
             guard hostStates[hostID]?.selectedThreadID == threadID
@@ -291,9 +303,12 @@ struct CodexRemoteScreen: View {
             return
         }
 
+        cancelTurnStream(hostID: hostID)
+
         updateHostState(hostID) { state in
             state.isSubmittingTurn = true
             state.turnErrorMessage = nil
+            state.streamErrorMessage = nil
         }
 
         do {
@@ -307,7 +322,19 @@ struct CodexRemoteScreen: View {
             updateHostState(hostID) { state in
                 state.turnResult = result
                 state.turnInput = ""
+                state.streamingThreadID = selectedThreadID
+                state.streamingTurnID = result.turnId
+                state.streamingAssistantText = ""
+                state.streamingStatus = result.status
+                state.streamingEventCount = 0
+                state.streamErrorMessage = nil
             }
+            startTurnEventStream(
+                endpoint: profile.endpoint,
+                hostID: hostID,
+                threadID: selectedThreadID,
+                turnID: result.turnId
+            )
 
             if selectedHostID == hostID {
                 await loadThreadDetail(threadID: selectedThreadID)
@@ -332,6 +359,7 @@ struct CodexRemoteScreen: View {
 
     private func selectThread(_ thread: CodexRemoteThread) {
         let hostID = selectedHostID
+        cancelTurnStream(hostID: hostID)
 
         updateHostState(hostID) { state in
             state.selectedThreadID = thread.id
@@ -499,6 +527,11 @@ struct CodexRemoteScreen: View {
             return
         }
 
+        let previousHostID = selectedHostID
+        if previousHostID != hostID {
+            cancelTurnStream(hostID: previousHostID)
+        }
+
         selectedHostID = hostID
         hostStates[hostID, default: .empty] = hostStates[hostID] ?? .empty
         updateHostProfile(hostID) { profile in
@@ -536,6 +569,7 @@ struct CodexRemoteScreen: View {
         }
 
         let removedHostID = selectedHostID
+        cancelTurnStream(hostID: removedHostID)
         hostProfiles.removeAll { profile in
             profile.id == removedHostID
         }
@@ -546,6 +580,7 @@ struct CodexRemoteScreen: View {
 
     private func updateActiveEndpoint(_ endpoint: String) {
         let hostID = selectedHostID
+        cancelTurnStream(hostID: hostID)
 
         updateHostProfile(hostID) { profile in
             profile.endpoint = endpoint
@@ -564,6 +599,12 @@ struct CodexRemoteScreen: View {
             state.threadErrorMessage = nil
             state.turnResult = nil
             state.turnErrorMessage = nil
+            state.streamingThreadID = nil
+            state.streamingTurnID = nil
+            state.streamingAssistantText = ""
+            state.streamingStatus = nil
+            state.streamingEventCount = 0
+            state.streamErrorMessage = nil
         }
     }
 
@@ -617,6 +658,165 @@ struct CodexRemoteScreen: View {
                 await loadThreadDetail(threadID: threadID)
             }
         }
+    }
+
+    @MainActor
+    private func startTurnEventStream(
+        endpoint: String,
+        hostID: String,
+        threadID: String,
+        turnID: String
+    ) {
+        let streamTask = Task {
+            do {
+                try await client.streamTurnEvents(
+                    endpoint: endpoint,
+                    threadID: threadID,
+                    turnID: turnID
+                ) { event in
+                    await MainActor.run {
+                        handleTurnStreamEvent(event, hostID: hostID, threadID: threadID, turnID: turnID)
+                    }
+                }
+
+                await MainActor.run {
+                    finishTurnStreamIfCurrent(hostID: hostID, threadID: threadID, turnID: turnID)
+                }
+            } catch {
+                guard Task.isCancelled == false else {
+                    return
+                }
+
+                await MainActor.run {
+                    guard isCurrentStream(hostID: hostID, threadID: threadID, turnID: turnID) else {
+                        return
+                    }
+
+                    updateHostState(hostID) { state in
+                        state.streamErrorMessage = error.localizedDescription
+                        state.streamingStatus = "polling"
+                        state.turnStreamTask = nil
+                    }
+                }
+            }
+        }
+
+        updateHostState(hostID) { state in
+            state.turnStreamTask = streamTask
+        }
+    }
+
+    @MainActor
+    private func handleTurnStreamEvent(
+        _ event: CodexRemoteTurnStreamEvent,
+        hostID: String,
+        threadID: String,
+        turnID: String
+    ) {
+        guard event.threadId == threadID,
+              event.turnId == turnID,
+              isCurrentStream(hostID: hostID, threadID: threadID, turnID: turnID)
+        else {
+            return
+        }
+
+        let eventSequence = Int(min(event.sequence, UInt64(Int.max)))
+
+        updateHostState(hostID) { state in
+            state.streamingEventCount = max(state.streamingEventCount, eventSequence)
+
+            switch event.eventType {
+            case "turn_started":
+                state.streamingStatus = event.status ?? "started"
+            case "assistant_delta":
+                state.streamingAssistantText += event.text ?? ""
+                state.streamingStatus = "streaming"
+            case "item_updated":
+                state.streamingStatus = event.kind ?? "working"
+            case "turn_completed":
+                let status = event.status ?? "completed"
+                state.streamingStatus = status
+                if let eventCount = event.eventCount {
+                    state.streamingEventCount = eventCount
+                    state.turnResult = CodexRemoteTurnResult(
+                        threadId: event.threadId,
+                        turnId: event.turnId,
+                        status: status,
+                        assistantText: state.streamingAssistantText,
+                        eventCount: eventCount
+                    )
+                }
+            case "error":
+                state.streamingStatus = "error"
+                state.streamErrorMessage = event.message ?? "Companion stream failed."
+            default:
+                break
+            }
+        }
+
+        if event.eventType == "turn_completed",
+           selectedHostID == hostID
+        {
+            Task {
+                await loadThreadDetail(threadID: threadID)
+            }
+        }
+    }
+
+    @MainActor
+    private func finishTurnStreamIfCurrent(hostID: String, threadID: String, turnID: String) {
+        guard isCurrentStream(hostID: hostID, threadID: threadID, turnID: turnID) else {
+            return
+        }
+
+        updateHostState(hostID) { state in
+            state.turnStreamTask = nil
+        }
+    }
+
+    @MainActor
+    private func cancelTurnStream(hostID: String) {
+        hostStates[hostID]?.turnStreamTask?.cancel()
+
+        updateHostState(hostID) { state in
+            state.turnStreamTask = nil
+            state.streamingThreadID = nil
+            state.streamingTurnID = nil
+            state.streamingAssistantText = ""
+            state.streamingStatus = nil
+            state.streamingEventCount = 0
+            state.streamErrorMessage = nil
+        }
+    }
+
+    private func isCurrentStream(hostID: String, threadID: String, turnID: String) -> Bool {
+        guard let state = hostStates[hostID] else {
+            return false
+        }
+
+        return state.streamingThreadID == threadID && state.streamingTurnID == turnID
+    }
+
+    private func reconcileStreamIfNeeded(
+        with response: CodexRemoteThreadDetailResponse,
+        state: inout CodexRemoteHostRuntime
+    ) {
+        guard let streamingTurnID = state.streamingTurnID,
+              response.messages.contains(where: { message in
+                  message.turnId == streamingTurnID && message.role == "assistant"
+              })
+        else {
+            return
+        }
+
+        state.turnStreamTask?.cancel()
+        state.turnStreamTask = nil
+        state.streamingThreadID = nil
+        state.streamingTurnID = nil
+        state.streamingAssistantText = ""
+        state.streamingStatus = nil
+        state.streamingEventCount = 0
+        state.streamErrorMessage = nil
     }
 }
 

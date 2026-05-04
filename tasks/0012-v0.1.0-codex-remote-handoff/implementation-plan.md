@@ -331,31 +331,32 @@ Verified:
 - local Companion smoke on `127.0.0.1:3769` showed `/threads?limit=3` returning `workbench` and `Beluna` project metadata
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
 
+## Slice 12 Outcome
+
+CraftingTable now receives live active-turn events from Companion while Codex is working.
+
+Implemented:
+
+- Companion active-turn broker keyed by host-local `thread_id` and `turn_id`.
+- WebSocket route `GET /threads/{thread_id}/turns/{turn_id}/events`.
+- Replay and broadcast for `turn_started`, `assistant_delta`, `item_updated`, `turn_completed`, and `error`.
+- app-server notification publishing from background turn waits.
+- CraftingTable `URLSessionWebSocketTask` client for active turn streams.
+- host-scoped stream task lifecycle and cancellation on host, thread, delete, and endpoint changes.
+- temporary streaming assistant row in the Thread Page, reconciled from `GET /threads/{thread_id}` after completion.
+- existing polling refresh retained as fallback and final source-of-truth reconciliation.
+
+Verified:
+
+- `cargo fmt --manifest-path Companion/Cargo.toml`
+- `cargo test --manifest-path Companion/Cargo.toml`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
+- local Companion smoke on `127.0.0.1:3770`
+- async submit returned `status: started` for turn `019df235-5a08-75c0-98c5-b9f189dee4ec`
+- Swift WebSocket smoke received `turn_started`, `item_updated`, multiple `assistant_delta` frames composing `CRAFTINGTABLE_STREAM_SMOKE_OK`, then `turn_completed`
+
 ## Next Experience Slices
-
-### Slice 12 Planned: Streaming Turns
-
-Add a CraftingTable-owned live event projection so the Thread Page can update while Codex is still working.
-
-Objective:
-
-- submit returns quickly
-- assistant deltas and tool/status events appear without polling the full thread detail
-- final thread detail remains the reconciliation source after completion
-
-Implementation shape:
-
-- Companion introduces an active-turn event broker keyed by host-local `thread_id` and `turn_id`.
-- Background app-server notification reads publish normalized events to the broker.
-- CraftingTable subscribes over a WebSocket route for active turn events.
-- The event stream includes `turn_started`, `assistant_delta`, `item_updated`, `turn_completed`, and `error` for the MVP.
-- The iPad keeps polling fallback behavior for hosts that do not expose the streaming route.
-
-Verification:
-
-- Companion smoke proves deltas arrive before `turn_completed`.
-- iPad build proves the stream client compiles and lifecycle cancellation is explicit when switching thread or host.
-- Existing nonblocking submit smoke remains valid.
 
 ### Slice 13 Planned: Composer Controls and Codex-like Rendering
 

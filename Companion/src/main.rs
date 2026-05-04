@@ -5,6 +5,7 @@ mod desktop_scout;
 mod models;
 mod routes;
 mod thread_store;
+mod turn_events;
 
 use std::sync::Arc;
 
