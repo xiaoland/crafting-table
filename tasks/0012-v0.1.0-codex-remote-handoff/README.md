@@ -43,9 +43,9 @@ Goal Forest, Work Session, and Remote Control integration sit outside this MVP. 
 
 Harden the standalone Codex Remote path behind the existing companion boundary:
 
-1. Add live event or polling feedback for active turns.
+1. Add live event projection for active turns.
 2. Surface approval and user-input request states from Companion.
-3. Add LAN pairing and companion endpoint persistence.
+3. Add reasoning effort and Fast controls after app-server parameter names are verified.
 4. Use Desktop Scout confidence to guide manual thread selection or semantic resume.
 
 ## Promotion Candidates

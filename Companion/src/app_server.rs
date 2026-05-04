@@ -489,11 +489,16 @@ fn summarize_thread_for_list(thread: &Value) -> ThreadSummary {
         .or_else(|| string_field(thread, "preview"))
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| string_field(thread, "id").unwrap_or_else(|| "Untitled thread".into()));
+    let cwd = string_field(thread, "cwd");
+    let (project_key, project_name) = project_metadata(cwd.as_deref());
 
     ThreadSummary {
         id: string_field(thread, "id").unwrap_or_default(),
         title,
         updated_at: number_or_string_field(thread, "updatedAt").unwrap_or_default(),
+        cwd,
+        project_key,
+        project_name,
     }
 }
 
@@ -691,6 +696,22 @@ fn summarize_model(model: &Value) -> CodexModelSummary {
     }
 }
 
+fn project_metadata(cwd: Option<&str>) -> (String, String) {
+    let Some(cwd) = cwd.map(str::trim).filter(|value| !value.is_empty()) else {
+        return ("unknown".to_string(), "Unknown Project".to_string());
+    };
+
+    let trimmed = cwd.trim_end_matches(['/', '\\']);
+    let project_name = trimmed
+        .rsplit(['/', '\\'])
+        .next()
+        .filter(|value| !value.is_empty())
+        .unwrap_or(cwd)
+        .to_string();
+
+    (cwd.to_string(), project_name)
+}
+
 fn string_field(value: &Value, field: &str) -> Option<String> {
     value
         .get(field)
@@ -727,7 +748,8 @@ mod tests {
     use serde_json::json;
 
     use super::{
-        completion_matches, summarize_model, summarize_thread_for_list, summarize_thread_messages,
+        completion_matches, project_metadata, summarize_model, summarize_thread_for_list,
+        summarize_thread_messages,
     };
 
     #[test]
@@ -744,6 +766,7 @@ mod tests {
         assert_eq!(summary.id, "thread-a");
         assert_eq!(summary.title, "Named thread");
         assert_eq!(summary.updated_at, "1777696194");
+        assert_eq!(summary.project_name, "Unknown Project");
     }
 
     #[test]
@@ -758,6 +781,36 @@ mod tests {
         let summary = summarize_thread_for_list(&thread);
 
         assert_eq!(summary.title, "Preview title");
+    }
+
+    #[test]
+    fn maps_thread_list_project_from_cwd() {
+        let thread = json!({
+            "id": "thread-c",
+            "name": "Project thread",
+            "cwd": "/Users/lanzhijiang/Development/workbench",
+            "updatedAt": 1777696194
+        });
+
+        let summary = summarize_thread_for_list(&thread);
+
+        assert_eq!(
+            summary.cwd.as_deref(),
+            Some("/Users/lanzhijiang/Development/workbench")
+        );
+        assert_eq!(
+            summary.project_key,
+            "/Users/lanzhijiang/Development/workbench"
+        );
+        assert_eq!(summary.project_name, "workbench");
+    }
+
+    #[test]
+    fn derives_project_name_from_windows_path() {
+        let (project_key, project_name) = project_metadata(Some(r"C:\Users\yyh\workbench"));
+
+        assert_eq!(project_key, r"C:\Users\yyh\workbench");
+        assert_eq!(project_name, "workbench");
     }
 
     #[test]

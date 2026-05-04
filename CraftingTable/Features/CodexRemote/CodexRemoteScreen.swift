@@ -1,24 +1,57 @@
 import Foundation
 import SwiftUI
 
+private struct CodexRemoteHostProfile: Identifiable, Codable, Equatable {
+    var id: String
+    var label: String
+    var endpoint: String
+    var lastHealthStatus: String?
+    var lastUsedAt: Date?
+
+    var displayLabel: String {
+        let trimmedLabel = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedLabel.isEmpty ? endpoint : trimmedLabel
+    }
+
+    static func localDefault() -> CodexRemoteHostProfile {
+        CodexRemoteHostProfile(
+            id: UUID().uuidString,
+            label: "Local Mac",
+            endpoint: "http://127.0.0.1:3765",
+            lastHealthStatus: nil,
+            lastUsedAt: nil
+        )
+    }
+}
+
+private struct CodexRemoteHostRuntime {
+    var health: CodexRemoteHealth?
+    var threadList: CodexRemoteThreadList?
+    var modelList: CodexRemoteModelList?
+    var desktopSnapshot: CodexRemoteDesktopSnapshot?
+    var isLoading = false
+    var errorMessage: String?
+    var desktopErrorMessage: String?
+    var selectedThreadID: String?
+    var selectedModel = ""
+    var threadDetailResponse: CodexRemoteThreadDetailResponse?
+    var isLoadingThread = false
+    var threadErrorMessage: String?
+    var turnInput = ""
+    var turnResult: CodexRemoteTurnResult?
+    var isSubmittingTurn = false
+    var turnErrorMessage: String?
+
+    static let empty = CodexRemoteHostRuntime()
+}
+
 struct CodexRemoteScreen: View {
-    @State private var endpoint = "http://127.0.0.1:3765"
-    @State private var health: CodexRemoteHealth?
-    @State private var threadList: CodexRemoteThreadList?
-    @State private var modelList: CodexRemoteModelList?
-    @State private var desktopSnapshot: CodexRemoteDesktopSnapshot?
-    @State private var isLoading = false
-    @State private var errorMessage: String?
-    @State private var desktopErrorMessage: String?
-    @State private var selectedThreadID: String?
-    @State private var selectedModel = ""
-    @State private var threadDetailResponse: CodexRemoteThreadDetailResponse?
-    @State private var isLoadingThread = false
-    @State private var threadErrorMessage: String?
-    @State private var turnInput = ""
-    @State private var turnResult: CodexRemoteTurnResult?
-    @State private var isSubmittingTurn = false
-    @State private var turnErrorMessage: String?
+    @AppStorage("codexRemoteHostProfilesV1") private var persistedHostProfiles = ""
+    @AppStorage("codexRemoteSelectedHostIDV1") private var persistedSelectedHostID = ""
+
+    @State private var hostProfiles: [CodexRemoteHostProfile] = []
+    @State private var selectedHostID = ""
+    @State private var hostStates: [String: CodexRemoteHostRuntime] = [:]
 
     private let client = CodexRemoteClient()
 
@@ -35,7 +68,9 @@ struct CodexRemoteScreen: View {
         }
         .accessibilityIdentifier("codex-remote-screen")
         .task {
-            guard health == nil, threadList == nil else {
+            loadHostProfilesIfNeeded()
+
+            guard activeState.health == nil, activeState.threadList == nil else {
                 return
             }
 
@@ -67,19 +102,23 @@ struct CodexRemoteScreen: View {
 
     private var sidebar: some View {
         CodexRemoteSidebar(
-            endpoint: $endpoint,
-            health: health,
-            threadList: threadList,
-            desktopSnapshot: desktopSnapshot,
-            errorMessage: errorMessage,
-            desktopErrorMessage: desktopErrorMessage,
-            selectedThreadID: selectedThreadID,
-            isLoading: isLoading,
+            profiles: hostProfiles,
+            selectedHostID: selectedHostBinding,
+            endpoint: activeEndpointBinding,
+            health: activeState.health,
+            threadList: activeState.threadList,
+            desktopSnapshot: activeState.desktopSnapshot,
+            errorMessage: activeState.errorMessage,
+            desktopErrorMessage: activeState.desktopErrorMessage,
+            selectedThreadID: activeState.selectedThreadID,
+            isLoading: activeState.isLoading,
             refresh: {
                 Task {
                     await refresh()
                 }
             },
+            addHost: addHost,
+            deleteSelectedHost: deleteSelectedHost,
             selectThread: selectThread
         )
     }
@@ -87,19 +126,19 @@ struct CodexRemoteScreen: View {
     private var threadPage: some View {
         CodexRemoteThreadPage(
             selectedThread: selectedThread,
-            detailResponse: threadDetailResponse,
-            models: modelList?.models ?? [],
-            selectedModel: $selectedModel,
-            input: $turnInput,
-            desktopSnapshot: desktopSnapshot,
-            desktopErrorMessage: desktopErrorMessage,
-            isLoadingThread: isLoadingThread,
-            threadErrorMessage: threadErrorMessage,
-            isSubmitting: isSubmittingTurn,
-            turnErrorMessage: turnErrorMessage,
-            turnResult: turnResult,
+            detailResponse: activeState.threadDetailResponse,
+            models: activeState.modelList?.models ?? [],
+            selectedModel: activeSelectedModelBinding,
+            input: activeTurnInputBinding,
+            desktopSnapshot: activeState.desktopSnapshot,
+            desktopErrorMessage: activeState.desktopErrorMessage,
+            isLoadingThread: activeState.isLoadingThread,
+            threadErrorMessage: activeState.threadErrorMessage,
+            isSubmitting: activeState.isSubmittingTurn,
+            turnErrorMessage: activeState.turnErrorMessage,
+            turnResult: activeState.turnResult,
             refreshThread: {
-                guard let selectedThreadID else {
+                guard let selectedThreadID = activeState.selectedThreadID else {
                     return
                 }
 
@@ -117,146 +156,445 @@ struct CodexRemoteScreen: View {
 
     @MainActor
     private func refresh() async {
-        isLoading = true
-        errorMessage = nil
-        desktopErrorMessage = nil
+        loadHostProfilesIfNeeded()
+
+        guard let profile = activeProfile else {
+            return
+        }
+
+        let hostID = profile.id
+        let endpoint = profile.endpoint
+
+        updateHostState(hostID) { state in
+            state.isLoading = true
+            state.errorMessage = nil
+            state.desktopErrorMessage = nil
+        }
 
         do {
             let snapshot = try await client.loadSnapshot(endpoint: endpoint)
-            health = snapshot.health
-            threadList = snapshot.threadList
-            modelList = snapshot.modelList
-            preserveOrSelectThread(from: snapshot.threadList.threads)
-            preserveOrSelectModel(from: snapshot.modelList.models)
+
+            updateHostState(hostID) { state in
+                state.health = snapshot.health
+                state.threadList = snapshot.threadList
+                state.modelList = snapshot.modelList
+            }
+            preserveOrSelectThread(from: snapshot.threadList.threads, hostID: hostID)
+            preserveOrSelectModel(from: snapshot.modelList.models, hostID: hostID)
+            updateHostProfile(hostID) { hostProfile in
+                hostProfile.lastHealthStatus = snapshot.health.codex.appServerAvailable ? "online" : "app server down"
+                hostProfile.lastUsedAt = Date()
+            }
         } catch {
-            errorMessage = error.localizedDescription
+            updateHostState(hostID) { state in
+                state.errorMessage = error.localizedDescription
+            }
+            updateHostProfile(hostID) { hostProfile in
+                hostProfile.lastHealthStatus = "unreachable"
+                hostProfile.lastUsedAt = Date()
+            }
         }
 
         do {
-            desktopSnapshot = try await client.loadDesktopSnapshot(endpoint: endpoint)
+            let desktopSnapshot = try await client.loadDesktopSnapshot(endpoint: endpoint)
+
+            updateHostState(hostID) { state in
+                state.desktopSnapshot = desktopSnapshot
+                state.desktopErrorMessage = nil
+            }
         } catch {
-            desktopSnapshot = nil
-            desktopErrorMessage = error.localizedDescription
+            updateHostState(hostID) { state in
+                state.desktopSnapshot = nil
+                state.desktopErrorMessage = error.localizedDescription
+            }
         }
 
-        isLoading = false
+        updateHostState(hostID) { state in
+            state.isLoading = false
+        }
 
-        if let selectedThreadID {
+        if selectedHostID == hostID,
+           let selectedThreadID = hostStates[hostID]?.selectedThreadID
+        {
             await loadThreadDetail(threadID: selectedThreadID)
         }
     }
 
     @MainActor
     private func loadThreadDetail(threadID: String) async {
-        isLoadingThread = true
-        threadErrorMessage = nil
-
-        do {
-            let response = try await client.loadThreadDetail(endpoint: endpoint, threadID: threadID)
-            guard selectedThreadID == threadID else {
-                return
-            }
-
-            threadDetailResponse = response
-        } catch {
-            guard selectedThreadID == threadID else {
-                return
-            }
-
-            threadDetailResponse = nil
-            threadErrorMessage = error.localizedDescription
-        }
-
-        guard selectedThreadID == threadID else {
+        guard let profile = activeProfile else {
             return
         }
 
-        isLoadingThread = false
+        let hostID = profile.id
+        let endpoint = profile.endpoint
+
+        updateHostState(hostID) { state in
+            state.isLoadingThread = true
+            state.threadErrorMessage = nil
+        }
+
+        do {
+            let response = try await client.loadThreadDetail(endpoint: endpoint, threadID: threadID)
+            guard hostStates[hostID]?.selectedThreadID == threadID
+            else {
+                return
+            }
+
+            updateHostState(hostID) { state in
+                state.threadDetailResponse = response
+            }
+        } catch {
+            guard hostStates[hostID]?.selectedThreadID == threadID
+            else {
+                return
+            }
+
+            updateHostState(hostID) { state in
+                state.threadDetailResponse = nil
+                state.threadErrorMessage = error.localizedDescription
+            }
+        }
+
+        guard hostStates[hostID]?.selectedThreadID == threadID
+        else {
+            return
+        }
+
+        updateHostState(hostID) { state in
+            state.isLoadingThread = false
+        }
     }
 
     @MainActor
     private func submitTurn() async {
-        let trimmedInput = turnInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let profile = activeProfile else {
+            return
+        }
 
-        guard let selectedThreadID else {
-            turnErrorMessage = "Select a thread first."
+        let hostID = profile.id
+        let runtime = hostStates[hostID] ?? .empty
+        let trimmedInput = runtime.turnInput.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard let selectedThreadID = runtime.selectedThreadID else {
+            updateHostState(hostID) { state in
+                state.turnErrorMessage = "Select a thread first."
+            }
             return
         }
 
         guard trimmedInput.isEmpty == false else {
-            turnErrorMessage = "Message is required."
+            updateHostState(hostID) { state in
+                state.turnErrorMessage = "Message is required."
+            }
             return
         }
 
-        isSubmittingTurn = true
-        turnErrorMessage = nil
+        updateHostState(hostID) { state in
+            state.isSubmittingTurn = true
+            state.turnErrorMessage = nil
+        }
 
         do {
             let result = try await client.submitTurn(
-                endpoint: endpoint,
+                endpoint: profile.endpoint,
                 threadID: selectedThreadID,
                 input: trimmedInput,
-                model: selectedModel.isEmpty ? nil : selectedModel
+                model: runtime.selectedModel.isEmpty ? nil : runtime.selectedModel
             )
-            turnResult = result
-            turnInput = ""
-            await loadThreadDetail(threadID: selectedThreadID)
-            scheduleThreadRefreshes(threadID: selectedThreadID)
+
+            updateHostState(hostID) { state in
+                state.turnResult = result
+                state.turnInput = ""
+            }
+
+            if selectedHostID == hostID {
+                await loadThreadDetail(threadID: selectedThreadID)
+            }
+            scheduleThreadRefreshes(threadID: selectedThreadID, hostID: hostID)
         } catch {
-            turnErrorMessage = error.localizedDescription
+            updateHostState(hostID) { state in
+                state.turnErrorMessage = error.localizedDescription
+            }
         }
 
-        isSubmittingTurn = false
+        updateHostState(hostID) { state in
+            state.isSubmittingTurn = false
+        }
     }
 
     private var selectedThread: CodexRemoteThread? {
-        threadList?.threads.first { thread in
-            thread.id == selectedThreadID
+        activeState.threadList?.threads.first { thread in
+            thread.id == activeState.selectedThreadID
         }
     }
 
     private func selectThread(_ thread: CodexRemoteThread) {
-        selectedThreadID = thread.id
-        threadDetailResponse = nil
-        threadErrorMessage = nil
-        turnResult = nil
-        turnErrorMessage = nil
+        let hostID = selectedHostID
+
+        updateHostState(hostID) { state in
+            state.selectedThreadID = thread.id
+            state.threadDetailResponse = nil
+            state.threadErrorMessage = nil
+            state.turnResult = nil
+            state.turnErrorMessage = nil
+        }
 
         Task {
             await loadThreadDetail(threadID: thread.id)
         }
     }
 
-    private func preserveOrSelectThread(from threads: [CodexRemoteThread]) {
+    private func preserveOrSelectThread(from threads: [CodexRemoteThread], hostID: String) {
+        let selectedThreadID = hostStates[hostID]?.selectedThreadID
+
         if let selectedThreadID,
            threads.contains(where: { $0.id == selectedThreadID })
         {
             return
         }
 
-        selectedThreadID = threads.first?.id
+        updateHostState(hostID) { state in
+            state.selectedThreadID = threads.first?.id
+        }
     }
 
-    private func preserveOrSelectModel(from models: [CodexRemoteModelOption]) {
+    private func preserveOrSelectModel(from models: [CodexRemoteModelOption], hostID: String) {
+        let selectedModel = hostStates[hostID]?.selectedModel ?? ""
+
         if selectedModel.isEmpty == false,
            models.contains(where: { $0.model == selectedModel })
         {
             return
         }
 
-        selectedModel = models.first(where: { $0.isDefault })?.model ?? models.first?.model ?? ""
+        updateHostState(hostID) { state in
+            state.selectedModel = models.first(where: { $0.isDefault })?.model ?? models.first?.model ?? ""
+        }
+    }
+
+    private var activeState: CodexRemoteHostRuntime {
+        hostStates[selectedHostID] ?? .empty
+    }
+
+    private var activeProfile: CodexRemoteHostProfile? {
+        hostProfiles.first { profile in
+            profile.id == selectedHostID
+        }
+    }
+
+    private var selectedHostBinding: Binding<String> {
+        Binding(
+            get: {
+                selectedHostID
+            },
+            set: { newValue in
+                selectHost(newValue)
+            }
+        )
+    }
+
+    private var activeEndpointBinding: Binding<String> {
+        Binding(
+            get: {
+                activeProfile?.endpoint ?? ""
+            },
+            set: { newValue in
+                updateActiveEndpoint(newValue)
+            }
+        )
+    }
+
+    private var activeSelectedModelBinding: Binding<String> {
+        Binding(
+            get: {
+                activeState.selectedModel
+            },
+            set: { newValue in
+                updateHostState(selectedHostID) { state in
+                    state.selectedModel = newValue
+                }
+            }
+        )
+    }
+
+    private var activeTurnInputBinding: Binding<String> {
+        Binding(
+            get: {
+                activeState.turnInput
+            },
+            set: { newValue in
+                updateHostState(selectedHostID) { state in
+                    state.turnInput = newValue
+                }
+            }
+        )
+    }
+
+    @MainActor
+    private func loadHostProfilesIfNeeded() {
+        guard hostProfiles.isEmpty else {
+            return
+        }
+
+        let decodedProfiles = decodeHostProfiles()
+        let profiles = decodedProfiles.isEmpty ? [CodexRemoteHostProfile.localDefault()] : decodedProfiles
+        hostProfiles = profiles
+
+        if profiles.contains(where: { $0.id == persistedSelectedHostID }) {
+            selectedHostID = persistedSelectedHostID
+        } else {
+            selectedHostID = profiles[0].id
+        }
+
+        for profile in profiles {
+            hostStates[profile.id, default: .empty] = hostStates[profile.id] ?? .empty
+        }
+
+        persistHostProfiles()
+    }
+
+    private func decodeHostProfiles() -> [CodexRemoteHostProfile] {
+        guard let data = persistedHostProfiles.data(using: .utf8),
+              data.isEmpty == false
+        else {
+            return []
+        }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        return (try? decoder.decode([CodexRemoteHostProfile].self, from: data)) ?? []
+    }
+
+    private func persistHostProfiles() {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.sortedKeys]
+
+        guard let data = try? encoder.encode(hostProfiles),
+              let encodedProfiles = String(data: data, encoding: .utf8)
+        else {
+            return
+        }
+
+        persistedHostProfiles = encodedProfiles
+        persistedSelectedHostID = selectedHostID
+    }
+
+    private func selectHost(_ hostID: String) {
+        guard hostProfiles.contains(where: { $0.id == hostID }) else {
+            return
+        }
+
+        selectedHostID = hostID
+        hostStates[hostID, default: .empty] = hostStates[hostID] ?? .empty
+        updateHostProfile(hostID) { profile in
+            profile.lastUsedAt = Date()
+        }
+
+        if hostStates[hostID]?.health == nil,
+           hostStates[hostID]?.threadList == nil
+        {
+            Task {
+                await refresh()
+            }
+        }
+    }
+
+    private func addHost() {
+        let hostNumber = hostProfiles.count + 1
+        let profile = CodexRemoteHostProfile(
+            id: UUID().uuidString,
+            label: "Remote \(hostNumber)",
+            endpoint: "http://127.0.0.1:3765",
+            lastHealthStatus: nil,
+            lastUsedAt: Date()
+        )
+
+        hostProfiles.append(profile)
+        selectedHostID = profile.id
+        hostStates[profile.id] = .empty
+        persistHostProfiles()
+    }
+
+    private func deleteSelectedHost() {
+        guard hostProfiles.count > 1 else {
+            return
+        }
+
+        let removedHostID = selectedHostID
+        hostProfiles.removeAll { profile in
+            profile.id == removedHostID
+        }
+        hostStates.removeValue(forKey: removedHostID)
+        selectedHostID = hostProfiles.first?.id ?? ""
+        persistHostProfiles()
+    }
+
+    private func updateActiveEndpoint(_ endpoint: String) {
+        let hostID = selectedHostID
+
+        updateHostProfile(hostID) { profile in
+            profile.endpoint = endpoint
+            profile.lastHealthStatus = nil
+        }
+
+        updateHostState(hostID) { state in
+            state.health = nil
+            state.threadList = nil
+            state.modelList = nil
+            state.desktopSnapshot = nil
+            state.errorMessage = nil
+            state.desktopErrorMessage = nil
+            state.selectedThreadID = nil
+            state.threadDetailResponse = nil
+            state.threadErrorMessage = nil
+            state.turnResult = nil
+            state.turnErrorMessage = nil
+        }
+    }
+
+    private func updateHostProfile(
+        _ hostID: String,
+        mutate: (inout CodexRemoteHostProfile) -> Void
+    ) {
+        guard let index = hostProfiles.firstIndex(where: { $0.id == hostID }) else {
+            return
+        }
+
+        mutate(&hostProfiles[index])
+        persistHostProfiles()
+    }
+
+    private func updateHostState(
+        _ hostID: String,
+        mutate: (inout CodexRemoteHostRuntime) -> Void
+    ) {
+        guard hostID.isEmpty == false else {
+            return
+        }
+
+        var state = hostStates[hostID] ?? .empty
+        mutate(&state)
+        hostStates[hostID] = state
     }
 
     private func sidebarWidth(for availableWidth: CGFloat) -> CGFloat {
         min(max(availableWidth * 0.30, 300), 380)
     }
 
-    private func scheduleThreadRefreshes(threadID: String) {
+    private func scheduleThreadRefreshes(threadID: String, hostID: String) {
         Task {
             let refreshDelays: [UInt64] = [2_000_000_000, 8_000_000_000]
 
             for delay in refreshDelays {
                 try? await Task.sleep(nanoseconds: delay)
+
+                guard selectedHostID == hostID else {
+                    return
+                }
+
                 await loadThreadDetail(threadID: threadID)
             }
         }
@@ -264,6 +602,8 @@ struct CodexRemoteScreen: View {
 }
 
 private struct CodexRemoteSidebar: View {
+    let profiles: [CodexRemoteHostProfile]
+    @Binding var selectedHostID: String
     @Binding var endpoint: String
     let health: CodexRemoteHealth?
     let threadList: CodexRemoteThreadList?
@@ -273,6 +613,8 @@ private struct CodexRemoteSidebar: View {
     let selectedThreadID: String?
     let isLoading: Bool
     let refresh: () -> Void
+    let addHost: () -> Void
+    let deleteSelectedHost: () -> Void
     let selectThread: (CodexRemoteThread) -> Void
 
     var body: some View {
@@ -302,6 +644,34 @@ private struct CodexRemoteSidebar: View {
                 systemImage: "rectangle.connected.to.line.below"
             )
 
+            HStack(spacing: 8) {
+                Picker(selection: $selectedHostID) {
+                    ForEach(profiles) { profile in
+                        Text(profile.displayLabel)
+                            .tag(profile.id)
+                    }
+                } label: {
+                    Label(activeHostTitle, systemImage: "server.rack")
+                }
+                .pickerStyle(.menu)
+                .accessibilityIdentifier("codex-remote-host-picker")
+
+                Spacer(minLength: 0)
+
+                Button(action: addHost) {
+                    Image(systemName: "plus")
+                }
+                .buttonStyle(.bordered)
+                .accessibilityLabel("Add host")
+
+                Button(action: deleteSelectedHost) {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.bordered)
+                .disabled(profiles.count <= 1)
+                .accessibilityLabel("Delete host")
+            }
+
             HStack(spacing: 10) {
                 TextField("http://127.0.0.1:3765", text: $endpoint)
                     .textInputAutocapitalization(.never)
@@ -322,6 +692,10 @@ private struct CodexRemoteSidebar: View {
             if isLoading {
                 ProgressView("Refreshing host state")
                     .font(.caption)
+            } else if let lastHealthStatus = activeProfile?.lastHealthStatus {
+                Label(lastHealthStatus, systemImage: "wave.3.right")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(18)
@@ -402,15 +776,34 @@ private struct CodexRemoteSidebar: View {
                     ContentUnavailableView("No Codex threads", systemImage: "tray")
                         .frame(maxWidth: .infinity, minHeight: 140)
                 } else {
-                    LazyVStack(spacing: 8) {
-                        ForEach(threadList.threads) { thread in
-                            CodexRemoteThreadRow(
-                                thread: thread,
-                                isSelected: thread.id == selectedThreadID,
-                                select: {
-                                    selectThread(thread)
+                    LazyVStack(alignment: .leading, spacing: 14) {
+                        ForEach(CodexRemoteProjectThreadGroup.groups(from: threadList.threads)) { group in
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                    Label(group.projectName, systemImage: "folder")
+                                        .font(.subheadline.weight(.semibold))
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+
+                                    Spacer(minLength: 0)
+
+                                    Text("\(group.threads.count)")
+                                        .font(.caption2.weight(.semibold))
+                                        .foregroundStyle(.secondary)
                                 }
-                            )
+
+                                LazyVStack(spacing: 8) {
+                                    ForEach(group.threads) { thread in
+                                        CodexRemoteThreadRow(
+                                            thread: thread,
+                                            isSelected: thread.id == selectedThreadID,
+                                            select: {
+                                                selectThread(thread)
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -423,6 +816,16 @@ private struct CodexRemoteSidebar: View {
 
     private var buttonTitle: String {
         health == nil ? "Connect" : "Refresh"
+    }
+
+    private var activeProfile: CodexRemoteHostProfile? {
+        profiles.first { profile in
+            profile.id == selectedHostID
+        }
+    }
+
+    private var activeHostTitle: String {
+        activeProfile?.displayLabel ?? "Host"
     }
 }
 

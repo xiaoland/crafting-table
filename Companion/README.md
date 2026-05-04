@@ -53,7 +53,7 @@ The same commands are exposed as Codex App Local Environment actions in:
 ## Endpoints
 
 - `GET /health`: companion, platform, Codex CLI, app-server reachability, and scout placeholders
-- `GET /threads?limit=20`: semantic thread list from Codex app-server with `session_index.jsonl` fallback
+- `GET /threads?limit=20`: semantic thread list from Codex app-server with `cwd`, `project_key`, and `project_name`; falls back to `session_index.jsonl` with `Unknown Project`
 - `GET /threads/{thread_id}`: read normalized thread metadata and message history
 - `POST /threads/{thread_id}/resume`: resume a Codex thread through app-server
 - `POST /threads/{thread_id}/turns`: submit one text turn, optionally with a model override, and return the completed assistant text

@@ -61,6 +61,21 @@ Model list loading is a non-critical companion call in the iPad client. If `GET 
 
 Thread submission uses `wait_for_completion: false` from the iPad client. The UI treats the immediate response as a started turn, reloads the selected thread detail, then schedules short follow-up refreshes so completed assistant output appears without holding the composer request open.
 
+## Remote Profiles and Project Threads
+
+Slice 11 moved Codex Remote from one screen-local endpoint to local host profiles.
+
+Implemented behavior:
+
+- The sidebar starts with a host picker and direct endpoint editor.
+- Add creates a new local host profile and selects it for endpoint editing.
+- Delete removes the selected profile when another profile remains.
+- Each host keeps its own runtime state so switching hosts preserves selected thread, model choice, composer input, last result, and errors.
+- Host profile persistence uses local `@AppStorage` JSON because these MVP records are small endpoint preferences rather than shared workspace truth.
+- The active thread list is grouped by Companion-provided project metadata.
+- Project groups sort by newest contained thread, and threads sort by updated time inside each group.
+- Missing project metadata falls back to `Unknown Project`.
+
 ## iPad Send Diagnosis
 
 Reported symptom: thread turns and model list loaded from the iPad, but sending a message appeared to fail.
@@ -90,12 +105,15 @@ Implemented fix:
 - Use Companion-provided message ids as stable SwiftUI identity.
 - Keep Desktop Scout output as compact confidence evidence inside the thread page instead of a separate large panel.
 - Keep tool and event messages collapsed by default through `DisclosureGroup`.
+- Keep Codex Remote host profiles feature-local until pairing, credentials, or cross-feature remote continuity make them durable workspace state.
 
 ## Verification
 
 Commands run from `/Users/lanzhijiang/Development/workbench`:
 
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+- `cargo test --manifest-path Companion/Cargo.toml`
+- local Companion smoke on `127.0.0.1:3769` for `/threads?limit=3`
 - `git diff --check`
 
-Both completed successfully for this slice.
+These completed successfully for the recorded slices.

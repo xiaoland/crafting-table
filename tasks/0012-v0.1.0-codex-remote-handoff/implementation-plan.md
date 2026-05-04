@@ -311,34 +311,27 @@ Verified:
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
 
-## Next Experience Slices
+## Slice 11 Outcome
 
-### Slice 11 Planned: Remote Profiles and Project Threads
+CraftingTable now supports multiple Codex Remote hosts and groups the active host's thread list by project.
 
-Combine multi-host support and project-based thread navigation in one slice.
+Implemented:
 
-Objective:
+- Companion `GET /threads` extends each thread summary with `cwd`, `project_key`, and `project_name`.
+- Companion derives project metadata from app-server `cwd`, including Windows-style path support.
+- `session_index.jsonl` fallback emits `Unknown Project` for stable backward behavior when no cwd exists.
+- CraftingTable persists Codex Remote host profiles locally with endpoint, label, last health status, and last-used time.
+- The active host owns its own health, desktop snapshot, model list, thread list, selected thread, selected model, composer input, and submit state.
+- The Codex Remote sidebar now has a host picker, add/delete host controls, editable endpoint, and project-grouped thread sections.
 
-- CraftingTable can manage more than one trusted Companion endpoint.
-- Thread navigation is grouped by Codex project instead of one flat recency list.
+Verified:
 
-Implementation shape:
-
-- iPad owns remote host profiles for the MVP, persisted locally with endpoint, label, last health, and last-used time.
-- The active host owns its own health, desktop snapshot, model list, thread list, selected thread, selected model, and transient submit state.
-- Companion remains a single-host service; it reports richer thread metadata for the host it is running on.
-- `GET /threads` extends each summary with `cwd`, `project_key`, and `project_name`.
-- CraftingTable groups thread summaries by `project_key`, sorts projects by newest contained thread, then sorts threads by updated time inside each project.
-- Threads without a usable cwd are grouped under `Unknown Project`.
-
-Verification:
-
-- unit coverage for project summary derivation in Companion
-- iPad preview/build coverage for multiple saved hosts and grouped project sections
-- smoke with at least two endpoints, such as LAN Companion plus loopback Companion, when both are available
 - `cargo fmt --manifest-path Companion/Cargo.toml`
 - `cargo test --manifest-path Companion/Cargo.toml`
+- local Companion smoke on `127.0.0.1:3769` showed `/threads?limit=3` returning `workbench` and `Beluna` project metadata
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+
+## Next Experience Slices
 
 ### Slice 12 Planned: Streaming Turns
 

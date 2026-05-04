@@ -66,9 +66,102 @@ struct CodexRemoteThread: Decodable, Identifiable {
     let id: String
     let title: String
     let updatedAt: String
+    let cwd: String?
+    let projectKey: String?
+    let projectName: String?
 
     var displayUpdatedAt: String {
         CodexRemoteDateDisplay.format(updatedAt) ?? updatedAt
+    }
+
+    var effectiveProjectKey: String {
+        let trimmedProjectKey = projectKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let trimmedCWD = cwd?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        if trimmedProjectKey.isEmpty == false {
+            return trimmedProjectKey
+        }
+
+        if trimmedCWD.isEmpty == false {
+            return trimmedCWD
+        }
+
+        return "unknown"
+    }
+
+    var effectiveProjectName: String {
+        let trimmedProjectName = projectName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        if trimmedProjectName.isEmpty == false {
+            return trimmedProjectName
+        }
+
+        let trimmedCWD = cwd?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        if let lastPathComponent = trimmedCWD
+            .split(whereSeparator: { $0 == "/" || $0 == "\\" })
+            .last
+        {
+            return String(lastPathComponent)
+        }
+
+        return "Unknown Project"
+    }
+
+    var sortDate: Date? {
+        CodexRemoteDateDisplay.date(updatedAt)
+    }
+}
+
+struct CodexRemoteProjectThreadGroup: Identifiable {
+    let projectKey: String
+    let projectName: String
+    let threads: [CodexRemoteThread]
+
+    var id: String {
+        projectKey
+    }
+
+    var newestThreadDate: Date? {
+        threads.compactMap(\.sortDate).max()
+    }
+
+    static func groups(from threads: [CodexRemoteThread]) -> [CodexRemoteProjectThreadGroup] {
+        let groupedThreads = Dictionary(grouping: threads, by: \.effectiveProjectKey)
+
+        return groupedThreads
+            .map { projectKey, threads in
+                let sortedThreads = threads.sorted { lhs, rhs in
+                    switch (lhs.sortDate, rhs.sortDate) {
+                    case let (lhsDate?, rhsDate?):
+                        return lhsDate > rhsDate
+                    case (_?, nil):
+                        return true
+                    case (nil, _?):
+                        return false
+                    case (nil, nil):
+                        return lhs.updatedAt > rhs.updatedAt
+                    }
+                }
+
+                return CodexRemoteProjectThreadGroup(
+                    projectKey: projectKey,
+                    projectName: sortedThreads.first?.effectiveProjectName ?? "Unknown Project",
+                    threads: sortedThreads
+                )
+            }
+            .sorted { lhs, rhs in
+                switch (lhs.newestThreadDate, rhs.newestThreadDate) {
+                case let (lhsDate?, rhsDate?):
+                    return lhsDate > rhsDate
+                case (_?, nil):
+                    return true
+                case (nil, _?):
+                    return false
+                case (nil, nil):
+                    return lhs.projectName.localizedCaseInsensitiveCompare(rhs.projectName) == .orderedAscending
+                }
+            }
     }
 }
 
@@ -301,6 +394,14 @@ enum CodexRemoteClientError: LocalizedError {
 
 enum CodexRemoteDateDisplay {
     static func format(_ rawValue: String?) -> String? {
+        guard let date = date(rawValue) else {
+            return rawValue?.isEmpty == false ? rawValue : nil
+        }
+
+        return date.formatted(date: .abbreviated, time: .shortened)
+    }
+
+    static func date(_ rawValue: String?) -> Date? {
         guard let rawValue,
               rawValue.isEmpty == false
         else {
@@ -309,14 +410,13 @@ enum CodexRemoteDateDisplay {
 
         if let seconds = Double(rawValue) {
             return Date(timeIntervalSince1970: seconds)
-                .formatted(date: .abbreviated, time: .shortened)
         }
 
         if let date = iso8601Formatter.date(from: rawValue) {
-            return date.formatted(date: .abbreviated, time: .shortened)
+            return date
         }
 
-        return rawValue
+        return nil
     }
 
     private static let iso8601Formatter = ISO8601DateFormatter()

@@ -43,9 +43,12 @@ The Companion owns app-server lifecycle and protocol churn. CraftingTable speaks
 
 `GET /threads/{thread_id}` normalizes app-server turn items into a CraftingTable message list. `GET /models` normalizes visible model choices. `POST /threads/{thread_id}/turns` accepts optional `model` and `wait_for_completion` fields. Companion forwards `model` to app-server `turn/start`. `wait_for_completion` defaults to `true` for compatibility. When `wait_for_completion` is `false`, Companion returns `status: started` after `turn/start` and keeps waiting for completion in a background task.
 
-Planned route extensions:
+Route extensions added in Slice 11:
 
 - `GET /threads` includes `cwd`, `project_key`, and `project_name` on each thread summary so CraftingTable can group by project without reading every thread detail first.
+
+Planned route extensions:
+
 - `GET /models` includes default reasoning level, supported reasoning levels, and speed tiers when app-server or local metadata exposes them.
 - `POST /threads/{thread_id}/turns` accepts reasoning effort and speed tier after their app-server parameter names are verified.
 - a WebSocket event route publishes normalized active-turn events keyed by `thread_id` and `turn_id`.
@@ -88,7 +91,8 @@ Additional iPad-send diagnosis smoke:
 - A follow-up `GET /threads/019ddd34-e1aa-7600-a7c8-179a67b56908` showed `CRAFTINGTABLE_ASYNC_SEND_OK` and completed turn `019de7a7-66a5-7b12-a459-df78c2ed0b14`.
 - Updated LAN Companion on `http://192.168.4.16:3765` returned `status: started` in about 2.2 seconds for async turn `019de7ac-5e0f-71b1-b7dd-b9219bce3876`.
 - Follow-up thread detail on the same LAN endpoint showed `CRAFTINGTABLE_LAN_ASYNC_SEND_OK` and completed status for that turn.
+- Slice 11 local Companion smoke on `127.0.0.1:3769` showed `/threads?limit=3` returning project metadata for `workbench` and `Beluna`.
 
 ## Next Cut
 
-First add remote profiles and project-thread grouping. Then add live event projection for active turns, including status changes, assistant deltas, approval requests, user-input requests, and errors.
+Add live event projection for active turns, including status changes, assistant deltas, approval requests, user-input requests, and errors.

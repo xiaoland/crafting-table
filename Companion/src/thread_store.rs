@@ -47,6 +47,9 @@ pub fn list_threads(
             id: record.id,
             title: record.thread_name,
             updated_at: record.updated_at,
+            cwd: None,
+            project_key: "unknown".to_string(),
+            project_name: "Unknown Project".to_string(),
         })
         .collect();
 

@@ -60,6 +60,9 @@ pub struct ThreadSummary {
     pub id: String,
     pub title: String,
     pub updated_at: String,
+    pub cwd: Option<String>,
+    pub project_key: String,
+    pub project_name: String,
 }
 
 #[derive(Debug, Serialize)]
