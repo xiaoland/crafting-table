@@ -446,6 +446,28 @@ Verified:
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
 
+## Slice 13.1 Outcome
+
+Codex Remote composer controls now support per-turn permission mode selection.
+
+Implemented:
+
+- Companion `POST /threads/{thread_id}/turns` accepts optional `permission_mode`.
+- Companion maps CraftingTable modes to app-server `sandboxPolicy`, `approvalPolicy`, and `approvalsReviewer`.
+- CraftingTable keeps `selectedPermissionMode` in the active host runtime.
+- Thread Page composer shows a compact permission picker with `Sandbox`, `Auto-review`, and `Full access`.
+- New submissions send `permission_mode`, defaulting to `sandbox`.
+
+Verified:
+
+- generated app-server TypeScript schema for `TurnStartParams`
+- local smoke showed profile-selection `permissions` payload requires configured `[permissions]` profiles
+- `cargo fmt --manifest-path Companion/Cargo.toml`
+- `cargo test --manifest-path Companion/Cargo.toml`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
+- local async Companion smoke on `127.0.0.1:3775` started and reconciled `sandbox`, `auto_review`, `full_access`, then a final `sandbox` reset turn
+
 ## Launch Entrypoints
 
 Codex Remote Companion now has shared local launch entrypoints:

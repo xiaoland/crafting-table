@@ -353,6 +353,7 @@ struct CodexRemoteClient {
         model: String? = nil,
         reasoningEffort: String? = nil,
         serviceTier: String? = nil,
+        permissionMode: String? = nil,
         waitForCompletion: Bool = false
     ) async throws -> CodexRemoteTurnResult {
         let baseURL = try normalizedBaseURL(from: endpoint)
@@ -366,6 +367,7 @@ struct CodexRemoteClient {
             model: model,
             reasoningEffort: reasoningEffort,
             serviceTier: serviceTier,
+            permissionMode: permissionMode,
             waitForCompletion: waitForCompletion
         )
 
@@ -580,6 +582,7 @@ private struct CodexRemoteTurnSubmitPayload: Encodable {
     let model: String?
     let reasoningEffort: String?
     let serviceTier: String?
+    let permissionMode: String?
     let waitForCompletion: Bool
 
     enum CodingKeys: String, CodingKey {
@@ -588,6 +591,7 @@ private struct CodexRemoteTurnSubmitPayload: Encodable {
         case model
         case reasoningEffort = "reasoning_effort"
         case serviceTier = "service_tier"
+        case permissionMode = "permission_mode"
         case waitForCompletion = "wait_for_completion"
     }
 }

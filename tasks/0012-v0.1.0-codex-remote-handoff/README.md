@@ -30,6 +30,7 @@ Executing
 - `slice-13-protocol-findings.md`: model metadata, reasoning effort, Fast service tier, and turn-start parameter findings for composer controls.
 - `stream-abort-diagnosis.md`: idle WebSocket abort diagnosis, heartbeat fix, transient refresh retry, and smoke evidence.
 - `live-event-rendering-diagnosis.md`: live tool/event row rendering diagnosis, payload alignment, and WebSocket smoke evidence.
+- `permission-mode-findings.md`: permission mode schema findings, Companion mapping, and smoke evidence.
 
 ## Current Decision
 

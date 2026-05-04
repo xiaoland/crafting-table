@@ -15,7 +15,7 @@ use crate::{
     models::{
         CodexModelSummary, CodexReasoningEffortSummary, ModelListResponse, SemanticThreadDetail,
         SemanticThreadSummary, ThreadDetailResponse, ThreadListResponse, ThreadMessage,
-        ThreadResumeResponse, ThreadSummary, TurnSubmitResponse,
+        ThreadResumeResponse, ThreadSummary, TurnPermissionMode, TurnSubmitResponse,
     },
     turn_events::TurnEventBroker,
 };
@@ -120,6 +120,7 @@ pub async fn submit_turn(
     model: Option<&str>,
     reasoning_effort: Option<&str>,
     service_tier: Option<&str>,
+    permission_mode: Option<TurnPermissionMode>,
     wait_for_completion: bool,
     event_broker: Option<TurnEventBroker>,
 ) -> anyhow::Result<TurnSubmitResponse> {
@@ -135,27 +136,15 @@ pub async fn submit_turn(
         )
         .await?;
 
-    let mut turn_params = json!({
-        "threadId": thread_id,
-        "input": [
-            {
-                "type": "text",
-                "text": input,
-                "text_elements": [],
-            }
-        ],
-        "cwd": cwd,
-    });
-
-    if let Some(model) = model.filter(|value| !value.trim().is_empty()) {
-        turn_params["model"] = Value::String(model.to_string());
-    }
-    if let Some(reasoning_effort) = reasoning_effort.filter(|value| !value.trim().is_empty()) {
-        turn_params["effort"] = Value::String(reasoning_effort.to_string());
-    }
-    if let Some(service_tier) = service_tier.filter(|value| !value.trim().is_empty()) {
-        turn_params["serviceTier"] = Value::String(service_tier.to_string());
-    }
+    let turn_params = build_turn_start_params(
+        thread_id,
+        input,
+        cwd,
+        model,
+        reasoning_effort,
+        service_tier,
+        permission_mode,
+    );
 
     let turn_response = client.request("turn/start", turn_params).await?;
 
@@ -225,6 +214,71 @@ pub async fn submit_turn(
         status: completion.status,
         assistant_text: completion.assistant_text,
         event_count: completion.event_count,
+    })
+}
+
+fn build_turn_start_params(
+    thread_id: &str,
+    input: &str,
+    cwd: Option<&str>,
+    model: Option<&str>,
+    reasoning_effort: Option<&str>,
+    service_tier: Option<&str>,
+    permission_mode: Option<TurnPermissionMode>,
+) -> Value {
+    let mut turn_params = json!({
+        "threadId": thread_id,
+        "input": [
+            {
+                "type": "text",
+                "text": input,
+                "text_elements": [],
+            }
+        ],
+        "cwd": cwd,
+    });
+
+    if let Some(model) = model.filter(|value| !value.trim().is_empty()) {
+        turn_params["model"] = Value::String(model.to_string());
+    }
+    if let Some(reasoning_effort) = reasoning_effort.filter(|value| !value.trim().is_empty()) {
+        turn_params["effort"] = Value::String(reasoning_effort.to_string());
+    }
+    if let Some(service_tier) = service_tier.filter(|value| !value.trim().is_empty()) {
+        turn_params["serviceTier"] = Value::String(service_tier.to_string());
+    }
+    if let Some(permission_mode) = permission_mode {
+        match permission_mode {
+            TurnPermissionMode::Sandbox => {
+                turn_params["sandboxPolicy"] = workspace_write_sandbox_policy();
+                turn_params["approvalPolicy"] = Value::String("on-request".to_string());
+                turn_params["approvalsReviewer"] = Value::String("user".to_string());
+            }
+            TurnPermissionMode::AutoReview => {
+                turn_params["sandboxPolicy"] = workspace_write_sandbox_policy();
+                turn_params["approvalPolicy"] = Value::String("on-request".to_string());
+                turn_params["approvalsReviewer"] = Value::String("auto_review".to_string());
+            }
+            TurnPermissionMode::FullAccess => {
+                turn_params["sandboxPolicy"] = json!({
+                    "type": "dangerFullAccess",
+                });
+                turn_params["approvalPolicy"] = Value::String("never".to_string());
+                turn_params["approvalsReviewer"] = Value::String("user".to_string());
+            }
+        }
+    }
+
+    turn_params
+}
+
+fn workspace_write_sandbox_policy() -> Value {
+    json!({
+        "type": "workspaceWrite",
+        "writableRoots": [],
+        "networkAccess": false,
+        "excludeTmpdirEnvVar": false,
+        "excludeSlashTmp": false,
     })
 }
 
@@ -876,9 +930,11 @@ fn completion_matches(params: &Value, thread_id: &str, turn_id: &str) -> bool {
 mod tests {
     use serde_json::json;
 
+    use crate::models::TurnPermissionMode;
+
     use super::{
-        completion_matches, project_metadata, summarize_model, summarize_thread_for_list,
-        summarize_thread_messages,
+        build_turn_start_params, completion_matches, project_metadata, summarize_model,
+        summarize_thread_for_list, summarize_thread_messages,
     };
 
     #[test]
@@ -996,6 +1052,60 @@ mod tests {
         assert_eq!(messages[1].phase.as_deref(), Some("final_answer"));
         assert_eq!(messages[2].role, "tool");
         assert_eq!(messages[2].text, "echo ok\n\nok");
+    }
+
+    #[test]
+    fn maps_permission_mode_to_turn_start_params() {
+        let sandbox = build_turn_start_params(
+            "thread-a",
+            "hello",
+            None,
+            None,
+            None,
+            None,
+            Some(TurnPermissionMode::Sandbox),
+        );
+        assert_eq!(
+            sandbox["sandboxPolicy"]["type"].as_str(),
+            Some("workspaceWrite")
+        );
+        assert_eq!(sandbox["approvalPolicy"].as_str(), Some("on-request"));
+        assert_eq!(sandbox["approvalsReviewer"].as_str(), Some("user"));
+
+        let auto_review = build_turn_start_params(
+            "thread-a",
+            "hello",
+            None,
+            None,
+            None,
+            None,
+            Some(TurnPermissionMode::AutoReview),
+        );
+        assert_eq!(
+            auto_review["sandboxPolicy"]["type"].as_str(),
+            Some("workspaceWrite")
+        );
+        assert_eq!(auto_review["approvalPolicy"].as_str(), Some("on-request"));
+        assert_eq!(
+            auto_review["approvalsReviewer"].as_str(),
+            Some("auto_review")
+        );
+
+        let full_access = build_turn_start_params(
+            "thread-a",
+            "hello",
+            None,
+            None,
+            None,
+            None,
+            Some(TurnPermissionMode::FullAccess),
+        );
+        assert_eq!(
+            full_access["sandboxPolicy"]["type"].as_str(),
+            Some("dangerFullAccess")
+        );
+        assert_eq!(full_access["approvalPolicy"].as_str(), Some("never"));
+        assert_eq!(full_access["approvalsReviewer"].as_str(), Some("user"));
     }
 
     #[test]

@@ -8,6 +8,7 @@ struct CodexRemoteThreadPage: View {
     @Binding var selectedModel: String
     @Binding var selectedReasoningEffort: String
     @Binding var fastServiceTierEnabled: Bool
+    @Binding var selectedPermissionMode: String
     @Binding var input: String
     let desktopSnapshot: CodexRemoteDesktopSnapshot?
     let desktopErrorMessage: String?
@@ -57,6 +58,7 @@ struct CodexRemoteThreadPage: View {
                         selectedModel: $selectedModel,
                         selectedReasoningEffort: $selectedReasoningEffort,
                         fastServiceTierEnabled: $fastServiceTierEnabled,
+                        selectedPermissionMode: $selectedPermissionMode,
                         models: models,
                         isSubmitting: isSubmitting,
                         errorMessage: turnErrorMessage,
@@ -537,6 +539,7 @@ private struct CodexRemoteComposer: View {
     @Binding var selectedModel: String
     @Binding var selectedReasoningEffort: String
     @Binding var fastServiceTierEnabled: Bool
+    @Binding var selectedPermissionMode: String
     let models: [CodexRemoteModelOption]
     let isSubmitting: Bool
     let errorMessage: String?
@@ -644,6 +647,8 @@ private struct CodexRemoteComposer: View {
             if showsFastToggle {
                 CodexRemoteFastToggle(isEnabled: $fastServiceTierEnabled)
             }
+
+            CodexRemotePermissionPicker(selectedPermissionMode: $selectedPermissionMode)
         }
     }
 
@@ -727,4 +732,51 @@ private struct CodexRemoteFastToggle: View {
         .fixedSize()
         .accessibilityIdentifier("codex-remote-fast-toggle")
     }
+}
+
+private struct CodexRemotePermissionPicker: View {
+    @Binding var selectedPermissionMode: String
+
+    private let options = [
+        CodexRemotePermissionModeOption(
+            id: "sandbox",
+            title: "Sandbox",
+            systemImage: "lock.shield"
+        ),
+        CodexRemotePermissionModeOption(
+            id: "auto_review",
+            title: "Auto-review",
+            systemImage: "checkmark.shield"
+        ),
+        CodexRemotePermissionModeOption(
+            id: "full_access",
+            title: "Full access",
+            systemImage: "exclamationmark.triangle"
+        ),
+    ]
+
+    var body: some View {
+        Picker(selection: $selectedPermissionMode) {
+            ForEach(options) { option in
+                Label(option.title, systemImage: option.systemImage)
+                    .tag(option.id)
+            }
+        } label: {
+            Label(selectedOption.title, systemImage: selectedOption.systemImage)
+        }
+        .pickerStyle(.menu)
+        .accessibilityIdentifier("codex-remote-permission-picker")
+    }
+
+    private var selectedOption: CodexRemotePermissionModeOption {
+        options.first { option in
+            option.id == selectedPermissionMode
+        } ?? options[0]
+    }
+}
+
+private struct CodexRemotePermissionModeOption: Identifiable {
+    let id: String
+    let title: String
+    let systemImage: String
 }

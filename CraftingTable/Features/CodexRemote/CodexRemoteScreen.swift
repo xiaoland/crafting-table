@@ -36,6 +36,7 @@ private struct CodexRemoteHostRuntime {
     var selectedModel = ""
     var selectedReasoningEffort = ""
     var fastServiceTierEnabled = false
+    var selectedPermissionMode = "sandbox"
     var threadDetailResponse: CodexRemoteThreadDetailResponse?
     var isLoadingThread = false
     var threadErrorMessage: String?
@@ -143,6 +144,7 @@ struct CodexRemoteScreen: View {
             selectedModel: activeSelectedModelBinding,
             selectedReasoningEffort: activeSelectedReasoningEffortBinding,
             fastServiceTierEnabled: activeFastServiceTierEnabledBinding,
+            selectedPermissionMode: activeSelectedPermissionModeBinding,
             input: activeTurnInputBinding,
             desktopSnapshot: activeState.desktopSnapshot,
             desktopErrorMessage: activeState.desktopErrorMessage,
@@ -324,7 +326,8 @@ struct CodexRemoteScreen: View {
                 input: trimmedInput,
                 model: runtime.selectedModel.isEmpty ? nil : runtime.selectedModel,
                 reasoningEffort: runtime.selectedReasoningEffort.isEmpty ? nil : runtime.selectedReasoningEffort,
-                serviceTier: runtime.fastServiceTierEnabled ? "fast" : nil
+                serviceTier: runtime.fastServiceTierEnabled ? "fast" : nil,
+                permissionMode: runtime.selectedPermissionMode
             )
 
             updateHostState(hostID) { state in
@@ -520,6 +523,19 @@ struct CodexRemoteScreen: View {
         )
     }
 
+    private var activeSelectedPermissionModeBinding: Binding<String> {
+        Binding(
+            get: {
+                activeState.selectedPermissionMode
+            },
+            set: { newValue in
+                updateHostState(selectedHostID) { state in
+                    state.selectedPermissionMode = newValue
+                }
+            }
+        )
+    }
+
     private var activeTurnInputBinding: Binding<String> {
         Binding(
             get: {
@@ -660,6 +676,7 @@ struct CodexRemoteScreen: View {
             state.selectedModel = ""
             state.selectedReasoningEffort = ""
             state.fastServiceTierEnabled = false
+            state.selectedPermissionMode = "sandbox"
             state.threadDetailResponse = nil
             state.threadErrorMessage = nil
             state.turnResult = nil

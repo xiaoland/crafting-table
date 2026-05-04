@@ -79,7 +79,16 @@ pub struct TurnSubmitRequest {
     pub model: Option<String>,
     pub reasoning_effort: Option<String>,
     pub service_tier: Option<String>,
+    pub permission_mode: Option<TurnPermissionMode>,
     pub wait_for_completion: Option<bool>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum TurnPermissionMode {
+    Sandbox,
+    AutoReview,
+    FullAccess,
 }
 
 #[derive(Debug, Serialize)]
