@@ -32,6 +32,7 @@ Executing
 - `live-event-rendering-diagnosis.md`: live tool/event row rendering diagnosis, payload alignment, and WebSocket smoke evidence.
 - `live-agent-message-boundaries.md`: live assistant item boundary diagnosis, `item_id` propagation, and replay smoke evidence.
 - `permission-mode-findings.md`: permission mode schema findings, Companion mapping, and smoke evidence.
+- `composer-controls-layout-diagnosis.md`: simulator evidence for composer control wrapping and the single-line horizontal options fix.
 
 ## Current Decision
 

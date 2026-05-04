@@ -618,20 +618,15 @@ private struct CodexRemoteComposer: View {
     }
 
     private var controls: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .center, spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
+            ScrollView(.horizontal, showsIndicators: false) {
                 composerOptions
-                Spacer(minLength: 0)
-                sendControls
+                    .padding(.vertical, 1)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            VStack(alignment: .leading, spacing: 10) {
-                composerOptions
-                HStack(spacing: 10) {
-                    Spacer(minLength: 0)
-                    sendControls
-                }
-            }
+            sendControls
+                .fixedSize()
         }
     }
 
@@ -656,6 +651,7 @@ private struct CodexRemoteComposer: View {
 
             CodexRemotePermissionPicker(selectedPermissionMode: $selectedPermissionMode)
         }
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     private var sendControls: some View {
@@ -667,6 +663,7 @@ private struct CodexRemoteComposer: View {
 
             Button(action: submit) {
                 Label("Send", systemImage: "paperplane.fill")
+                    .lineLimit(1)
             }
             .buttonStyle(.borderedProminent)
             .disabled(canSend == false)
@@ -681,8 +678,7 @@ private struct CodexRemoteModelPicker: View {
 
     var body: some View {
         if models.isEmpty {
-            Label("Models unavailable", systemImage: "cpu")
-                .font(.caption.weight(.semibold))
+            CodexRemoteControlLabel(title: "Models unavailable", systemImage: "cpu")
                 .foregroundStyle(.secondary)
         } else {
             Picker(selection: $selectedModel) {
@@ -691,9 +687,10 @@ private struct CodexRemoteModelPicker: View {
                         .tag(model.model)
                 }
             } label: {
-                Label(selectedModelLabel, systemImage: "cpu")
+                CodexRemoteControlLabel(title: selectedModelLabel, systemImage: "cpu")
             }
             .pickerStyle(.menu)
+            .fixedSize(horizontal: true, vertical: false)
             .accessibilityIdentifier("codex-remote-model-picker")
         }
     }
@@ -714,9 +711,10 @@ private struct CodexRemoteReasoningPicker: View {
                     .tag(option.reasoningEffort)
             }
         } label: {
-            Label(selectedReasoningLabel, systemImage: "brain")
+            CodexRemoteControlLabel(title: selectedReasoningLabel, systemImage: "brain")
         }
         .pickerStyle(.menu)
+        .fixedSize(horizontal: true, vertical: false)
         .accessibilityIdentifier("codex-remote-reasoning-picker")
     }
 
@@ -732,10 +730,10 @@ private struct CodexRemoteFastToggle: View {
 
     var body: some View {
         Toggle(isOn: $isEnabled) {
-            Label("Fast", systemImage: "bolt.fill")
+            CodexRemoteControlLabel(title: "Fast", systemImage: "bolt.fill")
         }
         .toggleStyle(.switch)
-        .fixedSize()
+        .fixedSize(horizontal: true, vertical: false)
         .accessibilityIdentifier("codex-remote-fast-toggle")
     }
 }
@@ -768,9 +766,10 @@ private struct CodexRemotePermissionPicker: View {
                     .tag(option.id)
             }
         } label: {
-            Label(selectedOption.title, systemImage: selectedOption.systemImage)
+            CodexRemoteControlLabel(title: selectedOption.title, systemImage: selectedOption.systemImage)
         }
         .pickerStyle(.menu)
+        .fixedSize(horizontal: true, vertical: false)
         .accessibilityIdentifier("codex-remote-permission-picker")
     }
 
@@ -778,6 +777,18 @@ private struct CodexRemotePermissionPicker: View {
         options.first { option in
             option.id == selectedPermissionMode
         } ?? options[0]
+    }
+}
+
+private struct CodexRemoteControlLabel: View {
+    let title: String
+    let systemImage: String
+
+    var body: some View {
+        Label(title, systemImage: systemImage)
+            .font(.caption.weight(.semibold))
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
     }
 }
 

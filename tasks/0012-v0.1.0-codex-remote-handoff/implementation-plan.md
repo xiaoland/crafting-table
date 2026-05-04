@@ -491,6 +491,31 @@ Verified:
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
 - local Companion smoke on `127.0.0.1:3776` replayed `assistant_delta` frames with a stable `item_id`, accumulated `CRAFTINGTABLE_AGENT_ITEM_ID_OK` by item id, then received `turn_completed`
 
+## Slice 13.3 Outcome
+
+Codex Remote composer controls now keep their labels on one line under sidebar width changes.
+
+Diagnosis:
+
+- iPad Pro 13-inch simulator reproduced `GPT-5.5` and `Medium` wrapping with the app sidebar visible.
+- The same wrapping persisted after hiding the app sidebar, pointing to the composer controls row's own compression behavior.
+- Accessibility labels remained complete, confirming a visual layout compression issue.
+
+Implemented:
+
+- Replaced the `ViewThatFits` controls layout with a trailing Send button plus a horizontal options strip.
+- The options strip scrolls horizontally when space is tight.
+- Model, reasoning, Fast, and permission labels use a shared non-wrapping label view.
+- Picker and toggle controls are fixed-size horizontally before the options strip scrolls.
+
+Verified:
+
+- `xcodebuildmcp` simulator build and run on `iPad Pro 13-inch (M5)`
+- simulator visual check with the app sidebar visible
+- simulator visual check with the app sidebar hidden
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/craftingtable-derived build`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'id=00008132-000245583AD1401C' -derivedDataPath /tmp/craftingtable-device-derived DEVELOPMENT_TEAM=7J9DJNJ782 build`
+
 ## Launch Entrypoints
 
 Codex Remote Companion now has shared local launch entrypoints:
