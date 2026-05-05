@@ -39,3 +39,11 @@
 - normal flow: open Remote Control -> connect to a host -> attach to a current, recent, or new session -> preserve continuity
 - exception flow: if the user leaves before attaching, the unattached state must remain visible and recoverable
 - observable outcome: quick remote action stays cheap without becoming orphaned product state
+
+## Workflow 6 - Start a local model server
+
+- actor: user
+- trigger: the user wants nearby tools or local chat to use an open-source model hosted on the iPad
+- normal flow: open Local LLM -> add or choose a GGUF model -> download and verify it -> activate it -> reveal or copy the bearer token -> start the HTTP server -> call the displayed URL from a trusted LAN client
+- exception flow: if no model is ready, the app keeps server and model readiness visible and lets the user complete the model lifecycle first
+- observable outcome: local model serving is deliberate, authenticated, and visible while the app stays foregrounded

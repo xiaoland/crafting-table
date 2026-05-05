@@ -29,3 +29,15 @@
   contract schema: sessions reference workspace-scoped host profiles instead of copying connection definitions.
   compatibility policy: profile schema may evolve, but workspace ownership remains stable.
   constraining limit or tradeoff: reuse beats per-session duplication.
+
+- producer: Shell
+  consumer: Local LLM
+  contract schema: Shell may route into Local LLM as a standalone surface without requiring Goal Forest, Work Session, Capture, or Remote Control linkage.
+  compatibility policy: future integration with work sessions or captures requires an explicit PRD/TDD update.
+  constraining limit or tradeoff: model serving stays useful without blurring the core crafting loop.
+
+- producer: Local LLM
+  consumer: trusted LAN clients
+  contract schema: Local LLM exposes a foreground, bearer-protected HTTP surface with `GET /health`, `GET /v1/models`, and synchronous `POST /v1/responses`; `POST /v1/chat/completions`, streaming, and durable conversation state remain outside the current contract.
+  compatibility policy: `/v1/models` lists only locally ready inference models; `/v1/responses` may use an explicit model id or fall back to the active model.
+  constraining limit or tradeoff: OpenAI compatibility is intentionally minimal and stateless until a stateful conversation store is admitted.

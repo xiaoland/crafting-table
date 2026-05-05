@@ -24,3 +24,8 @@
   realizing unit(s): Remote Control, Host Profiles, Work Session
   key tests: session-linked remote flow and remote-first-then-attach flow
   observability signal: remote work is useful immediately and still preserves session continuity
+
+- product claim: `Local LLM` is a foreground local model host.
+  realizing unit(s): Local LLM, Shell
+  key tests: model add/download/verify/activate/delete flows, bearer token reveal/copy/rotate flow, authenticated `GET /v1/models`, authenticated synchronous `POST /v1/responses` with explicit model id and active-model fallback
+  observability signal: the iPad can deliberately host a ready open-source model for trusted LAN clients while keeping runtime limits visible

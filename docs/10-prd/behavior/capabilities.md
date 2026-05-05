@@ -19,3 +19,7 @@
 - capability: attach remote activity to current, recent, or new work sessions.
   related claim(s): Claim 2, Claim 5.
   non-goal: capture terminal transcripts, replay shells, or automate remote work in `0.1.0`.
+
+- capability: host an open-source local LLM from the iPad for trusted LAN clients and local chat.
+  related claim(s): Claim 6.
+  non-goal: promise background service behavior, durable conversation state, streaming, tools, or broad OpenAI API parity in the first slice.

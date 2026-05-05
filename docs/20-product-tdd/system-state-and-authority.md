@@ -45,3 +45,25 @@
 - state object: host credential secret
   authority owner: platform credential store
   write path: app data stores only a credential reference identifier; secret material belongs outside the workspace JSON document
+
+## 0.1.0 Local LLM boundary
+
+- state object: local model manifest and model cache records
+  authority owner: Local LLM Model Manager
+  write path: model discovery, add, download, verification, activation, switching, and deletion flows update the local manifest and app support cache
+
+- state object: active local model
+  authority owner: Local LLM Model Manager
+  write path: explicit activation of a downloaded and verified model; HTTP generation may use a requested model id or fall back to this active model
+
+- state object: HTTP server listener state
+  authority owner: Local LLM foreground runtime
+  write path: user start/stop controls only; runtime generation may temporarily mark the server as generating
+
+- state object: HTTP bearer token
+  authority owner: platform credential store
+  write path: Local LLM generates, reveals, copies, and rotates an opaque token; HTTP clients must send `Authorization: Bearer <token>`
+
+- state object: local chat transcript
+  authority owner: Local LLM UI runtime
+  write path: in-memory chat UI state inside the active app run until durable conversation state is explicitly admitted

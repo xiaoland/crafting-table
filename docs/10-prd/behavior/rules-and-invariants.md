@@ -5,10 +5,10 @@
   violation impact: the product becomes broad but operationally blurry.
   linked claim(s): Claim 1, Claim 2.
 
-- rule or invariant: the admitted top-level shell surfaces are `Goal Forest` and `Remote Control`; there is no standalone `Home`.
+- rule or invariant: admitted top-level shell surfaces must be explicit product scope; there is no standalone `Home`.
   rationale: a fake home screen would duplicate weaker shortcuts and dilute the core loop.
   violation impact: the shell becomes cluttered and less honest.
-  linked claim(s): Claim 1, Claim 3, Claim 5.
+  linked claim(s): Claim 1, Claim 3, Claim 5, Claim 6.
 
 - rule or invariant: capture remains global and append-first.
   rationale: cheap intake is one of the clearest durable product pressures.
@@ -24,3 +24,8 @@
   rationale: connection setup must be reusable across many sessions.
   violation impact: host configuration is duplicated and continuity becomes harder to manage.
   linked claim(s): Claim 5.
+
+- rule or invariant: Local LLM serving is explicitly user-started and foreground-scoped.
+  rationale: iPad lifecycle and LAN exposure should stay visible to the user.
+  violation impact: the app implies daemon-like reliability or network reach beyond what the first slice can honestly support.
+  linked claim(s): Claim 6.

@@ -44,3 +44,12 @@
 - source rationale: `_drivers/market-and-user-pressures.md`, `_drivers/hard-constraints.md`, `_drivers/operational-realities.md`
 - realization pointers: `../../20-product-tdd/system-state-and-authority.md`, `../../20-product-tdd/cross-unit-contracts.md`, `../../20-product-tdd/claim-realization-matrix.md`
 - impact on existing claims: keeps remote control from becoming a disconnected utility.
+
+## Claim 6 - `Local LLM` is a foreground local model host
+
+- claim intent: let the iPad provide a user-started, trusted-LAN model endpoint without implying cloud parity or background daemon behavior.
+- evaluation dimensions: model readiness, authenticated LAN access, local runtime honesty, recoverable model lifecycle.
+- evidence expectation: the user can download, verify, activate, switch, delete, and serve a local model, then call a minimal OpenAI-compatible HTTP endpoint while the app remains foregrounded.
+- source rationale: `_drivers/hard-constraints.md`, `_drivers/operational-realities.md`
+- realization pointers: `../../20-product-tdd/system-state-and-authority.md`, `../../20-product-tdd/unit-topology.md`
+- impact on existing claims: keeps Local LLM isolated from the core crafting loop until it proves durable integration pressure.

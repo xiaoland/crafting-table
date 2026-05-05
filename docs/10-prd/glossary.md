@@ -48,3 +48,9 @@ It is part of the crafting table, not a disconnected utility.
 A reusable saved definition for connecting to a remote machine.
 
 A host profile belongs to workspace scope and may be referenced by many work sessions.
+
+### `Local LLM`
+
+A standalone surface for hosting an open-source local language model from the iPad.
+
+The first product meaning is a foreground, trusted-LAN model server plus local chat surface, with model lifecycle managed by the user.

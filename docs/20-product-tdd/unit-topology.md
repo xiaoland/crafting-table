@@ -23,3 +23,7 @@
 - units: Host Profiles
   boundaries: reusable saved connection definitions
   ownership: workspace-scoped remote configuration reused by sessions and Remote Control
+
+- units: Local LLM
+  boundaries: local model manifest, GGUF source/download/verification/cache lifecycle, active model selection, foreground HTTP server state, local chat prompt/response surface
+  ownership: user-controlled local model serving for the iPad and trusted LAN clients
