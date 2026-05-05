@@ -13,3 +13,7 @@
 - compliance or legal: none.
   budget or staffing: trust and review surfaces cannot explode first-version scope.
   platform or dependency limit: agent-operated workflows, autonomous restructuring, and broad integrations are out of scope for `0.1.0`.
+
+- compliance or legal: none.
+  budget or staffing: Codex Remote must reach a stable MVP before broad integration work.
+  platform or dependency limit: Codex Remote is semantic Codex thread interaction through Companion; generic remote control and GUI mirroring stay outside this first contract.

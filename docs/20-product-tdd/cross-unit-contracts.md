@@ -1,7 +1,7 @@
 # Cross-unit contracts
 
 - producer: Shell
-  consumer: Goal Forest, Remote Control, Work Session
+  consumer: Goal Forest, Remote Control, Codex Remote, Work Session
   contract schema: Shell exposes only the admitted top-level surfaces and routes into active content states without inventing a standalone Home unit.
   compatibility policy: adding a new top-level surface requires PRD scope change first.
   constraining limit or tradeoff: shell convenience must not outrank product coherence.
@@ -29,6 +29,18 @@
   contract schema: sessions reference workspace-scoped host profiles instead of copying connection definitions.
   compatibility policy: profile schema may evolve, but workspace ownership remains stable.
   constraining limit or tradeoff: reuse beats per-session duplication.
+
+- producer: Codex Remote
+  consumer: Work Session, Goal Forest, Remote Control
+  contract schema: Codex Remote keeps its host/thread runtime and Companion contract in a separate Codex-specific boundary.
+  compatibility policy: future linkage with Work Session, Goal Forest, or Remote Control requires an explicit PRD/TDD update.
+  constraining limit or tradeoff: Codex-specific thread continuation is protected over broad remote-control scope.
+
+- producer: Codex Remote Companion
+  consumer: Codex Remote
+  contract schema: Companion exposes host health, project-grouped threads, thread detail, thread creation, model list, turn submission, desktop snapshots, and active-turn stream events through CraftingTable-owned routes.
+  compatibility policy: Codex app-server protocol churn stays behind Companion.
+  constraining limit or tradeoff: stable iPad behavior outranks direct app-server exposure.
 
 - producer: Shell
   consumer: Local LLM

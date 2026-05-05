@@ -7,7 +7,9 @@ Keep changes small, reversible, and honest. Do not invent product certainty, arc
 ## Repository layout
 
 - `CraftingTable/` - SwiftUI app source
+- `Companion/` - Codex Remote host-side Companion service
 - `CraftingTable.xcodeproj/` - Xcode project
+- `scripts/` - local launch and smoke helpers
 - `docs/00-meta/` - typed input routes, mode SOPs, growth rules, and framework concepts
 - `docs/10-prd/` - durable product truth and business glossary
 - `docs/20-product-tdd/` - cross-unit technical truth admitted for 0.1.0 development

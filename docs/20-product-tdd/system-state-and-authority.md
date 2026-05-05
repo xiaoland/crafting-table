@@ -28,6 +28,14 @@
   authority owner: Work Session
   write path: Remote Control may propose or submit updates through session-owned attach or note flows
 
+- state object: Codex Remote host entries, selected host, selected project/thread, composer controls, and live stream projection
+  authority owner: Codex Remote
+  write path: Codex Remote host, sidebar, Thread Page, and composer actions
+
+- state object: Codex thread execution and host-local app-server lifecycle
+  authority owner: Codex Remote Companion
+  write path: Companion routes adapt CraftingTable requests to Codex app-server, Desktop Scout, and host-local process state
+
 ## 0.1.0 local persistence boundary
 
 - state object: durable workspace document
@@ -38,8 +46,8 @@
   authority owner: same product units listed above
   write path: product actions keep their existing authority owner, with `WorkspaceStore` acting as the shared persistence boundary
 
-- state object: shell route, active sheet, split-view visibility, and live remote connection state
-  authority owner: Shell and Remote Control runtime
+- state object: shell route, active sheet, split-view visibility, live remote connection state, and Codex Remote live stream state
+  authority owner: Shell, Remote Control runtime, and Codex Remote runtime
   write path: in-memory SwiftUI state inside the active app run
 
 - state object: host credential secret

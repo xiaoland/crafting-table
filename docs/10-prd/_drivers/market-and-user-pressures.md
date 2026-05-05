@@ -19,3 +19,7 @@ This repo is personal-first, so "market" pressure here means repeat personal use
 - market pressure: the product must connect planning to real action.
   user pressure: remote machine control is a real high-value action surface for the target user.
   urgency and tradeoff: Remote Control must be useful enough to stand on its own without becoming a second product.
+
+- market pressure: Codex work often needs to continue from iPad while the active Codex runtime lives on a Mac or Windows host.
+  user pressure: the user needs real thread continuity, live progress, message sending, and richer interaction than a passive transcript viewer provides.
+  urgency and tradeoff: Codex Remote should work as a focused standalone surface before broader crafting-table integration.

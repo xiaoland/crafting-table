@@ -25,6 +25,11 @@
   violation impact: host configuration is duplicated and continuity becomes harder to manage.
   linked claim(s): Claim 5.
 
+- rule or invariant: Codex Remote has its own product boundary from Remote Control, Goal Forest, and Work Session.
+  rationale: the MVP centers on semantic Codex thread continuation through Companion; general remote machine operation and session continuity belong to separate product boundaries.
+  violation impact: the Codex Remote slice inherits unrelated workflow obligations and becomes harder to stabilize.
+  linked claim(s): Claim 1, Claim 7.
+
 - rule or invariant: Local LLM serving is explicitly user-started and foreground-scoped.
   rationale: iPad lifecycle and LAN exposure should stay visible to the user.
   violation impact: the app implies daemon-like reliability or network reach beyond what the first slice can honestly support.

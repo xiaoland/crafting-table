@@ -43,6 +43,12 @@ A core product surface for terminal-first remote machine access and file transfe
 
 It is part of the crafting table, not a disconnected utility.
 
+### `Codex Remote`
+
+A standalone product surface for interacting with Codex threads running on a reachable Mac or Windows host through a host-side Companion.
+
+Its first product meaning is semantic Codex thread work from iPad: choose a host, browse projects and threads, create or resume a thread, send messages, and watch live progress.
+
 ### `host profile`
 
 A reusable saved definition for connecting to a remote machine.

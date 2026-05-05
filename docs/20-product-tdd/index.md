@@ -4,7 +4,7 @@
 
 This package owns cross-unit technical truth for `0.1.0`.
 
-It is admitted now because Goal Forest, work session, capture, Remote Control, and the shell already have enough durable interaction pressure that their authority paths would otherwise drift during implementation.
+It is admitted now because Goal Forest, work session, capture, Remote Control, Codex Remote, Local LLM, and the shell already have enough durable interaction pressure that their authority paths would otherwise drift during implementation.
 
 ## Current file set
 

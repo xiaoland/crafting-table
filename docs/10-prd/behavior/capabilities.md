@@ -20,6 +20,10 @@
   related claim(s): Claim 2, Claim 5.
   non-goal: capture terminal transcripts, replay shells, or automate remote work in `0.1.0`.
 
+- capability: continue Codex work from iPad through a reachable host Companion.
+  related claim(s): Claim 1, Claim 7.
+  non-goal: turn Codex Remote into GUI remote desktop, generic machine control, or Goal Forest automation in the first slice.
+
 - capability: host an open-source local LLM from the iPad for trusted LAN clients and local chat.
   related claim(s): Claim 6.
   non-goal: promise background service behavior, durable conversation state, streaming, tools, or broad OpenAI API parity in the first slice.

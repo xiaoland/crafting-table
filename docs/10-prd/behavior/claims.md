@@ -53,3 +53,12 @@
 - source rationale: `_drivers/hard-constraints.md`, `_drivers/operational-realities.md`
 - realization pointers: `../../20-product-tdd/system-state-and-authority.md`, `../../20-product-tdd/unit-topology.md`
 - impact on existing claims: keeps Local LLM isolated from the core crafting loop until it proves durable integration pressure.
+
+## Claim 7 - `Codex Remote` is a standalone Codex thread surface
+
+- claim intent: let the user continue real Codex work from iPad when Codex is running on a reachable Mac or Windows host.
+- evaluation dimensions: host reachability, thread continuity, message send reliability, streaming visibility, boundary clarity.
+- evidence expectation: the user can select a host, browse projects and threads, create or resume a thread, choose model controls, send a message, and see live assistant/tool progress.
+- source rationale: `_drivers/market-and-user-pressures.md`, `_drivers/hard-constraints.md`, `_drivers/operational-realities.md`
+- realization pointers: `../../20-product-tdd/system-state-and-authority.md`, `../../20-product-tdd/cross-unit-contracts.md`, `../../20-product-tdd/claim-realization-matrix.md`
+- impact on existing claims: admits a separate Codex-specific remote surface alongside Remote Control.

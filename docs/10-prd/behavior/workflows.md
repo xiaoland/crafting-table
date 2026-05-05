@@ -47,3 +47,11 @@
 - normal flow: open Local LLM -> add or choose a GGUF model -> download and verify it -> activate it -> reveal or copy the bearer token -> start the HTTP server -> call the displayed URL from a trusted LAN client
 - exception flow: if no model is ready, the app keeps server and model readiness visible and lets the user complete the model lifecycle first
 - observable outcome: local model serving is deliberate, authenticated, and visible while the app stays foregrounded
+
+## Workflow 7 - Continue Codex from iPad
+
+- actor: user
+- trigger: useful Codex work is available on a reachable Mac or Windows host
+- normal flow: open Codex Remote -> choose a host -> inspect projects and threads -> create or select a thread -> choose model controls -> send a message -> watch streamed assistant and tool progress
+- exception flow: if a host is unreachable or thread state is unavailable, keep the host/thread error visible and let the user switch host or refresh
+- observable outcome: Codex thread work continues from iPad through a Companion while the Codex-specific boundary stays clear

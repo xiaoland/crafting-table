@@ -16,6 +16,10 @@
   derivation source: `behavior/claims.md`, `behavior/workflows.md`
   boundary intent: own remote machine action inside the broader crafting table loop
 
+- derived domain boundary: `Codex Remote`
+  derivation source: `behavior/claims.md`, `behavior/workflows.md`, `behavior/rules-and-invariants.md`
+  boundary intent: own semantic Codex thread interaction through reachable host Companions
+
 - derived domain boundary: `host profile`
   derivation source: `behavior/rules-and-invariants.md`
   boundary intent: own reusable remote connection definitions at workspace scope

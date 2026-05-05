@@ -13,3 +13,7 @@
 - existing system limitation: remote machine control can easily drift into a standalone utility.
   runtime reality: the target user already has real remote workflows that matter.
   migration dependency: Remote Control must stay linked to work sessions and broader orientation during implementation.
+
+- existing system limitation: Codex app-server and desktop handoff details can churn across hosts and Codex releases.
+  runtime reality: a small host-side Companion can absorb protocol and platform differences while CraftingTable keeps a stable contract.
+  migration dependency: Codex Remote should preserve a separate boundary from Remote Control, Goal Forest, and Work Session until integration pressure is proven.

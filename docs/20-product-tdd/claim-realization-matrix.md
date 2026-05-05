@@ -1,7 +1,7 @@
 # Claim realization matrix
 
 - product claim: One shared surface supports orientation and action.
-  realizing unit(s): Shell, Goal Forest, Work Session, Capture, Remote Control
+  realizing unit(s): Shell, Goal Forest, Work Session, Capture, Remote Control, Codex Remote
   key tests: journey-level UI flows for orient -> resume -> capture -> act
   observability signal: the user can move across the main loop without falling into disconnected tools
 
@@ -29,3 +29,8 @@
   realizing unit(s): Local LLM, Shell
   key tests: model add/download/verify/activate/delete flows, bearer token reveal/copy/rotate flow, authenticated `GET /v1/models`, authenticated synchronous `POST /v1/responses` with explicit model id and active-model fallback
   observability signal: the iPad can deliberately host a ready open-source model for trusted LAN clients while keeping runtime limits visible
+
+- product claim: `Codex Remote` is a standalone Codex thread surface.
+  realizing unit(s): Codex Remote, Codex Remote Companion, Shell
+  key tests: host selection, project-grouped thread list, thread create/read, model control submission, permission-mode submission, active-turn stream rendering, and transient stream recovery
+  observability signal: real Codex thread work can continue from iPad while host, thread, and stream state remain visible

@@ -49,7 +49,7 @@ These layers are still not admitted by default:
 
 ## Why `docs/20-product-tdd/` is admitted now
 
-`0.1.0` work now spans multiple meaningful units - shell, Goal Forest, work session, capture, and Remote Control.
+`0.1.0` work now spans multiple meaningful units - shell, Goal Forest, work session, capture, Remote Control, Codex Remote, and Local LLM.
 Their state ownership and interaction boundaries are stable enough to deserve one shared technical memory layer before implementation spreads them across files.
 
 ## Route vs mode
