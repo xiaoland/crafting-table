@@ -140,10 +140,7 @@ final class LocalLLMServerController: ObservableObject {
             throw ControllerError.noActiveModel
         }
 
-        guard model.downloadState == .downloaded,
-              model.verificationState == .verified,
-              model.localPath != nil
-        else {
+        guard model.isReadyForInference else {
             throw ControllerError.modelUnavailable(model.displayName)
         }
 

@@ -12,6 +12,7 @@ struct LocalLLMScreen: View {
     @State private var showsRotateTokenConfirmation = false
     @State private var showsBearerToken = false
     @State private var tokenCopyFeedbackVisible = false
+    @State private var copiedModelID: String?
     @State private var modelPendingDeletion: LocalLLMModelRecord?
 
     var body: some View {
@@ -266,6 +267,12 @@ struct LocalLLMScreen: View {
                 Text("\(model.downloadState.rawValue) · \(model.verificationState.rawValue) · \(model.activationState.rawValue)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                Text(model.id)
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             }
 
             Spacer(minLength: 0)
@@ -279,6 +286,14 @@ struct LocalLLMScreen: View {
             }
             .buttonStyle(.bordered)
             .disabled(model.downloadState == .downloading)
+
+            Button {
+                copyModelID(model.id)
+            } label: {
+                Label(copiedModelID == model.id ? "Copied" : "Copy ID", systemImage: copiedModelID == model.id ? "checkmark.circle.fill" : "doc.on.doc")
+            }
+            .buttonStyle(.bordered)
+            .accessibilityIdentifier("local-llm-copy-model-id-\(model.id)")
 
             Button {
                 store.activate(modelID: model.id)
@@ -327,6 +342,17 @@ struct LocalLLMScreen: View {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             tokenCopyFeedbackVisible = false
+        }
+    }
+
+    private func copyModelID(_ modelID: String) {
+        UIPasteboard.general.string = modelID
+        copiedModelID = modelID
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            if copiedModelID == modelID {
+                copiedModelID = nil
+            }
         }
     }
 

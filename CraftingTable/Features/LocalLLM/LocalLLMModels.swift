@@ -65,6 +65,14 @@ struct LocalLLMModelRecord: Identifiable, Codable, Equatable {
 }
 
 extension LocalLLMModelRecord {
+    var isReadyForInference: Bool {
+        downloadState == .downloaded &&
+            verificationState == .verified &&
+            localPath != nil
+    }
+}
+
+extension LocalLLMModelRecord {
     static func huggingFaceGGUF(
         repositoryID: String,
         revision: String,

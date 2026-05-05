@@ -120,7 +120,7 @@ final class LocalLLMHTTPServer {
                 return .json(status: 200, body: HealthResponse(status: "ok"))
             case ("GET", "/v1/models"):
                 let models = await modelsProvider()
-                return .json(status: 200, body: OpenAIModelsListResponse.from(models: models))
+                return .json(status: 200, body: OpenAIModelsListResponse.from(models: models.filter(\.isReadyForInference)))
             case ("POST", "/v1/responses"):
                 let createRequest = try request.decodeBody(OpenAIResponseCreateRequest.self)
                 let result = try await generateHandler(createRequest.generationRequest())
@@ -132,10 +132,18 @@ final class LocalLLMHTTPServer {
             }
         } catch ServerError.unauthorized {
             return .json(status: 401, body: ErrorResponse(error: "unauthorized", message: ServerError.unauthorized.localizedDescription))
+        } catch ServerError.malformedBody {
+            return .json(status: 400, body: ErrorResponse(error: "malformed_body", message: ServerError.malformedBody.localizedDescription))
         } catch ServerError.unsupportedMethod {
             return .json(status: 405, body: ErrorResponse(error: "method_not_allowed", message: ServerError.unsupportedMethod.localizedDescription))
         } catch ServerError.unsupportedRoute {
             return .json(status: 404, body: ErrorResponse(error: "not_found", message: ServerError.unsupportedRoute.localizedDescription))
+        } catch LocalLLMServerController.ControllerError.noActiveModel {
+            return .json(status: 400, body: ErrorResponse(error: "no_active_model", message: LocalLLMServerController.ControllerError.noActiveModel.localizedDescription, code: "no_active_model"))
+        } catch LocalLLMServerController.ControllerError.modelNotFound(let modelID) {
+            return .json(status: 404, body: ErrorResponse(error: "model_not_found", message: LocalLLMServerController.ControllerError.modelNotFound(modelID).localizedDescription, code: "model_not_found"))
+        } catch LocalLLMServerController.ControllerError.modelUnavailable(let displayName) {
+            return .json(status: 409, body: ErrorResponse(error: "model_unavailable", message: LocalLLMServerController.ControllerError.modelUnavailable(displayName).localizedDescription, code: "model_unavailable"))
         } catch {
             return .json(status: 400, body: ErrorResponse(error: "bad_request", message: error.localizedDescription))
         }
@@ -251,6 +259,8 @@ private enum HTTPStatusReason {
             return "Not Found"
         case 405:
             return "Method Not Allowed"
+        case 409:
+            return "Conflict"
         default:
             return "Internal Server Error"
         }
@@ -264,6 +274,7 @@ private struct HealthResponse: Encodable {
 private struct ErrorResponse: Encodable {
     var error: String
     var message: String
+    var code: String?
 }
 
 struct OpenAIModelsListResponse: Encodable, Equatable {
