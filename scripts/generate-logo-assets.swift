@@ -72,6 +72,7 @@ private let rootPath = environment["SRCROOT"] ?? fileManager.currentDirectoryPat
 private let rootURL = URL(fileURLWithPath: rootPath, isDirectory: true)
 private let configURL = URL(fileURLWithPath: environment["CRAFTING_TABLE_LOGO_CONFIG"] ?? rootURL.appendingPathComponent("logo.local.json").path)
 private let cacheRootURL = rootURL.appendingPathComponent(".build/logo-assets/minecraft", isDirectory: true)
+private let previewRootURL = rootURL.appendingPathComponent(".build/logo-assets/previews", isDirectory: true)
 private let appLogoURL = rootURL.appendingPathComponent("CraftingTable/Assets.xcassets/AppLogo.imageset/AppLogo.png")
 private let appIconURL = rootURL.appendingPathComponent("CraftingTable/Assets.xcassets/AppIcon.appiconset/AppIcon.png")
 private let vanillaCraftingTablePath = "assets/minecraft/textures/block/crafting_table_top.png"
@@ -81,14 +82,18 @@ private func main() {
         try fileManager.createDirectory(at: appLogoURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         try fileManager.createDirectory(at: appIconURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         try fileManager.createDirectory(at: cacheRootURL, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: previewRootURL, withIntermediateDirectories: true)
 
         let input = readInput()
         let craftingTableTop = fetchCraftingTableTop(versionPreference: input.minecraftVersion)
         let head = fetchMinecraftHead(username: input.minecraftUsername)
-        let pngData = try renderLogoPNG(craftingTableTop: craftingTableTop, head: head)
+        let logoData = try renderAppLogoPNG(craftingTableTop: craftingTableTop, head: head)
+        let iconData = try renderAppIconPNG(craftingTableTop: craftingTableTop, head: head)
+        let previewData = try renderAppIconMaskPreviewPNG(craftingTableTop: craftingTableTop, head: head)
 
-        try writeIfChanged(pngData, to: appLogoURL)
-        try writeIfChanged(pngData, to: appIconURL)
+        try writeIfChanged(logoData, to: appLogoURL)
+        try writeIfChanged(iconData, to: appIconURL)
+        try writeIfChanged(previewData, to: previewRootURL.appendingPathComponent("app-icon-mask-preview.png"))
 
         let textureState = craftingTableTop == nil ? "fallback top texture" : "vanilla crafting_table_top.png"
         if let username = input.minecraftUsername, head != nil {
@@ -292,7 +297,29 @@ private func fetchData(from url: URL, timeout: TimeInterval = 25) throws -> Data
     return try result?.get() ?? Data()
 }
 
-private func renderLogoPNG(craftingTableTop: CGImage?, head: CGImage?) throws -> Data {
+private func renderAppLogoPNG(craftingTableTop: CGImage?, head: CGImage?) throws -> Data {
+    try renderPNG { _ in
+        drawCraftingTableTop(craftingTableTop)
+        if let head {
+            drawMinecraftHead(head, in: CGRect(x: 656, y: 656, width: 320, height: 320))
+        }
+    }
+}
+
+private func renderAppIconPNG(craftingTableTop: CGImage?, head: CGImage?) throws -> Data {
+    try renderPNG { _ in
+        drawSafeAppIcon(craftingTableTop: craftingTableTop, head: head)
+    }
+}
+
+private func renderAppIconMaskPreviewPNG(craftingTableTop: CGImage?, head: CGImage?) throws -> Data {
+    try renderPNG { _ in
+        drawSafeAppIcon(craftingTableTop: craftingTableTop, head: head)
+        drawAppIconMaskOverlay()
+    }
+}
+
+private func renderPNG(draw: (CGFloat) -> Void) throws -> Data {
     let size = 1024
     guard let rep = NSBitmapImageRep(
         bitmapDataPlanes: nil,
@@ -323,10 +350,7 @@ private func renderLogoPNG(craftingTableTop: CGImage?, head: CGImage?) throws ->
     cgContext.translateBy(x: 0, y: CGFloat(size))
     cgContext.scaleBy(x: 1, y: -1)
 
-    drawCraftingTableTop(craftingTableTop)
-    if let head {
-        drawMinecraftHead(head)
-    }
+    draw(CGFloat(size))
 
     NSGraphicsContext.restoreGraphicsState()
 
@@ -337,21 +361,37 @@ private func renderLogoPNG(craftingTableTop: CGImage?, head: CGImage?) throws ->
     return data
 }
 
+private func drawSafeAppIcon(craftingTableTop: CGImage?, head: CGImage?) {
+    fill(CGRect(x: 0, y: 0, width: 1024, height: 1024), "#B36B3B")
+
+    let tableRect = CGRect(x: 112, y: 112, width: 800, height: 800)
+    if let craftingTableTop {
+        drawPixelImage(craftingTableTop, in: tableRect)
+    } else {
+        fill(tableRect, "#B8783F")
+        drawFallbackCraftingTableTop(in: tableRect)
+    }
+
+    if let head {
+        drawMinecraftHead(head, in: CGRect(x: 640, y: 640, width: 240, height: 240))
+    }
+}
+
 private func drawCraftingTableTop(_ image: CGImage?) {
     let rect = CGRect(x: 0, y: 0, width: 1024, height: 1024)
     if let image {
         drawPixelImage(image, in: rect)
     } else {
-        drawFallbackCraftingTableTop()
+        drawFallbackCraftingTableTop(in: rect)
     }
 }
 
-private func drawFallbackCraftingTableTop() {
-    fill(CGRect(x: 0, y: 0, width: 1024, height: 1024), "#8A4F2E")
-    fill(CGRect(x: 48, y: 48, width: 928, height: 928), "#B8783F")
-    let gridStart: CGFloat = 184
-    let cell: CGFloat = 174
-    let gap: CGFloat = 34
+private func drawFallbackCraftingTableTop(in bounds: CGRect) {
+    fill(bounds, "#8A4F2E")
+    fill(bounds.insetBy(dx: bounds.width * 0.047, dy: bounds.height * 0.047), "#B8783F")
+    let gridStart = bounds.minX + bounds.width * 0.18
+    let cell = bounds.width * 0.17
+    let gap = bounds.width * 0.033
 
     for row in 0..<3 {
         for column in 0..<3 {
@@ -368,8 +408,10 @@ private func drawFallbackCraftingTableTop() {
 }
 
 private func drawMinecraftHead(_ skin: CGImage) {
-    let faceRect = CGRect(x: 656, y: 656, width: 320, height: 320)
+    drawMinecraftHead(skin, in: CGRect(x: 656, y: 656, width: 320, height: 320))
+}
 
+private func drawMinecraftHead(_ skin: CGImage, in faceRect: CGRect) {
     fill(faceRect.offsetBy(dx: 16, dy: 16), "#000000", alpha: 0.18)
     if let base = cropMinecraftRegion(in: skin, x: 8, y: 8, width: 8, height: 8) {
         drawPixelImage(base, in: faceRect, rotatedHalfTurn: true)
@@ -380,6 +422,25 @@ private func drawMinecraftHead(_ skin: CGImage) {
        let overlay = cropMinecraftRegion(in: skin, x: 40, y: 8, width: 8, height: 8) {
         drawPixelImage(overlay, in: faceRect, rotatedHalfTurn: true)
     }
+}
+
+private func drawAppIconMaskOverlay() {
+    let iconRect = CGRect(x: 0, y: 0, width: 1024, height: 1024)
+    let visiblePath = NSBezierPath(rect: iconRect)
+    let maskPath = NSBezierPath(roundedRect: iconRect.insetBy(dx: 2, dy: 2), xRadius: 230, yRadius: 230)
+    visiblePath.append(maskPath)
+    visiblePath.windingRule = .evenOdd
+    NSColor.black.withAlphaComponent(0.42).setFill()
+    visiblePath.fill()
+
+    NSColor.white.withAlphaComponent(0.70).setStroke()
+    maskPath.lineWidth = 4
+    maskPath.stroke()
+
+    let safePath = NSBezierPath(roundedRect: iconRect.insetBy(dx: 96, dy: 96), xRadius: 144, yRadius: 144)
+    NSColor.systemYellow.withAlphaComponent(0.90).setStroke()
+    safePath.lineWidth = 3
+    safePath.stroke()
 }
 
 private func cropMinecraftRegion(in image: CGImage, x: Int, y: Int, width: Int, height: Int) -> CGImage? {

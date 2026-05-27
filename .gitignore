@@ -62,3 +62,4 @@ scratch/
 logo.local.json
 CraftingTable/Assets.xcassets/AppIcon.appiconset/AppIcon.png
 CraftingTable/Assets.xcassets/AppLogo.imageset/AppLogo.png
+.build/logo-assets/previews/
