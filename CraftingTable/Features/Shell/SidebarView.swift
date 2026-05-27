@@ -8,6 +8,7 @@ struct SidebarView: View {
     let openRemoteControl: () -> Void
     let openLocalLLM: () -> Void
     let openCodexRemote: () -> Void
+    let openAbout: () -> Void
     let openSession: (WorkSession) -> Void
 
     var body: some View {
@@ -91,6 +92,17 @@ struct SidebarView: View {
                                 )
                             }
                         }
+                    }
+
+                    SidebarSection(title: "App") {
+                        SidebarRow(
+                            title: "About",
+                            subtitle: "Version and icon",
+                            systemImage: "info.circle",
+                            isSelected: route == .about,
+                            accessibilityIdentifier: "sidebar-about",
+                            action: openAbout
+                        )
                     }
                 }
                 .padding(.horizontal, 10)

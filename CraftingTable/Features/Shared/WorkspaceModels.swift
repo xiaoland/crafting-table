@@ -6,6 +6,7 @@ enum AppRoute: Equatable {
     case remoteControl
     case localLLM
     case codexRemote
+    case about
 }
 
 enum RemoteConnectionState {

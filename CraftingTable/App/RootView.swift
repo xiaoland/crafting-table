@@ -36,6 +36,9 @@ struct RootView: View {
                     openCodexRemote: {
                         route = .codexRemote
                     },
+                    openAbout: {
+                        route = .about
+                    },
                     openSession: { session in
                         route = .workSession(session.id)
                     }
@@ -157,6 +160,8 @@ struct RootView: View {
             )
         case .codexRemote:
             CodexRemoteScreen()
+        case .about:
+            AboutScreen()
         }
     }
 
@@ -164,7 +169,7 @@ struct RootView: View {
         switch route {
         case .goalForest, .workSession, .remoteControl:
             return true
-        case .localLLM, .codexRemote:
+        case .localLLM, .codexRemote, .about:
             return false
         }
     }
@@ -196,7 +201,7 @@ struct RootView: View {
             connectingFromGoalNodeID = nil
         case .workSession, .remoteControl:
             activeSheet = .capture
-        case .localLLM, .codexRemote:
+        case .localLLM, .codexRemote, .about:
             break
         }
     }
