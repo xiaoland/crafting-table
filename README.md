@@ -1,6 +1,6 @@
 # (xiaoland's) Crafting Table
 
-Crafting Table is an early-stage, iPad-first personal productivity tool: a small BusyBox-style workbench for the recurring pieces of personal technical work. It is built around a lightweight "crafting table" loop: regain context, continue a work session, capture loose material, and use nearby tools such as remote access, Codex handoff, and local model serving without turning the app into a generic dashboard or project-management system.
+Crafting Table is an early-stage, iPad-first personal productivity tool: a small BusyBox-style control surface for the recurring pieces of personal technical work. It is built around a lightweight "crafting table" loop: regain context, continue a work session, capture loose material, and use nearby tools such as remote access, Codex handoff, and local model serving without turning the app into a generic dashboard or project-management system.
 
 Short form: `Crafting Table`
 Abbreviation: `CT`
@@ -25,6 +25,7 @@ The current scope intentionally excludes GUI remote desktop, broad third-party i
 ```text
 CraftingTable/              SwiftUI iPad app source
 CraftingTable.xcodeproj/    Xcode project
+CTCore/                     Feature-gated Rust backend library for portable CT capabilities
 Companion/                  Rust host-side service for Codex Remote
 Companion/scouts/macos/     macOS Desktop Scout helper
 Companion/scouts/windows/   Windows Scout prototype
@@ -193,6 +194,12 @@ Test Companion:
 
 ```sh
 cargo test --manifest-path Companion/Cargo.toml
+```
+
+Test CTCore portable config:
+
+```sh
+cargo test --manifest-path CTCore/Cargo.toml --features portable-config
 ```
 
 Format Companion:

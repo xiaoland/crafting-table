@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "hosts": [
+    {
+      "id": "duplicate",
+      "label": "First",
+      "endpoints": {
+        "ssh": {
+          "address": "",
+          "port": 0
+        }
+      }
+    },
+    {
+      "id": "duplicate",
+      "label": "Second",
+      "endpoints": {
+        "codexRemoteControl": {
+          "baseUrl": "not a url"
+        }
+      }
+    }
+  ]
+}

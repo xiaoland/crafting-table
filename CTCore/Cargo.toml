@@ -1,0 +1,17 @@
+[package]
+name = "ct-core"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+portable-config = ["dep:serde", "dep:serde_json", "dep:url"]
+codex-remote-control-server = []
+codex-remote-control-client = []
+inkcre-graph = []
+local-llm-core = []
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
+url = { version = "2.5", optional = true }

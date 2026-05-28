@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "hosts": [
+    {
+      "id": "mac-studio",
+      "label": "Mac Studio",
+      "note": "Primary desktop CT host",
+      "tags": ["desktop", "codex"],
+      "endpoints": {
+        "ssh": {
+          "address": "mac-studio.local",
+          "port": 22,
+          "username": "xiaoland",
+          "credentialRef": "keychain:ssh/mac-studio"
+        },
+        "codexRemoteControl": {
+          "baseUrl": "http://mac-studio.local:3765",
+          "credentialRef": "keychain:codex/mac-studio"
+        }
+      }
+    },
+    {
+      "id": "win-box",
+      "label": "Windows Box",
+      "tags": ["desktop", "windows"],
+      "endpoints": {
+        "codexRemoteControl": {
+          "baseUrl": "http://win-box.local:3765"
+        }
+      }
+    }
+  ]
+}
