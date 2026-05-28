@@ -8,7 +8,7 @@ default = []
 portable-config = ["dep:serde", "dep:serde_json", "dep:url"]
 codex-remote-control-server = ["dep:serde", "dep:serde_json"]
 codex-remote-control-client = ["dep:serde", "dep:serde_json"]
-inkcre-graph = []
+inkcre-graph = ["dep:serde", "dep:serde_json"]
 local-llm-core = []
 
 [dependencies]

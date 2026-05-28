@@ -262,6 +262,27 @@ Verification:
 - link capture to goal/session through relations
 - read back enough graph context to render the current Goal Forest and nearby session context
 
+Implementation evidence:
+
+- The actual local InKCre core path is `/Users/lanzhijiang/Development/InKCre/core-py`; `~/Development/core-py` does not exist on this machine.
+- InKCre `BlockModel.content` is a string, and extension examples store structured content as JSON strings.
+- InKCre relation identity is `from_ + to_ + content`, so the current CT relation vocabulary uses stable relation labels rather than mutable payload strings.
+- `CTCore` now exposes `inkcre_graph` under the `inkcre-graph` feature.
+- `inkcre_graph` defines InKCre block, relation, in/out arc, and subgraph wire-shape structs for `PUT /graph` style payloads.
+- `inkcre_graph` defines CT content models for Goal Node, Work Session, Capture, and Remote Continuity.
+- Work Session status is represented inside Work Session block content.
+- Capture supports both CT-specific capture blocks and native InKCre `text` resolver mapping for clearly text-only capture content.
+- `CTCore` now defines `InKCreGraphStore`, a transport-injected storage trait corresponding to InKCre graph insert, recent block listing, relation lookup, and block update.
+- `CTCore` now defines `CraftingTableInKCreApi`, a client-facing API for saving/updating Goal Nodes, Work Sessions, Captures, goal edges, and loading Goal Forest / Capture projections.
+- CTCore treats graph insertion and content update as separate operations because InKCre `fetchsert()` is resolver-owned and may return existing blocks without updating content.
+- The current slice does not create a CT resolver extension in core-py or migrate `WorkspaceDocument`.
+
+Verified:
+
+- `cargo fmt --manifest-path CTCore/Cargo.toml -- --check`
+- `cargo test --manifest-path CTCore/Cargo.toml --features inkcre-graph`
+- `cargo test --manifest-path CTCore/Cargo.toml --all-features`
+
 ## Phase 5 - Local LLM Lifecycle Boundary
 
 Goal: separate Local LLM business contracts from iPad lifecycle mechanics.
