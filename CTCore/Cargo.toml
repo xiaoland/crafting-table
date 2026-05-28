@@ -6,8 +6,8 @@ edition = "2021"
 [features]
 default = []
 portable-config = ["dep:serde", "dep:serde_json", "dep:url"]
-codex-remote-control-server = []
-codex-remote-control-client = []
+codex-remote-control-server = ["dep:serde", "dep:serde_json"]
+codex-remote-control-client = ["dep:serde", "dep:serde_json"]
 inkcre-graph = []
 local-llm-core = []
 

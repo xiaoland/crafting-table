@@ -33,3 +33,18 @@ command = "./scripts/codex-remote-companion.sh scout"
 name = "Smoke Codex Remote Companion"
 icon = "play"
 command = "./scripts/codex-remote-companion.sh smoke"
+
+[[actions]]
+name = "Start Codex Host Runtime"
+icon = "play"
+command = "./scripts/codex-host-runtime.sh start"
+
+[[actions]]
+name = "Stop Codex Host Runtime"
+icon = "stop"
+command = "./scripts/codex-host-runtime.sh stop"
+
+[[actions]]
+name = "Status Codex Host Runtime"
+icon = "terminal"
+command = "./scripts/codex-host-runtime.sh status"

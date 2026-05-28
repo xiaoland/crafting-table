@@ -14,6 +14,21 @@ Or use the repo launch helper:
 ./scripts/codex-remote-companion.sh companion
 ```
 
+For the app-supervised host runtime path:
+
+```sh
+./scripts/codex-host-runtime.sh start
+./scripts/codex-host-runtime.sh status
+./scripts/codex-host-runtime.sh stop
+```
+
+Desktop clients should own login launch, background residency, and packaged helper supervision. This crate can also be embedded directly by linking the library API:
+
+- `Config`
+- `build_router(config)`
+- `serve(config)`
+- `serve_with_shutdown(config, shutdown)`
+
 Default bind address:
 
 ```text
@@ -60,7 +75,10 @@ The same commands are exposed as Codex App Local Environment actions in:
 - `POST /threads/{thread_id}/turns`: submit one text turn, optionally with a model override, and return the completed assistant text
 - `GET /models`: list visible Codex models for the host account
 - `GET /desktop/snapshot`: run the platform Desktop Scout and return normalized hot-handoff clues
+- `GET /host/runtime`: report host runtime process state, bind address, Codex home, launch context, and login/background residency flags
 
 ## Current Scope
 
-This slice proves Companion-owned semantic handoff through a loopback Codex app-server and Desktop Scout snapshotting through a small Companion route. Event streaming, approval handling, persistent app-server supervision, and pairing land in later slices.
+This slice proves Companion-owned semantic handoff through a loopback Codex app-server and Desktop Scout snapshotting through a small Companion route.
+
+The host runtime script is an interim development sidecar boundary. It supports background start/stop for local development, but it deliberately does not own login launch or app lifecycle policy. Pairing, authorization, packaged binary distribution, and in-app controls land in client-specific slices.

@@ -156,9 +156,23 @@ Verification:
 - replay saved or fixture turn events into normalized state
 - ensure SwiftUI state remains a projection, not the owner of contract semantics
 
+Implementation evidence:
+
+- `CTCore` now exposes `codex_remote_control::contract` when either `codex-remote-control-server` or `codex-remote-control-client` is enabled.
+- The contract module mirrors current Companion JSON response/event shapes for health, threads, models, turn submit, desktop snapshot, API errors, permission modes, and active turn stream events.
+- Turn stream events now have a typed `TurnStreamEventType` while preserving the current wire key `"type"` and snake_case payload names.
+- `codex-remote-control-client` adds `TurnStreamProjection`, a UI-independent client projection that accumulates assistant deltas and terminal/error state.
+- Host runtime state, control-client connection state, and pairing state are represented as portable enums only; no lifecycle implementation or security mechanism has been added yet.
+- Existing Companion and SwiftUI code paths have not been rewired in this phase.
+
+Verification policy:
+
+- Feature availability is checked by compiling the crate under the relevant feature sets.
+- Runtime tests are limited to JSON boundary behavior and client projection behavior that Rust type checking cannot prove.
+
 ## Phase 3 - Desktop Codex Remote Control Server Packaging
 
-Goal: remove the user-managed Companion daemon experience while preserving the host wire contract.
+Goal: make Codex Remote Control embeddable into desktop and mobile clients while preserving the host wire contract.
 
 Scope:
 
@@ -168,6 +182,11 @@ Scope:
 - support login launch / background resident mode
 - expose user-visible status, stop/start, logs, and diagnostics
 - keep iPad/Android control clients talking to the same or versioned server-owned wire contract
+
+Clarification:
+
+- Login launch, background residency, app window lifecycle, and OS service registration are responsibilities of each platform client adapter.
+- Codex Host Runtime should expose embeddable runtime APIs and status contracts. It should not own client lifecycle policy.
 
 Likely first implementation:
 
@@ -181,6 +200,39 @@ Verification:
 - iPad client can connect to the packaged runtime
 - runtime survives window close when background residency is enabled
 - user can stop it intentionally
+
+Implementation evidence:
+
+- Current `CraftingTable.xcodeproj` still has only an iPad target: `SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"` and `TARGETED_DEVICE_FAMILY = 2`.
+- Because there is no desktop CT app target yet, this phase starts with an app-supervised host runtime boundary rather than pretending the runtime is already embedded in a macOS UI.
+- `CTCore` now includes server-owned host runtime status contract types: `HostRuntimeState`, `HostRuntimeLaunchContext`, and `HostRuntimeStatusResponse`.
+- `Companion` depends on `CTCore` with `codex-remote-control-server` enabled for the new host runtime status route.
+- `GET /host/runtime` reports process state, PID, bind address, Codex home, and launch context.
+- `Companion` is now both a library crate and a thin binary. The library exposes `Config`, `build_router`, `serve`, `serve_with_shutdown`, and `shutdown_signal`.
+- `Companion/tests/runtime_embedding.rs` proves a client can build the Codex Remote router in-process without launching the binary.
+- `scripts/codex-host-runtime.sh` provides development-only foreground `run`, background `start`/`stop`/`restart`, `status`, and `logs` commands.
+- The development sidecar `start` command builds and launches the actual runtime binary instead of backgrounding `cargo run`, so the recorded PID belongs to the served process.
+- `.codex/environments/environment.toml` has Codex app actions for starting, stopping, and checking the Codex Host Runtime.
+
+Current limit:
+
+- This now supports an embedded runtime shape and a development sidecar shape. Pairing/auth, packaged helper distribution, in-app macOS controls, Windows service packaging, and mobile client adapter integration are not implemented yet.
+
+Verified:
+
+- `xcodebuild -list -project CraftingTable.xcodeproj` confirmed the current Xcode project has only the `CraftingTable` app target.
+- `cargo fmt --manifest-path CTCore/Cargo.toml -- --check`
+- `cargo fmt --manifest-path Companion/Cargo.toml -- --check`
+- `bash -n scripts/codex-host-runtime.sh`
+- `cargo test --manifest-path CTCore/Cargo.toml --no-default-features`
+- `cargo test --manifest-path CTCore/Cargo.toml --features portable-config`
+- `cargo test --manifest-path CTCore/Cargo.toml --features codex-remote-control-server`
+- `cargo test --manifest-path CTCore/Cargo.toml --features codex-remote-control-client`
+- `cargo test --manifest-path CTCore/Cargo.toml --all-features`
+- `cargo test --manifest-path Companion/Cargo.toml`
+- `cargo test --manifest-path Companion/Cargo.toml --test runtime_embedding`
+- foreground runtime smoke on `127.0.0.1:3787` returned `/host/runtime` with `state: running` and `launch_context: app_supervised`
+- development sidecar smoke on `127.0.0.1:3789` completed `start -> status -> stop`, with `/host/runtime` reachable during status
 
 ## Phase 4 - InKCre Goal/Capture/Session Mapping
 

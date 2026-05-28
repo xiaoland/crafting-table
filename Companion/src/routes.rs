@@ -15,7 +15,7 @@ use axum::{
 use crate::{
     app_server, codex,
     config::Config,
-    desktop_scout,
+    desktop_scout, host_runtime,
     models::{
         ApiError, HealthResponse, PlatformInfo, ScoutHealth, ScoutStatus, ThreadCreateRequest,
         ThreadListQuery, TurnSubmitRequest,
@@ -57,6 +57,7 @@ pub fn router(state: Arc<AppState>) -> Router {
         )
         .route("/models", get(list_models))
         .route("/desktop/snapshot", get(desktop_snapshot))
+        .route("/host/runtime", get(host_runtime_status))
         .with_state(state)
 }
 
@@ -182,6 +183,12 @@ async fn list_models(State(state): State<Arc<AppState>>) -> impl IntoResponse {
         Ok(response) => (StatusCode::OK, Json(response)).into_response(),
         Err(error) => api_error(StatusCode::BAD_GATEWAY, error),
     }
+}
+
+async fn host_runtime_status(
+    State(state): State<Arc<AppState>>,
+) -> Json<ct_core::codex_remote_control::contract::HostRuntimeStatusResponse> {
+    Json(host_runtime::current_status(&state.config))
 }
 
 async fn turn_events(
