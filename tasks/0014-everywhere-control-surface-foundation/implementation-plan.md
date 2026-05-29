@@ -315,21 +315,47 @@ Verified:
 - `cargo fmt --manifest-path CTCore/Cargo.toml -- --check`
 - `cargo test --manifest-path CTCore/Cargo.toml --features local-llm-core`
 
-## Phase 6 - WorkspaceDocument Decomposition
+## Phase 6 - WorkspaceDocument Deletion
 
-Goal: shrink `WorkspaceDocument` to remaining local-only or compatibility state.
+Goal: remove `WorkspaceDocument` as a runtime concept and make clients operate through domain APIs.
 
 Scope:
 
-- migrate or bridge Goal Forest / Capture / Session durable state to InKCre-backed access
-- move host config to portable config file
-- keep only runtime-local or migration compatibility state in local app storage
+- remove the single-document `WorkspaceStore.document` model from client code
+- expose separate client-facing APIs for Goal Forest, Capture, Session, Host Config, and Remote Continuity
+- keep each API independently replaceable by CTCore/InKCre/portable-config adapters
+- do not add a backend-library bridge that preserves `workspace-v0.json` as an authority
 
 Verification:
 
-- existing local workspace data can be imported or safely ignored according to explicit migration rules
-- app can launch with InKCre-backed graph data and portable config
-- local-only runtime state resets without losing durable user memory
+- no app code references `WorkspaceDocument`, `WorkspaceStore`, or `workspace-v0.json`
+- app state flows through domain stores instead of one aggregate document
+- app still builds after the split
+- CTCore feature gates still compile without a `workspace-decomposition` feature
+
+Implementation evidence:
+
+- The rejected `workspace-decomposition` bridge was removed.
+- `WorkspaceModels.swift` was replaced by `BackendModels.swift`, which keeps domain model types but has no aggregate workspace document.
+- `WorkspaceStore.swift` was replaced by `BackendStores.swift`.
+- Runtime state is now split across:
+  - `GoalForestStore`
+  - `SessionStore`
+  - `CaptureStore`
+  - `HostConfigStore`
+  - `RemoteContinuityStore`
+- `RootView` now reads from domain stores directly instead of `workspaceStore.document`.
+- `CraftingTableApp` injects each domain store as its own environment object.
+- Local persistence is split into separate files: `goal-forest-v1.json`, `sessions-v1.json`, `captures-v1.json`, `host-config-v1.json`, and `remote-continuity-v1.json`.
+- These Swift stores are temporary client adapters with backend-API-shaped surfaces; the final authority for Goal Forest/Capture/Session should move behind CTCore/InKCre adapters rather than reintroducing an aggregate client document.
+
+Verified:
+
+- `cargo fmt --manifest-path CTCore/Cargo.toml -- --check`
+- `cargo test --manifest-path CTCore/Cargo.toml --all-features`
+- `cargo test --manifest-path CTCore/Cargo.toml --no-default-features`
+- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' build`
+- `rg -n "WorkspaceDocument|WorkspaceStore|workspace-v0|WorkspaceModels|workspaceStore|document\\." CraftingTable CraftingTable.xcodeproj CTCore -S`
 
 ## Recommended first implementation slice
 

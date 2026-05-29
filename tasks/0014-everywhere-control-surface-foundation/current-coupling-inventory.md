@@ -6,6 +6,8 @@ Inventory the current repo shape before implementation starts.
 
 This note is intentionally descriptive. It records where product state, platform APIs, runtime behavior, and early `0.1.0` shortcuts are coupled today so later boundary work can be deliberate.
 
+Phase 6 update: the iPad client no longer has a `WorkspaceDocument` / `WorkspaceStore` runtime model. Goal Forest, Session, Capture, Host Config, and Remote Continuity now have separate client stores. Older observations below remain useful as historical coupling evidence, but the code references to `WorkspaceDocument`, `WorkspaceStore`, and `workspace-v0.json` describe the pre-Phase-6 shape.
+
 ## Current architecture pressure
 
 The user's current direction changes the main architecture question.
@@ -22,7 +24,7 @@ Open point: portable infrastructure such as networking and filesystem access may
 
 Evidence:
 
-- `CraftingTable/App/CraftingTableApp.swift` creates `WorkspaceStore`, `LocalLLMStore`, and `LocalLLMServerController` as SwiftUI `StateObject`s.
+- `CraftingTable/App/CraftingTableApp.swift` creates separate `GoalForestStore`, `SessionStore`, `CaptureStore`, `HostConfigStore`, `RemoteContinuityStore`, `LocalLLMStore`, and `LocalLLMServerController` as SwiftUI `StateObject`s.
 - `CraftingTable/App/RootView.swift` owns routing, sheet presentation, selected Goal Forest node, selected host, linked remote session, and live Remote Control connection state.
 
 Current coupling:
@@ -36,12 +38,14 @@ Backend-lib implication:
 - A future backend library should not know about SwiftUI routing, sheets, `NavigationSplitView`, or UIKit canvas mechanics.
 - The first extraction candidate is not UI. It is state mutation semantics and service contracts.
 
-## Workspace document coupling
+## Former workspace document coupling
 
 Evidence:
 
-- `CraftingTable/Features/Shared/WorkspaceModels.swift` defines `WorkspaceDocument` with `goalNodes`, `goalEdges`, `sessions`, `captures`, `hosts`, and `remoteContinuityRecords`.
-- `CraftingTable/Features/Shared/WorkspaceStore.swift` persists the whole document to `workspace-v0.json`.
+- Pre-Phase-6, `CraftingTable/Features/Shared/WorkspaceModels.swift` defined `WorkspaceDocument` with `goalNodes`, `goalEdges`, `sessions`, `captures`, `hosts`, and `remoteContinuityRecords`.
+- Pre-Phase-6, `CraftingTable/Features/Shared/WorkspaceStore.swift` persisted the whole document to `workspace-v0.json`.
+- Phase 6 replaced those files with `BackendModels.swift` and `BackendStores.swift`.
+- Current client-local persistence is split into `goal-forest-v1.json`, `sessions-v1.json`, `captures-v1.json`, `host-config-v1.json`, and `remote-continuity-v1.json`.
 
 Current coupling:
 
@@ -59,8 +63,8 @@ Classification:
 
 Backend-lib implication:
 
-- `WorkspaceDocument` should be treated as an early local persistence boundary, not the long-term cross-platform backend model.
-- The backend library may need a compatibility/import layer for existing JSON data, but not necessarily preserve this exact aggregate shape.
+- `WorkspaceDocument` should not remain a backend-lib or client runtime concept.
+- Each domain store should become independently replaceable by CTCore/InKCre/portable-config adapters.
 
 ## Goal Forest coupling
 
@@ -68,12 +72,12 @@ Evidence:
 
 - `GoalForestScreen` receives `[GoalNode]`, `[GoalEdge]`, `[WorkSession]`, and `[CaptureItem]`.
 - `GoalGraphCanvas` and `GoalGridLayout` derive a visual DAG layout from nodes and edges.
-- `WorkspaceStore.createGoalEdge` rejects self edges, duplicate directed edges, and cycle-producing edges.
+- `GoalForestStore.createGoalEdge` rejects self edges, duplicate directed edges, and cycle-producing edges.
 
 Current coupling:
 
 - Goal Forest is currently both a product graph and an iPad canvas interaction.
-- `WorkspaceStore` currently rejects self edges, duplicate directed edges, and cycle-producing edges.
+- `GoalForestStore` currently rejects self edges, duplicate directed edges, and cycle-producing edges.
 - Visual layout is derived from document order and DAG topology inside SwiftUI/UIKit view code.
 
 Clarification:
@@ -98,11 +102,11 @@ Backend-lib implication:
 Evidence:
 
 - `CaptureSheet` currently captures text only.
-- `WorkspaceStore.createCapture` splits the first line into title and the rest into detail, then stores optional `linkedSessionID` and `linkedNodeID`.
+- `CaptureStore.createCapture` splits the first line into title and the rest into detail, then stores optional `linkedSessionID` and `linkedNodeID`.
 
 Current coupling:
 
-- Capture is currently text-only, SwiftUI-sheet-driven, and written directly into `WorkspaceDocument`.
+- Capture is currently text-only, SwiftUI-sheet-driven, and written through `CaptureStore`.
 - Attach-to-current-session and attach-to-primary-node are UI toggles, not a durable graph abstraction.
 
 InKCre implication:
@@ -123,7 +127,7 @@ Evidence:
 
 - `WorkSession` currently stores `title`, `status`, `objective`, `continuity`, and `activity`.
 - `WorkSessionScreen` shows nearby Goal Forest context, captures, linked sessions, and remote continuity.
-- `WorkspaceStore.updateSessionStatus` enforces at most one active session locally.
+- `SessionStore.updateSessionStatus` enforces at most one active session locally.
 
 Current coupling:
 
@@ -145,7 +149,7 @@ Backend-lib implication:
 
 Evidence:
 
-- `HostProfile` lives in `WorkspaceDocument` with `name`, `address`, `note`, and `credentialReferenceID`.
+- `HostProfile` lives in `HostConfigStore` with `name`, `address`, `note`, and `credentialReferenceID`.
 - `HostProfileSheet` edits host metadata and displays credential reference.
 - `RemoteControlScreen` is currently a placeholder-level terminal/file-transfer surface with session linkage.
 
@@ -181,7 +185,7 @@ Current coupling:
 
 - iPad UI is a control client for a host-side service.
 - Companion is currently a standalone process, but its contract is the important boundary.
-- Host profile state is duplicated conceptually: Remote Control has `HostProfile` in `WorkspaceDocument`; Codex Remote has private `CodexRemoteHostProfile` in `@AppStorage`.
+- Host profile state is duplicated conceptually: Remote Control has `HostProfile` in `HostConfigStore`; Codex Remote has private `CodexRemoteHostProfile` in `@AppStorage`.
 
 User direction:
 
@@ -254,12 +258,12 @@ Backend-lib implication:
 
 | Current object | Current owner | Likely future authority | Notes |
 |---|---|---|---|
-| GoalNode | `WorkspaceDocument` | InKCre block | Needs resolver/content schema. |
-| GoalEdge | `WorkspaceDocument` | InKCre relation | Treat DAG shape as usage semantics first; add enforcement only if needed. |
-| CaptureItem | `WorkspaceDocument` | InKCre block | Resolver may vary by content. |
-| WorkSession | `WorkspaceDocument` | InKCre block candidate | Active status can live in block content. |
-| HostProfile | `WorkspaceDocument` | portable config file | Secret stays in platform credential store. |
-| RemoteContinuityRecord | `WorkspaceDocument` | split | Durable session link may be relation; runtime recency may be local/config. |
+| GoalNode | `GoalForestStore` | InKCre block | Needs resolver/content schema. |
+| GoalEdge | `GoalForestStore` | InKCre relation | Treat DAG shape as usage semantics first; add enforcement only if needed. |
+| CaptureItem | `CaptureStore` | InKCre block | Resolver may vary by content. |
+| WorkSession | `SessionStore` | InKCre block candidate | Active status can live in block content. |
+| HostProfile | `HostConfigStore` | portable config file | Secret stays in platform credential store. |
+| RemoteContinuityRecord | `RemoteContinuityStore` | split | Durable session link may be relation; runtime recency may be local/config. |
 | CodexRemoteHostProfile | `@AppStorage` | portable config file | Should converge with host config story. |
 | Codex live stream state | SwiftUI runtime state | host/control runtime | Not portable config. |
 | Companion app-server adapter | standalone Rust process | desktop app-embedded service/helper | Wire contract authority belongs to Codex Remote Control Server. |

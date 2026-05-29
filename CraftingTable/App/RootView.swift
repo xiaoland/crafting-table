@@ -1,7 +1,11 @@
 import SwiftUI
 
 struct RootView: View {
-    @EnvironmentObject private var workspaceStore: WorkspaceStore
+    @EnvironmentObject private var goalForestStore: GoalForestStore
+    @EnvironmentObject private var sessionStore: SessionStore
+    @EnvironmentObject private var captureStore: CaptureStore
+    @EnvironmentObject private var hostConfigStore: HostConfigStore
+    @EnvironmentObject private var remoteContinuityStore: RemoteContinuityStore
     @EnvironmentObject private var localLLMStore: LocalLLMStore
     @EnvironmentObject private var localLLMServer: LocalLLMServerController
 
@@ -20,8 +24,8 @@ struct RootView: View {
         ZStack {
             NavigationSplitView(columnVisibility: $columnVisibility) {
                 SidebarView(
-                    activeSession: workspaceStore.activeSession,
-                    recentSessions: workspaceStore.recentSessions,
+                    activeSession: sessionStore.activeSession,
+                    recentSessions: sessionStore.recentSessions,
                     route: route,
                     openGoalForest: {
                         route = .goalForest
@@ -68,11 +72,11 @@ struct RootView: View {
         switch route {
         case .goalForest:
             GoalForestScreen(
-                nodes: workspaceStore.document.goalNodes,
-                edges: workspaceStore.document.goalEdges,
+                nodes: goalForestStore.nodes,
+                edges: goalForestStore.edges,
                 selectedNode: selectedGoalNode,
-                sessions: workspaceStore.document.sessions,
-                captures: workspaceStore.document.captures,
+                sessions: sessionStore.sessions,
+                captures: captureStore.captures,
                 connectingFromNodeID: connectingFromGoalNodeID,
                 selectNode: { node in
                     selectedGoalNodeID = node.id
@@ -86,7 +90,7 @@ struct RootView: View {
                     connectingFromGoalNodeID = node.id
                 },
                 createConnection: { sourceID, targetID in
-                    if workspaceStore.createGoalEdge(from: sourceID, to: targetID) {
+                    if goalForestStore.createGoalEdge(from: sourceID, to: targetID) {
                         selectedGoalNodeID = targetID
                     }
                     connectingFromGoalNodeID = nil
@@ -102,17 +106,17 @@ struct RootView: View {
                 }
             )
         case .workSession(let sessionID):
-            if let session = workspaceStore.session(with: sessionID) ?? workspaceStore.activeSession {
+            if let session = sessionStore.session(with: sessionID) ?? sessionStore.activeSession {
                 WorkSessionScreen(
                     session: session,
-                    primaryNode: selectedGoalNode ?? workspaceStore.primaryNode,
-                    nearbyNodes: workspaceStore.nearbyNodes(for: selectedGoalNode?.id ?? workspaceStore.primaryNode?.id),
-                    captures: workspaceStore.document.captures,
-                    linkedSessions: workspaceStore.document.sessions,
-                    remoteContinuity: workspaceStore.remoteContinuity(for: session.id),
-                    remoteHost: workspaceStore.host(with: workspaceStore.remoteContinuity(for: session.id)?.hostProfileID),
+                    primaryNode: selectedGoalNode ?? goalForestStore.primaryNode,
+                    nearbyNodes: goalForestStore.nearbyNodes(for: selectedGoalNode?.id ?? goalForestStore.primaryNode?.id),
+                    captures: captureStore.captures,
+                    linkedSessions: sessionStore.sessions,
+                    remoteContinuity: remoteContinuityStore.remoteContinuity(for: session.id),
+                    remoteHost: hostConfigStore.host(with: remoteContinuityStore.remoteContinuity(for: session.id)?.hostProfileID),
                     updateStatus: { status in
-                        workspaceStore.updateSessionStatus(sessionID: session.id, status: status)
+                        sessionStore.updateSessionStatus(sessionID: session.id, status: status)
                     },
                     openGoalForest: {
                         route = .goalForest
@@ -128,11 +132,11 @@ struct RootView: View {
         case .remoteControl:
             RemoteControlScreen(
                 state: remoteState,
-                hosts: workspaceStore.document.hosts,
+                hosts: hostConfigStore.hosts,
                 selectedHost: selectedHost,
                 linkedSession: linkedRemoteSession,
-                continuityRecord: workspaceStore.remoteContinuity(for: linkedRemoteSessionID),
-                continuityHost: workspaceStore.host(with: workspaceStore.remoteContinuity(for: linkedRemoteSessionID)?.hostProfileID),
+                continuityRecord: remoteContinuityStore.remoteContinuity(for: linkedRemoteSessionID),
+                continuityHost: hostConfigStore.host(with: remoteContinuityStore.remoteContinuity(for: linkedRemoteSessionID)?.hostProfileID),
                 attachSession: {
                     activeSheet = .sessionAttach
                 },
@@ -143,7 +147,7 @@ struct RootView: View {
                     selectedHostID = host.id
                     remoteState = .connected
                     if let linkedRemoteSessionID {
-                        workspaceStore.recordRemoteConnection(hostID: host.id, sessionID: linkedRemoteSessionID)
+                        remoteContinuityStore.recordRemoteConnection(hostID: host.id, sessionID: linkedRemoteSessionID)
                     }
                 },
                 disconnect: {
@@ -186,17 +190,17 @@ struct RootView: View {
     }
 
     private var selectedHost: HostProfile? {
-        workspaceStore.host(with: selectedHostID)
+        hostConfigStore.host(with: selectedHostID)
     }
 
     private var linkedRemoteSession: WorkSession? {
-        linkedRemoteSessionID.flatMap { workspaceStore.session(with: $0) }
+        linkedRemoteSessionID.flatMap { sessionStore.session(with: $0) }
     }
 
     private func handleFloatingCreate() {
         switch route {
         case .goalForest:
-            let node = workspaceStore.createGoalNode()
+            let node = goalForestStore.createGoalNode()
             selectedGoalNodeID = node.id
             connectingFromGoalNodeID = nil
         case .workSession, .remoteControl:
@@ -207,13 +211,7 @@ struct RootView: View {
     }
 
     private var selectedGoalNode: GoalNode? {
-        guard let selectedGoalNodeID,
-              let node = workspaceStore.document.goalNodes.first(where: { $0.id == selectedGoalNodeID })
-        else {
-            return nil
-        }
-
-        return node
+        goalForestStore.node(with: selectedGoalNodeID)
     }
 
     @ViewBuilder
@@ -221,10 +219,10 @@ struct RootView: View {
         switch sheet {
         case .capture:
             CaptureSheet(
-                currentSession: workspaceStore.activeSession,
+                currentSession: sessionStore.activeSession,
                 primaryNode: selectedGoalNode,
                 save: { text, sessionID, nodeID in
-                    workspaceStore.createCapture(
+                    captureStore.createCapture(
                         text: text,
                         linkedSessionID: sessionID,
                         linkedNodeID: nodeID
@@ -234,15 +232,15 @@ struct RootView: View {
             )
         case .sessionAttach:
             SessionAttachSheet(
-                activeSession: workspaceStore.activeSession,
-                recentSessions: workspaceStore.recentSessions,
+                activeSession: sessionStore.activeSession,
+                recentSessions: sessionStore.recentSessions,
                 attach: { session in
                     linkedRemoteSessionID = session.id
                     recordConnectedRemoteActivityIfNeeded(sessionID: session.id)
                     activeSheet = nil
                 },
                 createAndAttach: {
-                    let session = workspaceStore.createSession()
+                    let session = sessionStore.createSession()
                     linkedRemoteSessionID = session.id
                     recordConnectedRemoteActivityIfNeeded(sessionID: session.id)
                     activeSheet = nil
@@ -254,7 +252,7 @@ struct RootView: View {
                 NodeEditSheet(
                     node: selectedGoalNode,
                     save: { node in
-                        workspaceStore.updateGoalNode(node)
+                        goalForestStore.updateGoalNode(node)
                         selectedGoalNodeID = node.id
                         activeSheet = nil
                     }
@@ -267,7 +265,7 @@ struct RootView: View {
                 HostProfileSheet(
                     host: selectedHost,
                     save: { host in
-                        workspaceStore.updateHostProfile(host)
+                        hostConfigStore.updateHostProfile(host)
                         selectedHostID = host.id
                         activeSheet = nil
                     }
@@ -285,7 +283,7 @@ struct RootView: View {
             return
         }
 
-        workspaceStore.recordRemoteConnection(hostID: hostID, sessionID: sessionID)
+        remoteContinuityStore.recordRemoteConnection(hostID: hostID, sessionID: sessionID)
     }
 }
 
@@ -434,5 +432,9 @@ private struct FloatingCreateButton: View {
 
 #Preview {
     RootView()
-        .environmentObject(WorkspaceStore())
+        .environmentObject(GoalForestStore())
+        .environmentObject(SessionStore())
+        .environmentObject(CaptureStore())
+        .environmentObject(HostConfigStore())
+        .environmentObject(RemoteContinuityStore())
 }

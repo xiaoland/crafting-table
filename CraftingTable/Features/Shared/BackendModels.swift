@@ -109,25 +109,3 @@ struct RemoteContinuityRecord: Identifiable, Codable, Equatable {
     var transferSummaries: [String]
     var note: String
 }
-
-struct WorkspaceDocument: Codable, Equatable {
-    var schemaVersion: Int
-    var goalNodes: [GoalNode]
-    var goalEdges: [GoalEdge]
-    var sessions: [WorkSession]
-    var captures: [CaptureItem]
-    var hosts: [HostProfile]
-    var remoteContinuityRecords: [RemoteContinuityRecord]
-}
-
-extension WorkspaceDocument {
-    static let empty = WorkspaceDocument(
-        schemaVersion: 1,
-        goalNodes: [],
-        goalEdges: [],
-        sessions: [],
-        captures: [],
-        hosts: [],
-        remoteContinuityRecords: []
-    )
-}
