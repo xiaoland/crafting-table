@@ -300,6 +300,21 @@ Verification:
 - iPad service states distinguish foreground listening, continued background work, stopped, failed, and interrupted
 - LAN client receives clear errors or reconnect behavior when the app is suspended or stopped
 
+Implementation evidence:
+
+- `CTCore` now exposes `local_llm_core` under the `local-llm-core` feature.
+- `local_llm_core` defines portable manifest and model record schemas matching the current Swift manifest JSON keys, including `activeModelID`, `repositoryID`, and `downloadURL`.
+- Model readiness is centralized as downloaded + verified + non-empty local path.
+- Model selection is centralized: requested model id wins; otherwise active model; missing and unavailable models are explicit errors.
+- Service state vocabulary distinguishes stopped, starting, foreground listening, foreground generating, continued background, interrupted, and failed.
+- Minimal OpenAI-compatible contracts cover `GET /v1/models` response shape and `POST /v1/responses` request/response conversion.
+- CTCore does not own filesystem paths, downloads, Keychain tokens, Network.framework listener, BG task mechanics, Metal/llama runtime, or UI transcript state.
+
+Verified:
+
+- `cargo fmt --manifest-path CTCore/Cargo.toml -- --check`
+- `cargo test --manifest-path CTCore/Cargo.toml --features local-llm-core`
+
 ## Phase 6 - WorkspaceDocument Decomposition
 
 Goal: shrink `WorkspaceDocument` to remaining local-only or compatibility state.

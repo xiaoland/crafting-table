@@ -10,7 +10,7 @@ This crate starts small. It should own portable business contracts and validatio
 - `codex-remote-control-server`: Codex Remote Control wire contract models and host-runtime status models owned by the server authority boundary.
 - `codex-remote-control-client`: control-client state projection over the server-owned wire contract.
 - `inkcre-graph`: Goal Forest, Capture, Work Session, and Remote Continuity mapping to InKCre block/relation graph forms.
-- `local-llm-core`: reserved for Local LLM manifest and request/response contracts.
+- `local-llm-core`: Local LLM manifest schema, readiness rules, service states, and minimal OpenAI-compatible request/response contracts.
 
 No feature is enabled by default.
 
@@ -30,4 +30,5 @@ cargo test --manifest-path CTCore/Cargo.toml --features portable-config
 cargo test --manifest-path CTCore/Cargo.toml --features codex-remote-control-server
 cargo test --manifest-path CTCore/Cargo.toml --features codex-remote-control-client
 cargo test --manifest-path CTCore/Cargo.toml --features inkcre-graph
+cargo test --manifest-path CTCore/Cargo.toml --features local-llm-core
 ```

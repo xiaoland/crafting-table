@@ -9,7 +9,7 @@ portable-config = ["dep:serde", "dep:serde_json", "dep:url"]
 codex-remote-control-server = ["dep:serde", "dep:serde_json"]
 codex-remote-control-client = ["dep:serde", "dep:serde_json"]
 inkcre-graph = ["dep:serde", "dep:serde_json"]
-local-llm-core = []
+local-llm-core = ["dep:serde", "dep:serde_json"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"], optional = true }
