@@ -11,6 +11,7 @@ This crate starts small. It should own portable business contracts and validatio
 - `codex-remote-control-client`: control-client state projection over the server-owned wire contract.
 - `inkcre-graph`: Goal Forest, Capture, Work Session, and Remote Continuity mapping to InKCre block/relation graph forms.
 - `local-llm-core`: Local LLM manifest schema, readiness rules, service states, and minimal OpenAI-compatible request/response contracts.
+- `swift-bindings`: UniFFI binding facade for iPad Swift clients, currently exposing portable config decode/encode/validation.
 
 No feature is enabled by default.
 
@@ -31,4 +32,15 @@ cargo test --manifest-path CTCore/Cargo.toml --features codex-remote-control-ser
 cargo test --manifest-path CTCore/Cargo.toml --features codex-remote-control-client
 cargo test --manifest-path CTCore/Cargo.toml --features inkcre-graph
 cargo test --manifest-path CTCore/Cargo.toml --features local-llm-core
+cargo test --manifest-path CTCore/Cargo.toml --features swift-bindings
 ```
+
+## iOS Binding
+
+```sh
+scripts/build-ctcore-ios.sh
+scripts/smoke-ctcore-swift-binding.sh
+```
+
+The script regenerates UniFFI Swift bindings and builds local iOS device/simulator static libraries used by the iPad target.
+The smoke script compiles the generated Swift binding against CTCore and verifies portable config validation plus JSON round-trip behavior.

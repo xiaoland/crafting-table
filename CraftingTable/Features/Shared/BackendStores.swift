@@ -272,14 +272,16 @@ final class CaptureStore: ObservableObject {
 @MainActor
 final class HostConfigStore: ObservableObject {
     @Published private(set) var hosts: [HostProfile]
+    @Published private(set) var configDiagnostics: [FfiConfigDiagnostic]
     @Published private(set) var lastPersistenceError: String?
 
     private let fileURL: URL
 
     init(fileURL: URL? = nil, seed: [HostProfile] = []) {
         self.fileURL = fileURL ?? BackendPersistence.fileURL("host-config-v1.json")
-        let loaded = BackendPersistence.load([HostProfile].self, from: self.fileURL, seed: seed)
-        hosts = loaded.value
+        let loaded = Self.loadHosts(from: self.fileURL, seed: seed)
+        hosts = loaded.hosts
+        configDiagnostics = loaded.diagnostics
         lastPersistenceError = loaded.error
     }
 
@@ -301,8 +303,45 @@ final class HostConfigStore: ObservableObject {
     }
 
     private func persist() {
-        BackendPersistence.save(hosts, to: fileURL) { error in
-            lastPersistenceError = error
+        let document = FfiPortableConfigDocument(
+            schemaVersion: 1,
+            hosts: hosts.map(FfiHostConfig.init(hostProfile:))
+        )
+        configDiagnostics = portableConfigValidate(document: document)
+
+        let encoded = portableConfigEncodeJson(document: document)
+        guard let json = encoded.json else {
+            lastPersistenceError = encoded.errorMessage
+            return
+        }
+
+        BackendPersistence.saveText(json, to: fileURL) { error in
+            self.lastPersistenceError = error
+        }
+    }
+
+    private static func loadHosts(
+        from fileURL: URL,
+        seed: [HostProfile]
+    ) -> (hosts: [HostProfile], diagnostics: [FfiConfigDiagnostic], error: String?) {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            return (seed, [], nil)
+        }
+
+        do {
+            let json = try String(contentsOf: fileURL, encoding: .utf8)
+            let decoded = portableConfigDecodeJson(input: json)
+            guard let document = decoded.document else {
+                return (seed, decoded.diagnostics, decoded.errorMessage)
+            }
+
+            return (
+                document.hosts.map(HostProfile.init(hostConfig:)),
+                decoded.diagnostics,
+                decoded.errorMessage
+            )
+        } catch {
+            return (seed, [], error.localizedDescription)
         }
     }
 }
@@ -418,5 +457,58 @@ private enum BackendPersistence {
         } catch {
             reportError(error.localizedDescription)
         }
+    }
+
+    static func saveText(
+        _ value: String,
+        to fileURL: URL,
+        reportError: (String?) -> Void
+    ) {
+        do {
+            try FileManager.default.createDirectory(
+                at: fileURL.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+
+            try value.write(to: fileURL, atomically: true, encoding: .utf8)
+            reportError(nil)
+        } catch {
+            reportError(error.localizedDescription)
+        }
+    }
+}
+
+private extension FfiHostConfig {
+    init(hostProfile: HostProfile) {
+        self.init(
+            id: hostProfile.id,
+            label: hostProfile.name,
+            note: hostProfile.note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : hostProfile.note,
+            tags: [],
+            endpoints: FfiHostEndpoints(
+                ssh: FfiSshEndpoint(
+                    address: hostProfile.address,
+                    port: 22,
+                    username: nil,
+                    credentialRef: hostProfile.credentialReferenceID
+                ),
+                codexRemoteControl: nil
+            )
+        )
+    }
+}
+
+private extension HostProfile {
+    init(hostConfig: FfiHostConfig) {
+        let ssh = hostConfig.endpoints.ssh
+        let codexRemoteControl = hostConfig.endpoints.codexRemoteControl
+
+        self.init(
+            id: hostConfig.id,
+            name: hostConfig.label,
+            address: ssh?.address ?? codexRemoteControl?.baseUrl ?? "",
+            note: hostConfig.note ?? "",
+            credentialReferenceID: ssh?.credentialRef ?? codexRemoteControl?.credentialRef
+        )
     }
 }

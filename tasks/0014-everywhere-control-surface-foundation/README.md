@@ -1,29 +1,29 @@
 # Task 0014 - Everywhere control surface foundation
 
 ## Status
-Exploring
+Executing
 
 ## Date
 2026-05-27
 
 ## Last Revised
-2026-05-28
+2026-05-30
 
 ## MVT Core
 
-- Objective & Hypothesis: re-evaluate Crafting Table's move from an iPad-first foundation toward a personal everywhere productivity busybox / control surface using current repo evidence and the user's concrete multi-client direction; the expected result is a grounded boundary plan, not a generic multi-platform architecture.
+- Objective & Hypothesis: reshape Crafting Table from an iPad-first foundation toward a personal everywhere productivity busybox / control surface using current repo evidence and the user's concrete multi-client direction; the expected result is a grounded backend/client boundary and incremental implementation, not a generic multi-platform architecture.
 - Guardrails Touched: keep the new positioning volatile until durable PRD language is explicit; do not design Crafting Table-owned sync for Goal Forest or Capture because those are expected to move toward InKCre; preserve Codex Remote's host/control split; keep Local LLM local-first and platform-lifecycle honest; do not move code or rename units before the target boundaries are confirmed.
 - Verification: produce evidence-backed notes that map current state authority, InKCre integration pressure, Codex Remote server/client roles, desktop resident runtime needs, iPad Local LLM background limits, config-file portability, and repo structure options.
 
 ## Classification
 
 - Input Type: Intent + Constraint + Artifact
-- Active Mode: Explore
+- Active Mode: Execute
 - Governing Anchors: `AGENTS.md`, `docs/00-meta/input-intent.md`, `docs/00-meta/input-constraint.md`, `docs/00-meta/input-artifact.md`, `docs/00-meta/mode-a-explore.md`, `tasks/README.md`, `docs/10-prd/index.md`, `docs/10-prd/glossary.md`, `docs/20-product-tdd/system-state-and-authority.md`, `docs/20-product-tdd/cross-unit-contracts.md`, `/Users/lanzhijiang/Development/InKCre/core-py/README.md`, `/Users/lanzhijiang/Development/InKCre/core-py/docs/30-unit-tdd/business-pipeline-and-authority.md`
 
 ## Purpose
 
-This packet captures the exploration needed before Crafting Table can be reshaped for multiple clients.
+This packet captures the exploration and implementation record for reshaping Crafting Table for multiple clients.
 
 The first packet draft was too generic. It treated multi-client work as a broad sync and architecture problem before checking the actual repo and the user's plan. This revision narrows the packet around current evidence:
 
@@ -32,7 +32,15 @@ The first packet draft was too generic. It treated multi-client work as a broad 
 - Codex Remote currently uses an independent Rust Companion process as the host-side adapter behind a CraftingTable-owned HTTP/WebSocket contract.
 - Local LLM is a local model manifest, cache, foreground HTTP server, bearer token, and runtime boundary.
 
-This packet should remain a staging area for boundary clarification. It is not a PRD replacement and should not become a large migration plan before the boundaries are reviewed.
+This packet should remain a staging area for boundary clarification and phase evidence. It is not a PRD replacement.
+
+Phase 7 update:
+
+- `WorkspaceDocument` / `WorkspaceStore` are no longer runtime concepts in the iPad client.
+- `CTCore` is now the feature-gated backend library boundary.
+- The iPad target can call CTCore through generated UniFFI Swift bindings.
+- The first completed client binding slice is `HostConfigStore` -> CTCore `portable-config`.
+- Goal Forest, Capture, Session, and Remote Continuity remain split domain stores and should move to CTCore/InKCre domain APIs incrementally.
 
 ## User Direction Captured
 
@@ -52,16 +60,17 @@ This packet should remain a staging area for boundary clarification. It is not a
 
 ### Crafting Table Workspace State
 
-Current local workspace state is a versioned Codable JSON document under app support scope.
+Historical local workspace state was a versioned Codable JSON document under app support scope.
 
 Evidence:
 
-- `CraftingTable/Features/Shared/WorkspaceModels.swift` defines `WorkspaceDocument` with `goalNodes`, `goalEdges`, `sessions`, `captures`, `hosts`, and `remoteContinuityRecords`.
-- `CraftingTable/Features/Shared/WorkspaceStore.swift` persists that document to `workspace-v0.json`.
+- Pre-Phase-6, `CraftingTable/Features/Shared/WorkspaceModels.swift` defined `WorkspaceDocument` with `goalNodes`, `goalEdges`, `sessions`, `captures`, `hosts`, and `remoteContinuityRecords`.
+- Pre-Phase-6, `CraftingTable/Features/Shared/WorkspaceStore.swift` persisted that document to `workspace-v0.json`.
+- Phase 6 replaced the aggregate with split stores in `CraftingTable/Features/Shared/BackendStores.swift`.
 
 Implication:
 
-- This local JSON document is an early `0.1.0` persistence boundary, not an appropriate long-term multi-client sync authority for Goal Forest or Capture if those move to InKCre.
+- The old local JSON document was an early `0.1.0` persistence boundary, not an appropriate long-term multi-client sync authority for Goal Forest or Capture if those move to InKCre.
 
 ### InKCre Direction
 
@@ -221,6 +230,7 @@ Sources checked:
 - `local-llm-lifecycle-boundary.md`: iPadOS foreground/background service states, limits, and verification plan.
 - `repo-structure-options.md`: minimal repo organization options with tradeoffs and migration risk.
 - `implementation-plan.md`: phased implementation sequence and execution evidence.
+- `ipad-ctcore-integration-plan.md`: Rust-to-Swift binding direction, first iPad CTCore slice, and key build/authority decisions.
 
 Create child notes only when they materially help the task.
 
@@ -231,6 +241,7 @@ Create child notes only when they materially help the task.
 - Codex Host Runtime topology and Companion contract changes -> `docs/20-product-tdd/`
 - Portable config file schema and secret boundary -> `docs/20-product-tdd/` or local code-adjacent docs after implementation pressure is real
 - iPadOS Local LLM lifecycle guarantees and limits -> `docs/20-product-tdd/` after executable verification
+- iPad CTCore binding and artifact workflow -> `docs/20-product-tdd/` after the first Swift smoke path is executable
 - Mechanically enforced contracts -> code, tests, build settings, smoke checks
 - Volatile alternatives, discarded options, and unresolved questions -> keep in this packet
 
@@ -239,7 +250,8 @@ Create child notes only when they materially help the task.
 - Is `personal everywhere productivity busybox / control surface` an internal positioning phrase, product category, or eventual product language?
 - Should the first non-iPad CT client be macOS, Windows, or a desktop host runtime without full UI?
 - Should Crafting Table integrate with InKCre as a direct REST client, an InKCre extension, or a small dedicated bridge?
-- Which local `WorkspaceDocument` fields should survive after Goal Forest / Capture move toward InKCre?
+- Should CTCore Swift bindings use UniFFI as planned, or does iOS artifact complexity force a narrower C ABI for the first slice?
+- Should generated Swift binding files be checked in permanently, or only during the early integration phase?
 - Should Codex Host Runtime keep the current HTTP/WebSocket contract unchanged for Android/iPad clients?
 - On desktop, is an app-supervised sidecar acceptable, or must the host runtime be in-process?
 - On iPadOS, what Local LLM service state is product-worthy if background continuation is interruptible?

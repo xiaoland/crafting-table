@@ -357,6 +357,84 @@ Verified:
 - `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' build`
 - `rg -n "WorkspaceDocument|WorkspaceStore|workspace-v0|WorkspaceModels|workspaceStore|document\\." CraftingTable CraftingTable.xcodeproj CTCore -S`
 
+## Phase 7 - iPad Client CTCore Binding
+
+Goal: let the iPad client call CTCore-backed domain APIs directly, starting with a small binding slice.
+
+Scope:
+
+- add a Rust-to-Swift binding path for CTCore
+- package CTCore for iOS simulator and device
+- keep CTCore feature-gated instead of linking every backend capability into the iPad app
+- replace one Swift domain store with a CTCore-backed adapter
+- keep UI, file paths, credentials, and platform lifecycle in Swift
+
+Recommended technical direction:
+
+- use UniFFI for Swift bindings, because Android/Kotlin reuse is expected later
+- produce an iOS device/simulator artifact for the iPad target; a full XCFramework is preferred after the binding surface stabilizes
+- check generated Swift binding files in during the first slice to keep Xcode builds deterministic
+- start with `HostConfigStore` -> CTCore `portable-config`
+
+First slice:
+
+1. add UniFFI binding setup around CTCore portable config
+2. expose decode, encode, validate, and diagnostic models to Swift
+3. build CTCore as an iOS simulator/device artifact
+4. link the iPad target against the artifact
+5. update `HostConfigStore` so CTCore owns portable config parsing/validation
+6. keep app-support file location and ObservableObject state in Swift
+
+Do not start with:
+
+- Goal Forest / Capture, because they require InKCre transport and resolver assumptions
+- Local LLM, because lifecycle/runtime/platform responsibilities are much wider
+- Codex Remote runtime, because streaming and server/client authority create a larger surface
+
+Verification:
+
+- CTCore portable-config tests pass through Cargo
+- iPad app builds through Xcode with the CTCore artifact linked
+- Swift smoke path proves host config validation is coming from CTCore
+- no `WorkspaceDocument` aggregate reappears
+
+Planning artifact:
+
+- `ipad-ctcore-integration-plan.md`
+
+Implementation evidence:
+
+- `CTCore` now has a `swift-bindings` feature.
+- `CTCore/src/swift_bindings.rs` exposes a UniFFI facade for portable config decode, encode, validate, diagnostics, and default document construction.
+- Generated Swift binding files live under `CraftingTable/Generated/CTCore/`.
+- `scripts/build-ctcore-ios.sh` regenerates UniFFI Swift bindings and builds local iOS device/simulator static libraries.
+- `scripts/smoke-ctcore-swift-binding.sh` compiles the generated Swift binding against CTCore and verifies validation + JSON round-trip through the Rust facade.
+- The Xcode target has a `Build CTCore iOS Artifact` phase before Swift compilation.
+- The iPad target links the generated CTCore static library per SDK:
+  - `libct_core_ios.a` for device
+  - `libct_core_sim.a` for simulator
+- `HostConfigStore` now loads/saves portable config JSON through CTCore binding functions:
+  - `portableConfigDecodeJson`
+  - `portableConfigEncodeJson`
+  - `portableConfigValidate`
+- Swift still owns the app-support file URL and `ObservableObject` state.
+- CTCore owns portable config schema validation and diagnostic codes.
+
+Verified:
+
+- `cargo fmt --manifest-path CTCore/Cargo.toml -- --check`
+- `cargo test --manifest-path CTCore/Cargo.toml --features swift-bindings`
+- `cargo test --manifest-path CTCore/Cargo.toml --all-features`
+- `cargo test --manifest-path CTCore/Cargo.toml --no-default-features`
+- `scripts/smoke-ctcore-swift-binding.sh`
+- XcodeBuildMCP `build_sim` for `CraftingTable` on `iPad Pro 13-inch (M5)` succeeded.
+
+Completion:
+
+- Phase 7 is complete for the first iPad CTCore binding slice.
+- The completed slice proves the app can embed CTCore and call a feature-gated backend API from Swift.
+- Remaining domain-store migrations belong to later phases; they should be sequenced by domain rather than hidden behind a new workspace aggregate.
+
 ## Recommended first implementation slice
 
 Do not begin with repo-wide restructuring.
