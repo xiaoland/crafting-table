@@ -4,7 +4,7 @@
 
 Crafting Table does not currently have a desktop app target.
 
-`CraftingTable.xcodeproj` has one app target, `CraftingTable`, configured for `iphoneos iphonesimulator` with `TARGETED_DEVICE_FAMILY = 2`.
+`clients/apple/CraftingTable.xcodeproj` has one app target, `CraftingTable`, configured for `iphoneos iphonesimulator` with `TARGETED_DEVICE_FAMILY = 2`.
 
 That means Phase 3 cannot honestly implement an in-app macOS host runtime UI yet. The first reversible slice is to turn the existing Companion into a host runtime unit that can be supervised by a future desktop app or by macOS launchd during development.
 

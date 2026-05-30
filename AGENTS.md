@@ -6,9 +6,11 @@ Keep changes small, reversible, and honest. Do not invent product certainty, arc
 
 ## Repository layout
 
-- `CraftingTable/` - SwiftUI app source
+- `clients/apple/iPad/` - SwiftUI iPad app source
+- `clients/apple/CraftingTable.xcodeproj/` - Apple Xcode project
+- `clients/android/` - future Kotlin/Compose Codex Remote control client
+- `clients/windows/` - future Rust + Tauri Codex Remote desktop client
 - `Companion/` - Codex Remote host-side Companion service
-- `CraftingTable.xcodeproj/` - Xcode project
 - `scripts/` - local launch and smoke helpers
 - `docs/00-meta/` - typed input routes, mode SOPs, growth rules, and framework concepts
 - `docs/10-prd/` - durable product truth and business glossary

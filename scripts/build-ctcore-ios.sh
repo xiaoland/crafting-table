@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CTCORE_DIR="${ROOT_DIR}/CTCore"
-OUT_DIR="${ROOT_DIR}/CraftingTable/Generated/CTCore"
+OUT_DIR="${ROOT_DIR}/clients/apple/iPad/Generated/CTCore"
 HEADERS_DIR="${OUT_DIR}/Headers"
 XCFRAMEWORK_PATH="${OUT_DIR}/CTCore.xcframework"
 

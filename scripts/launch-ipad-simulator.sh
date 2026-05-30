@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT="CraftingTable.xcodeproj"
+PROJECT="clients/apple/CraftingTable.xcodeproj"
 SCHEME="CraftingTable"
 CONFIGURATION="Debug"
 DERIVED_DATA_PATH=".build/DerivedData"

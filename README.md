@@ -23,8 +23,11 @@ The current scope intentionally excludes GUI remote desktop, broad third-party i
 ## Repository Layout
 
 ```text
-CraftingTable/              SwiftUI iPad app source
-CraftingTable.xcodeproj/    Xcode project
+clients/apple/iPad/         SwiftUI iPad app source
+clients/apple/CraftingTable.xcodeproj/
+                            Apple Xcode project
+clients/android/            Future Kotlin/Compose Codex Remote control client
+clients/windows/            Future Rust + Tauri Codex Remote desktop client
 CTCore/                     Feature-gated Rust backend library for portable CT capabilities
 Companion/                  Rust host-side service for Codex Remote
 Companion/scouts/macos/     macOS Desktop Scout helper
@@ -52,7 +55,7 @@ Build for a generic iOS Simulator destination:
 
 ```sh
 xcodebuild \
-  -project CraftingTable.xcodeproj \
+  -project clients/apple/CraftingTable.xcodeproj \
   -scheme CraftingTable \
   -destination 'generic/platform=iOS Simulator' \
   -derivedDataPath .build/DerivedData \
@@ -117,8 +120,8 @@ xcrun --sdk macosx swift scripts/generate-logo-assets.swift
 Useful output paths:
 
 ```text
-CraftingTable/Assets.xcassets/AppLogo.imageset/AppLogo.png
-CraftingTable/Assets.xcassets/AppIcon.appiconset/AppIcon.png
+clients/apple/iPad/Assets.xcassets/AppLogo.imageset/AppLogo.png
+clients/apple/iPad/Assets.xcassets/AppIcon.appiconset/AppIcon.png
 .build/logo-assets/previews/app-icon-mask-preview.png
 ```
 
@@ -181,7 +184,7 @@ The server is meant for trusted LAN use while the app is open. It is not a backg
 Build the iOS app:
 
 ```sh
-xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath .build/DerivedData build
+xcodebuild -project clients/apple/CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath .build/DerivedData build
 ```
 
 Run Companion:

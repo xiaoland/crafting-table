@@ -24,8 +24,8 @@ Open point: portable infrastructure such as networking and filesystem access may
 
 Evidence:
 
-- `CraftingTable/App/CraftingTableApp.swift` creates separate `GoalForestStore`, `SessionStore`, `CaptureStore`, `HostConfigStore`, `RemoteContinuityStore`, `LocalLLMStore`, and `LocalLLMServerController` as SwiftUI `StateObject`s.
-- `CraftingTable/App/RootView.swift` owns routing, sheet presentation, selected Goal Forest node, selected host, linked remote session, and live Remote Control connection state.
+- `clients/apple/iPad/App/CraftingTableApp.swift` creates separate `GoalForestStore`, `SessionStore`, `CaptureStore`, `HostConfigStore`, `RemoteContinuityStore`, `LocalLLMStore`, and `LocalLLMServerController` as SwiftUI `StateObject`s.
+- `clients/apple/iPad/App/RootView.swift` owns routing, sheet presentation, selected Goal Forest node, selected host, linked remote session, and live Remote Control connection state.
 
 Current coupling:
 
@@ -42,8 +42,8 @@ Backend-lib implication:
 
 Evidence:
 
-- Pre-Phase-6, `CraftingTable/Features/Shared/WorkspaceModels.swift` defined `WorkspaceDocument` with `goalNodes`, `goalEdges`, `sessions`, `captures`, `hosts`, and `remoteContinuityRecords`.
-- Pre-Phase-6, `CraftingTable/Features/Shared/WorkspaceStore.swift` persisted the whole document to `workspace-v0.json`.
+- Pre-Phase-6, `clients/apple/iPad/Features/Shared/WorkspaceModels.swift` defined `WorkspaceDocument` with `goalNodes`, `goalEdges`, `sessions`, `captures`, `hosts`, and `remoteContinuityRecords`.
+- Pre-Phase-6, `clients/apple/iPad/Features/Shared/WorkspaceStore.swift` persisted the whole document to `workspace-v0.json`.
 - Phase 6 replaced those files with `BackendModels.swift` and `BackendStores.swift`.
 - Current client-local persistence is split into `goal-forest-v1.json`, `sessions-v1.json`, `captures-v1.json`, `host-config-v1.json`, and `remote-continuity-v1.json`.
 

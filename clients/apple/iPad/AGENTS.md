@@ -1,6 +1,6 @@
-# Crafting Table App Guide
+# Crafting Table iPad App Guide
 
-Read this file when working in `CraftingTable/` or making nearby app-structure changes.
+Read this file when working in `clients/apple/iPad/` or making nearby app-structure changes.
 
 - Build for an `iPad-first` SwiftUI app foundation.
 - Prefer small, reversible changes that improve clarity.

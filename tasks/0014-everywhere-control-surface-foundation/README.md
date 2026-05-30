@@ -51,10 +51,16 @@ Phase 7 update:
 - For Codex Remote, Windows and macOS are controlled endpoints that run the Codex Companion Server / Host Runtime.
 - For Codex Remote, iPadOS and Android are control endpoints that run the Companion Client and UI.
 - Codex Companion should be merged into the Crafting Table / CT client experience rather than remain a separately managed process, while code may remain separated as maintainable units.
+- Embedded Codex Host Runtime should move into the shared backend library as an in-process library surface, not a bundled sidecar process.
 - Desktop clients should support login launch and background residency to serve Codex Remote.
 - The iPad client should pursue the closest practical equivalent for Local LLM Service reliability under iPadOS lifecycle constraints.
 - The most important implementation direction may be a cross-platform backend library that owns business capabilities and is compiled with only the needed feature set, while platform clients provide adapters for OS-specific capabilities such as storage, camera, credentials, background lifecycle, and platform UI.
 - Backend library features are not all equivalent. For example, Codex Remote Control Server and Codex Remote Control Client should be separate compile-time features because they have different capabilities, authorities, and platform requirements.
+- Current non-iPad platform scope is intentionally narrow: macOS, Windows, and Android should focus on Codex Remote first, not Goal Forest, Capture, Local LLM, or full CT feature parity in the first client slices.
+- CTCore is expected to contain cross-platform implementations for Goal Forest, Capture, Session, Codex Remote client/server, and Local LLM core where those capabilities are genuinely platform-independent. Platform clients still own OS adapters.
+- Preferred client stack decisions: macOS uses SwiftUI after the Apple project migration, Android uses Kotlin, and Windows uses Rust + Tauri.
+- Codex Host Runtime API should be shaped around an async event stream.
+- First new platform implementation target should be macOS Host Runtime.
 
 ## Current Evidence
 
@@ -64,9 +70,9 @@ Historical local workspace state was a versioned Codable JSON document under app
 
 Evidence:
 
-- Pre-Phase-6, `CraftingTable/Features/Shared/WorkspaceModels.swift` defined `WorkspaceDocument` with `goalNodes`, `goalEdges`, `sessions`, `captures`, `hosts`, and `remoteContinuityRecords`.
-- Pre-Phase-6, `CraftingTable/Features/Shared/WorkspaceStore.swift` persisted that document to `workspace-v0.json`.
-- Phase 6 replaced the aggregate with split stores in `CraftingTable/Features/Shared/BackendStores.swift`.
+- Pre-Phase-6, `clients/apple/iPad/Features/Shared/WorkspaceModels.swift` defined `WorkspaceDocument` with `goalNodes`, `goalEdges`, `sessions`, `captures`, `hosts`, and `remoteContinuityRecords`.
+- Pre-Phase-6, `clients/apple/iPad/Features/Shared/WorkspaceStore.swift` persisted that document to `workspace-v0.json`.
+- Phase 6 replaced the aggregate with split stores in `clients/apple/iPad/Features/Shared/BackendStores.swift`.
 
 Implication:
 
@@ -96,7 +102,7 @@ Evidence:
 
 - `Companion/src/main.rs` starts an axum server.
 - `Companion/src/routes.rs` exposes `GET /health`, thread routes, model routes, desktop snapshot, turn submission, and turn event WebSocket routes.
-- `CraftingTable/Features/CodexRemote/CodexRemoteClient.swift` talks to a Companion endpoint instead of Codex app-server directly.
+- `clients/apple/iPad/Features/CodexRemote/CodexRemoteClient.swift` talks to a Companion endpoint instead of Codex app-server directly.
 - `docs/20-product-tdd/cross-unit-contracts.md` keeps Codex app-server protocol churn behind Companion.
 
 Implication:
@@ -112,8 +118,8 @@ Current Local LLM state is device-local by design.
 Evidence:
 
 - `docs/20-product-tdd/system-state-and-authority.md` assigns local model manifest/cache, active model, HTTP server listener state, bearer token, and local chat transcript to Local LLM local owners.
-- `CraftingTable/Features/LocalLLM/LocalLLMStore.swift` persists a local manifest and cache path.
-- `CraftingTable/Features/LocalLLM/LocalLLMHTTPServer.swift` exposes a bearer-protected local HTTP surface.
+- `clients/apple/iPad/Features/LocalLLM/LocalLLMStore.swift` persists a local manifest and cache path.
+- `clients/apple/iPad/Features/LocalLLM/LocalLLMHTTPServer.swift` exposes a bearer-protected local HTTP surface.
 
 Implication:
 
@@ -123,10 +129,10 @@ Implication:
 
 ## Platform Role Hypotheses
 
-- macOS: CT client plus Codex Remote Control Server / Host Runtime; supports login launch, background residency, Desktop Scout, Codex app-server adaptation, local configuration, and control UI where useful.
-- Windows: CT client plus Codex Remote Control Server / Host Runtime; supports login launch, background residency, Windows UI Automation scout, Codex app-server adaptation, local configuration, and control UI where useful.
-- iPadOS: CT control client for Codex Remote Control; Local LLM host where foreground or continued-background execution is practical; InKCre client/projection surface for Goal Forest and Capture.
-- Android: CT control client for Codex Remote Control and lightweight InKCre-facing capture/control surface; not expected to host Codex Companion Server in the first direction.
+- macOS: Codex Remote desktop client plus in-process Codex Host Runtime; supports login launch, background residency, Desktop Scout, Codex app-server adaptation, local configuration, and control UI where useful.
+- Windows: Codex Remote desktop client plus in-process Codex Host Runtime; supports login launch, background residency, Windows scout, Codex app-server adaptation, local configuration, and control UI where useful.
+- iPadOS: current full CT client plus Codex Remote control client; Local LLM host where foreground or continued-background execution is practical.
+- Android: Codex Remote control client; not expected to host Codex Host Runtime in the first direction.
 
 These are hypotheses for technical planning, not durable product commitments.
 
@@ -174,12 +180,12 @@ Sources checked:
 - Should Remote SSH and Codex endpoint configuration share one portable config file, or remain separate files with a shared config directory?
 - What schema and merge discipline keeps user-synced config files safe under iCloud / Nextcloud conflict behavior?
 - What is the smallest secure pairing model for control clients talking to desktop Codex Host Runtime?
-- How should the current Rust Companion be embedded into desktop clients: sidecar process supervised by the app, static library boundary, local service helper, or retained standalone binary hidden behind app UX?
+- How should current Companion runtime code move into CTCore as an in-process Codex Host Runtime API while preserving the server-owned wire contract?
 - What belongs in the cross-platform backend library versus the platform client adapter layer?
 - Should portable capabilities such as networking and filesystem access live inside the backend library, or be injected by clients for stricter platform control?
 - Which backend library features should be compiled into each platform client?
 - What platform stack should desktop CT use before Companion embedding is planned?
-- How much of `CraftingTable/Features/CodexRemote/` can be reused by iPadOS and Android, and how much is only contract vocabulary?
+- How much of `clients/apple/iPad/Features/CodexRemote/` can be reused by iPadOS and Android, and how much is only contract vocabulary?
 - What exact iPadOS background behavior can Local LLM rely on for active generation, active HTTP serving, and idle listening?
 
 ## Guardrails
@@ -231,6 +237,7 @@ Sources checked:
 - `repo-structure-options.md`: minimal repo organization options with tradeoffs and migration risk.
 - `implementation-plan.md`: phased implementation sequence and execution evidence.
 - `ipad-ctcore-integration-plan.md`: Rust-to-Swift binding direction, first iPad CTCore slice, and key build/authority decisions.
+- `platform-client-architecture.md`: target client stacks, repo structure, and build workflow hypotheses for macOS, Windows, and Android.
 
 Create child notes only when they materially help the task.
 
@@ -238,7 +245,7 @@ Create child notes only when they materially help the task.
 
 - Stable product positioning and platform role language -> `docs/10-prd/`
 - InKCre-backed Goal Forest / Capture authority and cross-unit contract -> `docs/20-product-tdd/`
-- Codex Host Runtime topology and Companion contract changes -> `docs/20-product-tdd/`
+- Codex Host Runtime topology, in-process library boundary, and Companion contract changes -> `docs/20-product-tdd/`
 - Portable config file schema and secret boundary -> `docs/20-product-tdd/` or local code-adjacent docs after implementation pressure is real
 - iPadOS Local LLM lifecycle guarantees and limits -> `docs/20-product-tdd/` after executable verification
 - iPad CTCore binding and artifact workflow -> `docs/20-product-tdd/` after the first Swift smoke path is executable
@@ -253,5 +260,5 @@ Create child notes only when they materially help the task.
 - Should CTCore Swift bindings use UniFFI as planned, or does iOS artifact complexity force a narrower C ABI for the first slice?
 - Should generated Swift binding files be checked in permanently, or only during the early integration phase?
 - Should Codex Host Runtime keep the current HTTP/WebSocket contract unchanged for Android/iPad clients?
-- On desktop, is an app-supervised sidecar acceptable, or must the host runtime be in-process?
+- What is the smallest in-process Codex Host Runtime API that macOS and Windows can embed without taking ownership of Codex app-server details?
 - On iPadOS, what Local LLM service state is product-worthy if background continuation is interruptible?

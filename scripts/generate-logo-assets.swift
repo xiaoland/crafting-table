@@ -68,13 +68,13 @@ private struct LogoInput {
 
 private let fileManager = FileManager.default
 private let environment = ProcessInfo.processInfo.environment
-private let rootPath = environment["SRCROOT"] ?? fileManager.currentDirectoryPath
+private let rootPath = environment["REPO_ROOT"] ?? environment["SRCROOT"] ?? fileManager.currentDirectoryPath
 private let rootURL = URL(fileURLWithPath: rootPath, isDirectory: true)
 private let configURL = URL(fileURLWithPath: environment["CRAFTING_TABLE_LOGO_CONFIG"] ?? rootURL.appendingPathComponent("logo.local.json").path)
 private let cacheRootURL = rootURL.appendingPathComponent(".build/logo-assets/minecraft", isDirectory: true)
 private let previewRootURL = rootURL.appendingPathComponent(".build/logo-assets/previews", isDirectory: true)
-private let appLogoURL = rootURL.appendingPathComponent("CraftingTable/Assets.xcassets/AppLogo.imageset/AppLogo.png")
-private let appIconURL = rootURL.appendingPathComponent("CraftingTable/Assets.xcassets/AppIcon.appiconset/AppIcon.png")
+private let appLogoURL = rootURL.appendingPathComponent("clients/apple/iPad/Assets.xcassets/AppLogo.imageset/AppLogo.png")
+private let appIconURL = rootURL.appendingPathComponent("clients/apple/iPad/Assets.xcassets/AppIcon.appiconset/AppIcon.png")
 private let vanillaCraftingTablePath = "assets/minecraft/textures/block/crafting_table_top.png"
 
 private func main() {

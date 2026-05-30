@@ -60,9 +60,9 @@ playground.xcworkspace
 !default.pbxuser
 scratch/
 logo.local.json
-CraftingTable/Assets.xcassets/AppIcon.appiconset/AppIcon.png
-CraftingTable/Assets.xcassets/AppLogo.imageset/AppLogo.png
+clients/apple/iPad/Assets.xcassets/AppIcon.appiconset/AppIcon.png
+clients/apple/iPad/Assets.xcassets/AppLogo.imageset/AppLogo.png
 .build/logo-assets/previews/
-CraftingTable/Generated/CTCore/*.a
-CraftingTable/Generated/CTCore/Headers/
-CraftingTable/Generated/CTCore/CTCore.xcframework/
+clients/apple/iPad/Generated/CTCore/*.a
+clients/apple/iPad/Generated/CTCore/Headers/
+clients/apple/iPad/Generated/CTCore/CTCore.xcframework/

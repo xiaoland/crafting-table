@@ -90,12 +90,12 @@
 		A10000310000000000000001 = {
 			isa = PBXGroup;
 			children = (
-				A10000310000000000000002 /* CraftingTable */,
+				A10000310000000000000002 /* iPad */,
 				A10000310000000000000006 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		A10000310000000000000002 /* CraftingTable */ = {
+		A10000310000000000000002 /* iPad */ = {
 			isa = PBXGroup;
 			children = (
 				A10000310000000000000003 /* App */,
@@ -103,7 +103,7 @@
 				C17000310000000000000001 /* Generated */,
 				A10000110000000000000004 /* Assets.xcassets */,
 			);
-			path = CraftingTable;
+			path = iPad;
 			sourceTree = "<group>";
 		};
 		C17000310000000000000001 /* Generated */ = {
@@ -328,18 +328,18 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/scripts/generate-logo-assets.swift",
+				"$(SRCROOT)/../../scripts/generate-logo-assets.swift",
 			);
 			name = "Generate Logo Assets";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(SRCROOT)/CraftingTable/Assets.xcassets/AppLogo.imageset/AppLogo.png",
-				"$(SRCROOT)/CraftingTable/Assets.xcassets/AppIcon.appiconset/AppIcon.png",
+				"$(SRCROOT)/iPad/Assets.xcassets/AppLogo.imageset/AppLogo.png",
+				"$(SRCROOT)/iPad/Assets.xcassets/AppIcon.appiconset/AppIcon.png",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "xcrun --sdk macosx swift \"${SRCROOT}/scripts/generate-logo-assets.swift\"\n";
+			shellScript = "REPO_ROOT=\"${SRCROOT}/../..\" xcrun --sdk macosx swift \"${SRCROOT}/../../scripts/generate-logo-assets.swift\"\n";
 		};
 		C17000210000000000000001 /* Build CTCore iOS Artifact */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -350,11 +350,11 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/CTCore/Cargo.toml",
-				"$(SRCROOT)/CTCore/src/lib.rs",
-				"$(SRCROOT)/CTCore/src/portable_config/mod.rs",
-				"$(SRCROOT)/CTCore/src/swift_bindings.rs",
-				"$(SRCROOT)/scripts/build-ctcore-ios.sh",
+				"$(SRCROOT)/../../CTCore/Cargo.toml",
+				"$(SRCROOT)/../../CTCore/src/lib.rs",
+				"$(SRCROOT)/../../CTCore/src/portable_config/mod.rs",
+				"$(SRCROOT)/../../CTCore/src/swift_bindings.rs",
+				"$(SRCROOT)/../../scripts/build-ctcore-ios.sh",
 			);
 			name = "Build CTCore iOS Artifact";
 			outputFileListPaths = (
@@ -363,7 +363,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/scripts/build-ctcore-ios.sh\"\n";
+			shellScript = "\"${SRCROOT}/../../scripts/build-ctcore-ios.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -460,7 +460,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = CraftingTable/App/Info.plist;
+				INFOPLIST_FILE = iPad/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Crafting Table";
 				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Crafting Table hosts a local LLM HTTP server for trusted devices on your network.";
@@ -494,7 +494,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = CraftingTable/App/Info.plist;
+				INFOPLIST_FILE = iPad/App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Crafting Table";
 				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Crafting Table hosts a local LLM HTTP server for trusted devices on your network.";
@@ -545,7 +545,7 @@
 /* Begin XCLocalSwiftPackageReference section */
 		B13001010000000000000001 /* XCLocalSwiftPackageReference "ThirdParty/LlamaFrameworkPackage" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = ThirdParty/LlamaFrameworkPackage;
+			relativePath = ../../ThirdParty/LlamaFrameworkPackage;
 		};
 /* End XCLocalSwiftPackageReference section */
 

@@ -4,8 +4,8 @@
 
 - producer: CTCore
   consumer: iPad client target
-  artifact contract: `scripts/build-ctcore-ios.sh` regenerates UniFFI Swift bindings, builds CTCore for iOS device and simulator, and packages those static libraries into `CraftingTable/Generated/CTCore/CTCore.xcframework`.
-  source boundary: generated Swift binding source is checked in under `CraftingTable/Generated/CTCore/`; generated binary artifacts are local build outputs and stay ignored by git.
+  artifact contract: `scripts/build-ctcore-ios.sh` regenerates UniFFI Swift bindings, builds CTCore for iOS device and simulator, and packages those static libraries into `clients/apple/iPad/Generated/CTCore/CTCore.xcframework`.
+  source boundary: generated Swift binding source is checked in under `clients/apple/iPad/Generated/CTCore/`; generated binary artifacts are local build outputs and stay ignored by git.
   feature boundary: the iPad artifact is built with the `swift-bindings` CTCore feature, which currently pulls only the portable config binding surface into the client.
 
 - build-system rule: the iPad Xcode target links `CTCore.xcframework` through its Frameworks phase.

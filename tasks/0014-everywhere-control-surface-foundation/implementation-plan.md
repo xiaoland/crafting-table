@@ -57,9 +57,9 @@ Candidate backend-library features:
 
 Codex Remote Control Server is the desktop-controlled endpoint for Codex Remote Control.
 
-It should be closer to an app-embedded service/helper than a user-managed standalone daemon.
+It should be an app-embedded in-process library surface, not a user-managed standalone daemon or bundled sidecar.
 
-Current `Companion` has two useful separations:
+Current `Companion` has two useful separations to preserve while the runtime code moves into CTCore:
 
 - host adapter: Codex app-server / Codex CLI / local Codex store / Desktop Scout integration
 - server-owned wire contract: stable routes and event schemas consumed by iPadOS / Android control clients
@@ -172,13 +172,13 @@ Verification policy:
 
 ## Phase 3 - Desktop Codex Remote Control Server Packaging
 
-Goal: make Codex Remote Control embeddable into desktop and mobile clients while preserving the host wire contract.
+Goal: make Codex Remote Control embeddable into desktop clients as an in-process CTCore library surface while preserving the host wire contract.
 
 Scope:
 
 - choose first desktop target: macOS or Windows
-- keep existing Rust Companion code as the runtime core initially
-- package it as an app-supervised helper or embedded service for the desktop CT client
+- move existing Rust Companion runtime code toward CTCore instead of treating the binary as the product runtime
+- expose an in-process Host Runtime API for desktop CT clients
 - support login launch / background resident mode
 - expose user-visible status, stop/start, logs, and diagnostics
 - keep iPad/Android control clients talking to the same or versioned server-owned wire contract
@@ -186,16 +186,16 @@ Scope:
 Clarification:
 
 - Login launch, background residency, app window lifecycle, and OS service registration are responsibilities of each platform client adapter.
-- Codex Host Runtime should expose embeddable runtime APIs and status contracts. It should not own client lifecycle policy.
+- Codex Host Runtime should expose embeddable in-process runtime APIs and status contracts. It should not own client lifecycle policy.
 
-Likely first implementation:
+Updated implementation direction:
 
-- app-supervised sidecar/helper is the most reversible first step.
-- deeper in-process embedding can wait until the desktop app stack is proven.
+- in-process library mode is the product embedding model.
+- standalone binary/sidecar mode may remain as a development harness and diagnostic tool only.
 
 Verification:
 
-- desktop app can start host runtime without terminal
+- desktop app can start host runtime in-process without terminal
 - host runtime starts on login when enabled
 - iPad client can connect to the packaged runtime
 - runtime survives window close when background residency is enabled
@@ -203,8 +203,8 @@ Verification:
 
 Implementation evidence:
 
-- Current `CraftingTable.xcodeproj` still has only an iPad target: `SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"` and `TARGETED_DEVICE_FAMILY = 2`.
-- Because there is no desktop CT app target yet, this phase starts with an app-supervised host runtime boundary rather than pretending the runtime is already embedded in a macOS UI.
+- Current `clients/apple/CraftingTable.xcodeproj` still has only an iPad target: `SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"` and `TARGETED_DEVICE_FAMILY = 2`.
+- Because there is no desktop CT app target yet, this phase first proved router/runtime construction without launching the binary; the product target is still in-process CTCore embedding.
 - `CTCore` now includes server-owned host runtime status contract types: `HostRuntimeState`, `HostRuntimeLaunchContext`, and `HostRuntimeStatusResponse`.
 - `Companion` depends on `CTCore` with `codex-remote-control-server` enabled for the new host runtime status route.
 - `GET /host/runtime` reports process state, PID, bind address, Codex home, and launch context.
@@ -216,11 +216,53 @@ Implementation evidence:
 
 Current limit:
 
-- This now supports an embedded runtime shape and a development sidecar shape. Pairing/auth, packaged helper distribution, in-app macOS controls, Windows service packaging, and mobile client adapter integration are not implemented yet.
+- This now supports an embedded runtime shape and a development sidecar shape. Pairing/auth, in-app macOS controls, Windows background packaging, moving host runtime code fully into CTCore, and mobile client adapter integration are not implemented yet.
+
+## Phase 8 - Platform Client Architecture Decisions
+
+Goal: settle macOS, Windows, and Android high-level implementation strategy before adding new client trees.
+
+Current direction:
+
+- macOS uses SwiftUI with narrow AppKit interop.
+- Android uses Kotlin and Jetpack Compose.
+- Windows uses Rust + Tauri.
+- macOS and Windows only need Codex Remote for now.
+- Android only needs Codex Remote control-client functionality for now.
+- Embedded Codex Host Runtime belongs in CTCore/shared backend as an in-process library API.
+- Codex Host Runtime API should expose async event streams instead of a blocking command-only surface.
+- First implementation platform is macOS Host Runtime, after the Apple project migration.
+
+Outputs:
+
+- target repo structure for client folders and binding artifacts
+- Apple, Android, and Windows build workflow definitions
+- Codex Host Runtime API shape for in-process embedding
+- first-platform implementation order
+
+Planning artifact:
+
+- `platform-client-architecture.md`
+
+Implementation evidence:
+
+- Apple project structure has moved to `clients/apple/`.
+- Existing iPad source now lives under `clients/apple/iPad/`.
+- `clients/android/` and `clients/windows/` now exist as target client roots without introducing Gradle or Tauri build files prematurely.
+- `scripts/build-ctcore-ios.sh`, `scripts/smoke-ctcore-swift-binding.sh`, and iPad launch scripts use the migrated Apple paths.
+- `CTCore` now exposes `codex_remote_control::host_runtime` under `codex-remote-control-server`.
+- The first Host Runtime API shape is async-event oriented:
+  - `HostRuntimeHandle`
+  - `HostRuntimeEventBus`
+  - `HostRuntimeEventReceiver`
+  - `HostRuntimeEvent`
 
 Verified:
 
-- `xcodebuild -list -project CraftingTable.xcodeproj` confirmed the current Xcode project has only the `CraftingTable` app target.
+- XcodeBuildMCP `build_sim` for `clients/apple/CraftingTable.xcodeproj` on `iPad Pro 13-inch (M5)` succeeded.
+- `scripts/build-ctcore-ios.sh`
+- `scripts/smoke-ctcore-swift-binding.sh`
+- `xcodebuild -list -project clients/apple/CraftingTable.xcodeproj` confirmed the current Xcode project has only the `CraftingTable` app target.
 - `cargo fmt --manifest-path CTCore/Cargo.toml -- --check`
 - `cargo fmt --manifest-path Companion/Cargo.toml -- --check`
 - `bash -n scripts/codex-host-runtime.sh`
@@ -354,8 +396,8 @@ Verified:
 - `cargo fmt --manifest-path CTCore/Cargo.toml -- --check`
 - `cargo test --manifest-path CTCore/Cargo.toml --all-features`
 - `cargo test --manifest-path CTCore/Cargo.toml --no-default-features`
-- `xcodebuild -project CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' build`
-- `rg -n "WorkspaceDocument|WorkspaceStore|workspace-v0|WorkspaceModels|workspaceStore|document\\." CraftingTable CraftingTable.xcodeproj CTCore -S`
+- `xcodebuild -project clients/apple/CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' build`
+- `rg -n "WorkspaceDocument|WorkspaceStore|workspace-v0|WorkspaceModels|workspaceStore|document\\." clients/apple/iPad clients/apple/CraftingTable.xcodeproj CTCore -S`
 
 ## Phase 7 - iPad Client CTCore Binding
 
@@ -407,11 +449,11 @@ Implementation evidence:
 
 - `CTCore` now has a `swift-bindings` feature.
 - `CTCore/src/swift_bindings.rs` exposes a UniFFI facade for portable config decode, encode, validate, diagnostics, and default document construction.
-- Generated Swift binding files live under `CraftingTable/Generated/CTCore/`.
+- Generated Swift binding files live under `clients/apple/iPad/Generated/CTCore/`.
 - `scripts/build-ctcore-ios.sh` regenerates UniFFI Swift bindings, builds local iOS device/simulator static libraries, and packages them into `CTCore.xcframework`.
 - `scripts/smoke-ctcore-swift-binding.sh` compiles the generated Swift binding against CTCore and verifies validation + JSON round-trip through the Rust facade.
 - The Xcode target has a `Build CTCore iOS Artifact` phase before Swift compilation.
-- The iPad target links `CTCore.xcframework` from `CraftingTable/Generated/CTCore/`.
+- The iPad target links `CTCore.xcframework` from `clients/apple/iPad/Generated/CTCore/`.
 - The CTCore build script phase is configured to run every build. Declaring the generated XCFramework as a same-target script output creates an Xcode dependency cycle with the Frameworks phase.
 - `HostConfigStore` now loads/saves portable config JSON through CTCore binding functions:
   - `portableConfigDecodeJson`
