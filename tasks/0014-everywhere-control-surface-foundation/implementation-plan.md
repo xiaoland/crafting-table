@@ -372,7 +372,7 @@ Scope:
 Recommended technical direction:
 
 - use UniFFI for Swift bindings, because Android/Kotlin reuse is expected later
-- produce an iOS device/simulator artifact for the iPad target; a full XCFramework is preferred after the binding surface stabilizes
+- produce an iOS device/simulator XCFramework artifact for the iPad target
 - check generated Swift binding files in during the first slice to keep Xcode builds deterministic
 - start with `HostConfigStore` -> CTCore `portable-config`
 
@@ -401,18 +401,18 @@ Verification:
 Planning artifact:
 
 - `ipad-ctcore-integration-plan.md`
+- durable build boundary: `docs/20-product-tdd/platform-build-boundaries.md`
 
 Implementation evidence:
 
 - `CTCore` now has a `swift-bindings` feature.
 - `CTCore/src/swift_bindings.rs` exposes a UniFFI facade for portable config decode, encode, validate, diagnostics, and default document construction.
 - Generated Swift binding files live under `CraftingTable/Generated/CTCore/`.
-- `scripts/build-ctcore-ios.sh` regenerates UniFFI Swift bindings and builds local iOS device/simulator static libraries.
+- `scripts/build-ctcore-ios.sh` regenerates UniFFI Swift bindings, builds local iOS device/simulator static libraries, and packages them into `CTCore.xcframework`.
 - `scripts/smoke-ctcore-swift-binding.sh` compiles the generated Swift binding against CTCore and verifies validation + JSON round-trip through the Rust facade.
 - The Xcode target has a `Build CTCore iOS Artifact` phase before Swift compilation.
-- The iPad target links the generated CTCore static library per SDK:
-  - `libct_core_ios.a` for device
-  - `libct_core_sim.a` for simulator
+- The iPad target links `CTCore.xcframework` from `CraftingTable/Generated/CTCore/`.
+- The CTCore build script phase is configured to run every build. Declaring the generated XCFramework as a same-target script output creates an Xcode dependency cycle with the Frameworks phase.
 - `HostConfigStore` now loads/saves portable config JSON through CTCore binding functions:
   - `portableConfigDecodeJson`
   - `portableConfigEncodeJson`

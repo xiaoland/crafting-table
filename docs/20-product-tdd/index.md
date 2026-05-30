@@ -12,6 +12,7 @@ It is admitted now because Goal Forest, work session, capture, Remote Control, C
 - `system-state-and-authority.md`
 - `cross-unit-contracts.md`
 - `claim-realization-matrix.md`
+- `platform-build-boundaries.md`
 
 Keep this package about realization and authority, not product why.
 Product intent stays in `docs/10-prd/`.

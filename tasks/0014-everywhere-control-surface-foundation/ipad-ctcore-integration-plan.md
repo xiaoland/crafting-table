@@ -20,7 +20,7 @@ The first `HostConfigStore` slice is implemented.
 
 - CTCore exposes a `swift-bindings` feature through UniFFI.
 - `HostConfigStore` calls CTCore for portable config decode, encode, and validation.
-- Xcode builds CTCore iOS static libraries through `scripts/build-ctcore-ios.sh`.
+- Xcode builds and links `CTCore.xcframework` through `scripts/build-ctcore-ios.sh`.
 - Generated Swift binding source is checked in under `CraftingTable/Generated/CTCore/`.
 - Static libraries are generated locally and ignored by git.
 - `scripts/smoke-ctcore-swift-binding.sh` verifies the generated Swift binding can call CTCore validation and JSON round-trip functions.
@@ -49,9 +49,9 @@ Open implementation detail:
 
 ### Build artifact
 
-Recommended direction: CTCore should eventually produce an iOS device + iOS simulator XCFramework.
+Recommended direction: CTCore should produce an iOS device + iOS simulator XCFramework.
 
-Current implementation note: the first slice links generated static libraries directly per SDK, not a full XCFramework yet. This keeps the first integration small. Converging the artifact into an XCFramework remains the preferred packaging cleanup once the binding surface stabilizes.
+Current implementation note: the iPad target links `CTCore.xcframework`. The Rust build still produces per-SDK static libraries as intermediate inputs, then packages them into the XCFramework.
 
 The initial build target should include only the features needed by the iPad slice. Do not ship all CTCore features into the app by default.
 
@@ -65,9 +65,10 @@ Later feature sets:
 - `local-llm-core`
 - Codex Remote Control client-side contracts if the iPad UI needs them directly
 
-Open implementation detail:
+Implementation detail:
 
-- Whether the XCFramework is built by a local script committed under `scripts/`, by a Swift Package wrapper, or by an Xcode run script. Recommended first path: a script that produces a local artifact, then Xcode links the artifact.
+- The XCFramework is built by `scripts/build-ctcore-ios.sh` and linked by the Xcode target.
+- The script phase intentionally runs every build. Declaring the XCFramework as both a script output and same-target framework input creates an Xcode dependency cycle.
 
 ### First domain slice
 
@@ -143,10 +144,9 @@ For the first `HostConfigStore` slice:
 
 - add UniFFI dependency and minimal `.udl` or proc-macro binding setup
 - expose CTCore portable config decode/encode/validate surface to Swift
-- build iOS simulator/device static library or framework
-- link per-SDK static libraries for the first slice; package an XCFramework later when the binding surface is stable
+- build iOS simulator/device static libraries and package them into `CTCore.xcframework`
 - add generated Swift binding files or a deterministic generation step
-- link the iPad target against the CTCore artifact
+- link the iPad target against `CTCore.xcframework`
 - change `HostConfigStore` to call CTCore for config parsing and validation
 - keep Swift responsible for choosing the app-support file URL
 

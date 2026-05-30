@@ -35,6 +35,7 @@
 		A10000010000000000000011 /* CodexRemoteThreadPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000110000000000000011 /* CodexRemoteThreadPage.swift */; };
 		B14000010000000000000001 /* AboutScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B14000110000000000000001 /* AboutScreen.swift */; };
 		C17000010000000000000001 /* ct_core.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17000110000000000000001 /* ct_core.swift */; };
+		C18000020000000000000001 /* CTCore.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C18000110000000000000001 /* CTCore.xcframework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +71,7 @@
 		C17000110000000000000001 /* ct_core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ct_core.swift; sourceTree = "<group>"; };
 		C17000110000000000000002 /* ct_coreFFI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ct_coreFFI.h; sourceTree = "<group>"; };
 		C17000110000000000000003 /* ct_coreFFI.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = ct_coreFFI.modulemap; sourceTree = "<group>"; };
+		C18000110000000000000001 /* CTCore.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = CTCore.xcframework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +80,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B13000020000000000000001 /* LlamaFramework in Frameworks */,
+				C18000020000000000000001 /* CTCore.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -117,6 +120,7 @@
 				C17000110000000000000001 /* ct_core.swift */,
 				C17000110000000000000002 /* ct_coreFFI.h */,
 				C17000110000000000000003 /* ct_coreFFI.modulemap */,
+				C18000110000000000000001 /* CTCore.xcframework */,
 			);
 			path = CTCore;
 			sourceTree = "<group>";
@@ -339,6 +343,7 @@
 		};
 		C17000210000000000000001 /* Build CTCore iOS Artifact */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -355,8 +360,6 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(SRCROOT)/CraftingTable/Generated/CTCore/libct_core_ios.a",
-				"$(SRCROOT)/CraftingTable/Generated/CTCore/libct_core_sim.a",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -471,13 +474,6 @@
 					"@loader_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(SRCROOT)/CraftingTable/Generated/CTCore/libct_core_ios.a";
-				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = "$(SRCROOT)/CraftingTable/Generated/CTCore/libct_core_sim.a";
-				OTHER_SWIFT_FLAGS = (
-					"$(inherited)",
-					"-Xcc",
-					"-fmodule-map-file=$(SRCROOT)/CraftingTable/Generated/CTCore/ct_coreFFI.modulemap",
-				);
 				PRODUCT_BUNDLE_IDENTIFIER = dev.lanzhijiang.CraftingTable;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -512,13 +508,6 @@
 					"@loader_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(SRCROOT)/CraftingTable/Generated/CTCore/libct_core_ios.a";
-				"OTHER_LDFLAGS[sdk=iphonesimulator*]" = "$(SRCROOT)/CraftingTable/Generated/CTCore/libct_core_sim.a";
-				OTHER_SWIFT_FLAGS = (
-					"$(inherited)",
-					"-Xcc",
-					"-fmodule-map-file=$(SRCROOT)/CraftingTable/Generated/CTCore/ct_coreFFI.modulemap",
-				);
 				PRODUCT_BUNDLE_IDENTIFIER = dev.lanzhijiang.CraftingTable;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;

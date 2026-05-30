@@ -42,5 +42,5 @@ scripts/build-ctcore-ios.sh
 scripts/smoke-ctcore-swift-binding.sh
 ```
 
-The script regenerates UniFFI Swift bindings and builds local iOS device/simulator static libraries used by the iPad target.
+The script regenerates UniFFI Swift bindings and builds the local `CTCore.xcframework` used by the iPad target.
 The smoke script compiles the generated Swift binding against CTCore and verifies portable config validation plus JSON round-trip behavior.

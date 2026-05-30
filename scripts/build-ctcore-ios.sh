@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CTCORE_DIR="${ROOT_DIR}/CTCore"
 OUT_DIR="${ROOT_DIR}/CraftingTable/Generated/CTCore"
+HEADERS_DIR="${OUT_DIR}/Headers"
+XCFRAMEWORK_PATH="${OUT_DIR}/CTCore.xcframework"
 
 FEATURES="swift-bindings"
 PROFILE="release"
@@ -52,6 +54,19 @@ lipo -create \
   "${TARGET_DIR}/x86_64-apple-ios/${PROFILE}/libct_core.a" \
   -output "${OUT_DIR}/libct_core_sim.a"
 
+rm -rf "${HEADERS_DIR}" "${XCFRAMEWORK_PATH}"
+mkdir -p "${HEADERS_DIR}"
+cp "${OUT_DIR}/ct_coreFFI.h" "${HEADERS_DIR}/ct_coreFFI.h"
+cp "${OUT_DIR}/ct_coreFFI.modulemap" "${HEADERS_DIR}/module.modulemap"
+
+xcodebuild -create-xcframework \
+  -library "${OUT_DIR}/libct_core_ios.a" \
+  -headers "${HEADERS_DIR}" \
+  -library "${OUT_DIR}/libct_core_sim.a" \
+  -headers "${HEADERS_DIR}" \
+  -output "${XCFRAMEWORK_PATH}"
+
 echo "CTCore iOS artifacts:"
 lipo -info "${OUT_DIR}/libct_core_ios.a"
 lipo -info "${OUT_DIR}/libct_core_sim.a"
+echo "${XCFRAMEWORK_PATH}"
