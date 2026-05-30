@@ -2,7 +2,7 @@
 
 Platform client roots for CT.
 
-- `apple/`: Xcode project, current iPad app, and future macOS app target.
+- `apple/`: Xcode project, current iPad app, and macOS Host Runtime client target.
 - `android/`: future Kotlin/Compose Codex Remote control client.
 - `windows/`: future Rust + Tauri Codex Remote desktop client.
 

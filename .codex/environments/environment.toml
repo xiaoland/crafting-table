@@ -15,14 +15,9 @@ icon = "play"
 command = "./scripts/launch-ipad-device.sh"
 
 [[actions]]
-name = "Start Codex Remote Companion"
+name = "Run MacOS client"
 icon = "play"
-command = "./scripts/codex-remote-companion.sh companion"
-
-[[actions]]
-name = "Start Codex Remote Companion LAN"
-icon = "play"
-command = "./scripts/codex-remote-companion.sh companion-lan"
+command = "./scripts/run-macos-client.sh"
 
 [[actions]]
 name = "Run Codex macOS Scout Snapshot"
@@ -30,21 +25,21 @@ icon = "play"
 command = "./scripts/codex-remote-companion.sh scout"
 
 [[actions]]
-name = "Smoke Codex Remote Companion"
+name = "Smoke Dev Codex Host Runtime"
 icon = "play"
-command = "./scripts/codex-remote-companion.sh smoke"
+command = "./scripts/codex-host-runtime.sh smoke"
 
 [[actions]]
-name = "Start Codex Host Runtime"
+name = "Start Dev Codex Host Runtime"
 icon = "play"
 command = "./scripts/codex-host-runtime.sh start"
 
 [[actions]]
-name = "Stop Codex Host Runtime"
+name = "Stop Dev Codex Host Runtime"
 icon = "stop"
 command = "./scripts/codex-host-runtime.sh stop"
 
 [[actions]]
-name = "Status Codex Host Runtime"
+name = "Status Dev Codex Host Runtime"
 icon = "terminal"
 command = "./scripts/codex-host-runtime.sh status"

@@ -6,7 +6,7 @@ Read this file when working in `clients/apple/`.
 
 - `CraftingTable.xcodeproj` owns Apple client targets.
 - `iPad/` contains the current iPad SwiftUI app.
-- A future macOS target should be added here after the shared Apple layout stays buildable.
+- `macOS/` contains the first macOS Host Runtime client target.
 
 ## Boundaries
 

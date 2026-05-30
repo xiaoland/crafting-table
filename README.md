@@ -14,7 +14,7 @@ This repository is personal/internal software. It is useful as a working app fou
 - `Work Session`: create, resume, pause, and finish active work while keeping nearby context visible.
 - `Quick Capture`: save material without forcing full classification at capture time.
 - `Remote Control`: host profiles and terminal/file-transfer-shaped workflow placeholders connected to sessions.
-- `Codex Remote`: continue Codex threads from iPad through a reachable host-side Companion.
+- `Codex Remote`: continue Codex threads through a reachable host-side Host Runtime.
 - `Local LLM`: manage GGUF models, run a foreground LAN HTTP server, and use a small local chat surface.
 - `About`: app identity, version, and generated logo preview.
 
@@ -24,12 +24,13 @@ The current scope intentionally excludes GUI remote desktop, broad third-party i
 
 ```text
 clients/apple/iPad/         SwiftUI iPad app source
+clients/apple/macOS/        SwiftUI macOS Host Runtime client source
 clients/apple/CraftingTable.xcodeproj/
                             Apple Xcode project
 clients/android/            Future Kotlin/Compose Codex Remote control client
 clients/windows/            Future Rust + Tauri Codex Remote desktop client
 CTCore/                     Feature-gated Rust backend library for portable CT capabilities
-Companion/                  Rust host-side service for Codex Remote
+Companion/                  Legacy Codex Host Runtime source and development harness
 Companion/scouts/macos/     macOS Desktop Scout helper
 Companion/scouts/windows/   Windows Scout prototype
 ThirdParty/                 Local Swift package wrappers, including llama.cpp binary package
@@ -43,7 +44,7 @@ tasks/                      Volatile task packets and implementation notes
 - macOS with Xcode installed.
 - iOS Simulator or a connected iPad.
 - Swift toolchain available through Xcode.
-- Rust toolchain for the `Companion` service.
+- Rust toolchain for CTCore and the interim Host Runtime development harness.
 - Network access for first-time package and logo asset downloads.
 - Optional: Codex Desktop/CLI on the host when using `Codex Remote`.
 
@@ -86,6 +87,12 @@ If Xcode cannot infer your team, pass it explicitly:
 DEVELOPMENT_TEAM='<team-id>' ./scripts/launch-ipad-device.sh
 ```
 
+Build and launch the macOS Host Runtime client:
+
+```sh
+./scripts/run-macos-client.sh
+```
+
 ## App Icon And Logo
 
 The app can generate its icon/logo at build time from:
@@ -125,12 +132,14 @@ clients/apple/iPad/Assets.xcassets/AppIcon.appiconset/AppIcon.png
 .build/logo-assets/previews/app-icon-mask-preview.png
 ```
 
-## Codex Remote Companion
+## Codex Host Runtime
 
-`Codex Remote` talks to a host-side Companion service. For local host testing:
+`Codex Remote` talks to a host-side Host Runtime. The product direction is in-process embedding inside desktop clients; the standalone script remains a development harness while the runtime code moves into CTCore.
+
+Build and launch the first macOS client:
 
 ```sh
-./scripts/codex-remote-companion.sh companion
+./scripts/run-macos-client.sh
 ```
 
 Default endpoint:
@@ -139,13 +148,21 @@ Default endpoint:
 http://127.0.0.1:3765
 ```
 
+Run the development Host Runtime harness in the background:
+
+```sh
+./scripts/codex-host-runtime.sh start
+./scripts/codex-host-runtime.sh status
+./scripts/codex-host-runtime.sh stop
+```
+
 For iPad LAN testing:
 
 ```sh
-./scripts/codex-remote-companion.sh companion-lan
+CODEX_HOST_RUNTIME_BIND=0.0.0.0:3765 ./scripts/codex-host-runtime.sh start
 ```
 
-The script prints a LAN URL such as:
+Use a LAN URL such as:
 
 ```text
 http://<mac-lan-ip>:3765
@@ -153,10 +170,10 @@ http://<mac-lan-ip>:3765
 
 Use that endpoint in the app's `Codex Remote` screen.
 
-Smoke a running Companion:
+Smoke a running development Host Runtime:
 
 ```sh
-./scripts/codex-remote-companion.sh smoke
+./scripts/codex-host-runtime.sh smoke
 ```
 
 Run one macOS Desktop Scout snapshot:
@@ -165,7 +182,7 @@ Run one macOS Desktop Scout snapshot:
 ./scripts/codex-remote-companion.sh scout
 ```
 
-Companion also has its own README at `Companion/README.md`.
+The legacy runtime source also has its own README at `Companion/README.md`.
 
 ## Local LLM
 
@@ -187,7 +204,7 @@ Build the iOS app:
 xcodebuild -project clients/apple/CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath .build/DerivedData build
 ```
 
-Run Companion:
+Run the interim Host Runtime service directly:
 
 ```sh
 cargo run --manifest-path Companion/Cargo.toml

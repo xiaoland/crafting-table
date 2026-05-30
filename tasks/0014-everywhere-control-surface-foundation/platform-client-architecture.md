@@ -77,11 +77,11 @@ Why:
 
 First target shape:
 
-- add a macOS app target after the Apple project migration
+- `CraftingTableMac` now exists as the first macOS app target
 - reuse CTCore Swift binding packaging, extended for macOS slices
 - embed Codex Host Runtime through CTCore in-process API
 - make launch-at-login and background residency macOS adapter responsibilities
-- make macOS Host Runtime the first new platform implementation target
+- keep the initial target limited to Host Runtime status, controls, and event stream visibility
 
 Open decisions:
 
@@ -186,8 +186,10 @@ Near-term structure:
 
 - Apple project structure has moved to `clients/apple/`, with the existing iPad source under `clients/apple/iPad/`.
 - Android and Windows client roots exist as placeholders with no Gradle/Tauri build system yet.
-- add the macOS target after the migrated iPad target remains verified
+- `CraftingTableMac` now exists under `clients/apple/macOS/`
+- next macOS work should connect the UI to the CTCore Host Runtime API instead of a local preview store
 - keep `Companion/` as a source of host-runtime code to migrate, not as the target product runtime
+- keep direct Companion process launchers out of Codex environment actions; development scripts should present this as Dev Codex Host Runtime or macOS client lifecycle
 - add only the client folders needed by the first executable platform slice
 
 ## Build workflow hypothesis

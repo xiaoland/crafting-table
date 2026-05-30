@@ -22,6 +22,7 @@ Usage:
   scripts/codex-host-runtime.sh restart
   scripts/codex-host-runtime.sh status
   scripts/codex-host-runtime.sh logs
+  scripts/codex-host-runtime.sh smoke
 
 Commands:
   run              Run the host runtime in the foreground.
@@ -30,6 +31,7 @@ Commands:
   restart          Stop, then start the background host runtime.
   status           Print process and HTTP health status.
   logs             Tail runtime stdout and stderr logs.
+  smoke            Probe health, runtime state, desktop snapshot, and threads.
 
 Environment:
   CODEX_HOST_RUNTIME_BIND       Bind address, default 127.0.0.1:3765.
@@ -144,6 +146,21 @@ tail_logs() {
   tail -n 80 -f "$STDOUT_LOG" "$STDERR_LOG"
 }
 
+smoke() {
+  echo "Probing ${ENDPOINT}/health"
+  curl -fsS "${ENDPOINT}/health"
+  echo
+  echo "Probing ${ENDPOINT}/host/runtime"
+  curl -fsS "${ENDPOINT}/host/runtime"
+  echo
+  echo "Probing ${ENDPOINT}/desktop/snapshot"
+  curl -fsS "${ENDPOINT}/desktop/snapshot"
+  echo
+  echo "Probing ${ENDPOINT}/threads?limit=5"
+  curl -fsS "${ENDPOINT}/threads?limit=5"
+  echo
+}
+
 runtime_binary() {
   if [[ -n "${CODEX_HOST_RUNTIME_BINARY:-}" ]]; then
     echo "$CODEX_HOST_RUNTIME_BINARY"
@@ -182,6 +199,9 @@ case "$command" in
     ;;
   logs)
     tail_logs
+    ;;
+  smoke)
+    smoke
     ;;
   -h|--help|help)
     usage

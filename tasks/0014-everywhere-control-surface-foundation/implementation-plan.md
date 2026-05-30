@@ -248,6 +248,10 @@ Implementation evidence:
 
 - Apple project structure has moved to `clients/apple/`.
 - Existing iPad source now lives under `clients/apple/iPad/`.
+- `CraftingTableMac` now exists as a macOS app target under `clients/apple/macOS/`.
+- `.codex/environments/environment.toml` now has a `Run MacOS client` action that calls `scripts/run-macos-client.sh`.
+- Direct `Start Codex Remote Companion` environment actions have been removed. Development lifecycle actions now use `scripts/codex-host-runtime.sh` and are explicitly named `Dev Codex Host Runtime`.
+- `scripts/codex-remote-companion.sh` no longer launches the runtime process directly; it keeps the macOS Scout helper and a legacy `smoke` alias while pointing lifecycle commands to `scripts/codex-host-runtime.sh`.
 - `clients/android/` and `clients/windows/` now exist as target client roots without introducing Gradle or Tauri build files prematurely.
 - `scripts/build-ctcore-ios.sh`, `scripts/smoke-ctcore-swift-binding.sh`, and iPad launch scripts use the migrated Apple paths.
 - `CTCore` now exposes `codex_remote_control::host_runtime` under `codex-remote-control-server`.
@@ -260,9 +264,12 @@ Implementation evidence:
 Verified:
 
 - XcodeBuildMCP `build_sim` for `clients/apple/CraftingTable.xcodeproj` on `iPad Pro 13-inch (M5)` succeeded.
+- `xcodebuild -project clients/apple/CraftingTable.xcodeproj -scheme CraftingTableMac -configuration Debug -destination 'platform=macOS' -derivedDataPath .build/DerivedData CODE_SIGNING_ALLOWED=NO build`
+- `scripts/run-macos-client.sh --build-only`
+- `scripts/run-macos-client.sh --verify`
 - `scripts/build-ctcore-ios.sh`
 - `scripts/smoke-ctcore-swift-binding.sh`
-- `xcodebuild -list -project clients/apple/CraftingTable.xcodeproj` confirmed the current Xcode project has only the `CraftingTable` app target.
+- `xcodebuild -list -project clients/apple/CraftingTable.xcodeproj` confirmed the current Xcode project has `CraftingTable` and `CraftingTableMac` app targets.
 - `cargo fmt --manifest-path CTCore/Cargo.toml -- --check`
 - `cargo fmt --manifest-path Companion/Cargo.toml -- --check`
 - `bash -n scripts/codex-host-runtime.sh`
