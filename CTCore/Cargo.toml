@@ -19,21 +19,29 @@ codex-remote-control-server = [
     "dep:tokio-tungstenite",
     "dep:tracing",
 ]
-codex-remote-control-client = ["dep:serde", "dep:serde_json"]
+codex-remote-control-client = [
+    "dep:reqwest",
+    "dep:serde",
+    "dep:serde_json",
+    "dep:tungstenite",
+    "dep:url",
+]
 inkcre-graph = ["dep:serde", "dep:serde_json"]
 local-llm-core = ["dep:serde", "dep:serde_json"]
-swift-bindings = ["portable-config", "dep:uniffi"]
+swift-bindings = ["portable-config", "codex-remote-control-client", "dep:uniffi"]
 
 [dependencies]
 anyhow = { version = "1.0", optional = true }
 axum = { version = "0.7", features = ["ws"], optional = true }
 futures-util = { version = "0.3", optional = true }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"], optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }
 uniffi = { version = "0.31.1", features = ["cli"], optional = true }
 tokio = { version = "1.48", features = ["macros", "net", "process", "rt-multi-thread", "signal", "sync", "time"], optional = true }
 tokio-tungstenite = { version = "0.27", optional = true }
 tracing = { version = "0.1", optional = true }
+tungstenite = { version = "0.27", features = ["rustls-tls-webpki-roots"], optional = true }
 url = { version = "2.5", optional = true }
 
 [dev-dependencies]

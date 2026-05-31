@@ -352,7 +352,7 @@ private func uniffiTraitInterfaceCallWithError<T, E>(
         callStatus.pointee.errorBuf = FfiConverterString.lower(String(describing: error))
     }
 }
-// Initial value and increment amount for handles. 
+// Initial value and increment amount for handles.
 // These ensure that SWIFT handles always have the lowest bit set
 fileprivate let UNIFFI_HANDLEMAP_INITIAL: UInt64 = 1
 fileprivate let UNIFFI_HANDLEMAP_DELTA: UInt64 = 2
@@ -414,7 +414,13 @@ fileprivate final class UniffiHandleMap<T>: @unchecked Sendable {
 
 
 // Public interface members begin here.
-
+// Magic number for the Rust proxy to call using the same mechanism as every other method,
+// to free the callback once it's dropped by Rust.
+private let IDX_CALLBACK_FREE: Int32 = 0
+// Callback return codes
+private let UNIFFI_CALLBACK_SUCCESS: Int32 = 0
+private let UNIFFI_CALLBACK_ERROR: Int32 = 1
+private let UNIFFI_CALLBACK_UNEXPECTED_ERROR: Int32 = 2
 
 #if swift(>=5.8)
 @_documentation(visibility: private)
@@ -428,6 +434,62 @@ fileprivate struct FfiConverterUInt32: FfiConverterPrimitive {
     }
 
     public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterUInt64: FfiConverterPrimitive {
+    typealias FfiType = UInt64
+    typealias SwiftType = UInt64
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> UInt64 {
+        return try lift(readInt(&buf))
+    }
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterInt64: FfiConverterPrimitive {
+    typealias FfiType = Int64
+    typealias SwiftType = Int64
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Int64 {
+        return try lift(readInt(&buf))
+    }
+
+    public static func write(_ value: Int64, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterBool : FfiConverter {
+    typealias FfiType = Int8
+    typealias SwiftType = Bool
+
+    public static func lift(_ value: Int8) throws -> Bool {
+        return value != 0
+    }
+
+    public static func lower(_ value: Bool) -> Int8 {
+        return value ? 1 : 0
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Bool {
+        return try lift(readInt(&buf))
+    }
+
+    public static func write(_ value: Bool, into buf: inout [UInt8]) {
         writeInt(&buf, lower(value))
     }
 }
@@ -474,6 +536,517 @@ fileprivate struct FfiConverterString: FfiConverter {
 }
 
 
+
+
+public protocol FfiCodexRemoteClientProtocol: AnyObject, Sendable {
+
+    func createThread(endpoint: String, cwd: String, model: String?, serviceTier: String?)  -> FfiCodexRemoteThreadCreateResponseResult
+
+    func followTurn(endpoint: String, threadId: String, turnId: String, observer: FfiCodexRemoteTurnObserver)  -> FfiCodexRemoteFollowTurnResult
+
+    func loadSnapshot(endpoint: String)  -> FfiCodexRemoteSnapshotResult
+
+    func loadThreadDetail(endpoint: String, threadId: String)  -> FfiCodexRemoteThreadDetailResponseResult
+
+    func recoverActiveTurn(endpoint: String, threadId: String, observer: FfiCodexRemoteTurnObserver)  -> FfiCodexRemoteFollowTurnResult
+
+    func submitTurn(endpoint: String, threadId: String, input: String, cwd: String?, model: String?, reasoningEffort: String?, serviceTier: String?, permissionMode: String?, waitForCompletion: Bool)  -> FfiCodexRemoteTurnSubmitDecodeResult
+
+}
+open class FfiCodexRemoteClient: FfiCodexRemoteClientProtocol, @unchecked Sendable {
+    fileprivate let handle: UInt64
+
+    /// Used to instantiate a [FFIObject] without an actual handle, for fakes in tests, mostly.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public struct NoHandle {
+        public init() {}
+    }
+
+    // TODO: We'd like this to be `private` but for Swifty reasons,
+    // we can't implement `FfiConverter` without making this `required` and we can't
+    // make it `required` without making it `public`.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    required public init(unsafeFromHandle handle: UInt64) {
+        self.handle = handle
+    }
+
+    // This constructor can be used to instantiate a fake object.
+    // - Parameter noHandle: Placeholder value so we can have a constructor separate from the default empty one that may be implemented for classes extending [FFIObject].
+    //
+    // - Warning:
+    //     Any object instantiated with this constructor cannot be passed to an actual Rust-backed object. Since there isn't a backing handle the FFI lower functions will crash.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public init(noHandle: NoHandle) {
+        self.handle = 0
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public func uniffiCloneHandle() -> UInt64 {
+        return try! rustCall { uniffi_ct_core_fn_clone_fficodexremoteclient(self.handle, $0) }
+    }
+public convenience init() {
+    let handle =
+        try! rustCall() {
+    uniffi_ct_core_fn_constructor_fficodexremoteclient_new($0
+    )
+}
+    self.init(unsafeFromHandle: handle)
+}
+
+    deinit {
+        if handle == 0 {
+            // Mock objects have handle=0 don't try to free them
+            return
+        }
+
+        try! rustCall { uniffi_ct_core_fn_free_fficodexremoteclient(handle, $0) }
+    }
+
+
+
+
+open func createThread(endpoint: String, cwd: String, model: String?, serviceTier: String?) -> FfiCodexRemoteThreadCreateResponseResult  {
+    return try!  FfiConverterTypeFfiCodexRemoteThreadCreateResponseResult_lift(try! rustCall() {
+    uniffi_ct_core_fn_method_fficodexremoteclient_create_thread(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(endpoint),
+        FfiConverterString.lower(cwd),
+        FfiConverterOptionString.lower(model),
+        FfiConverterOptionString.lower(serviceTier),$0
+    )
+})
+}
+
+open func followTurn(endpoint: String, threadId: String, turnId: String, observer: FfiCodexRemoteTurnObserver) -> FfiCodexRemoteFollowTurnResult  {
+    return try!  FfiConverterTypeFfiCodexRemoteFollowTurnResult_lift(try! rustCall() {
+    uniffi_ct_core_fn_method_fficodexremoteclient_follow_turn(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(endpoint),
+        FfiConverterString.lower(threadId),
+        FfiConverterString.lower(turnId),
+        FfiConverterTypeFfiCodexRemoteTurnObserver_lower(observer),$0
+    )
+})
+}
+
+open func loadSnapshot(endpoint: String) -> FfiCodexRemoteSnapshotResult  {
+    return try!  FfiConverterTypeFfiCodexRemoteSnapshotResult_lift(try! rustCall() {
+    uniffi_ct_core_fn_method_fficodexremoteclient_load_snapshot(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(endpoint),$0
+    )
+})
+}
+
+open func loadThreadDetail(endpoint: String, threadId: String) -> FfiCodexRemoteThreadDetailResponseResult  {
+    return try!  FfiConverterTypeFfiCodexRemoteThreadDetailResponseResult_lift(try! rustCall() {
+    uniffi_ct_core_fn_method_fficodexremoteclient_load_thread_detail(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(endpoint),
+        FfiConverterString.lower(threadId),$0
+    )
+})
+}
+
+open func recoverActiveTurn(endpoint: String, threadId: String, observer: FfiCodexRemoteTurnObserver) -> FfiCodexRemoteFollowTurnResult  {
+    return try!  FfiConverterTypeFfiCodexRemoteFollowTurnResult_lift(try! rustCall() {
+    uniffi_ct_core_fn_method_fficodexremoteclient_recover_active_turn(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(endpoint),
+        FfiConverterString.lower(threadId),
+        FfiConverterTypeFfiCodexRemoteTurnObserver_lower(observer),$0
+    )
+})
+}
+
+open func submitTurn(endpoint: String, threadId: String, input: String, cwd: String?, model: String?, reasoningEffort: String?, serviceTier: String?, permissionMode: String?, waitForCompletion: Bool) -> FfiCodexRemoteTurnSubmitDecodeResult  {
+    return try!  FfiConverterTypeFfiCodexRemoteTurnSubmitDecodeResult_lift(try! rustCall() {
+    uniffi_ct_core_fn_method_fficodexremoteclient_submit_turn(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(endpoint),
+        FfiConverterString.lower(threadId),
+        FfiConverterString.lower(input),
+        FfiConverterOptionString.lower(cwd),
+        FfiConverterOptionString.lower(model),
+        FfiConverterOptionString.lower(reasoningEffort),
+        FfiConverterOptionString.lower(serviceTier),
+        FfiConverterOptionString.lower(permissionMode),
+        FfiConverterBool.lower(waitForCompletion),$0
+    )
+})
+}
+
+
+
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteClient: FfiConverter {
+    typealias FfiType = UInt64
+    typealias SwiftType = FfiCodexRemoteClient
+
+    public static func lift(_ handle: UInt64) throws -> FfiCodexRemoteClient {
+        return FfiCodexRemoteClient(unsafeFromHandle: handle)
+    }
+
+    public static func lower(_ value: FfiCodexRemoteClient) -> UInt64 {
+        return value.uniffiCloneHandle()
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteClient {
+        let handle: UInt64 = try readInt(&buf)
+        return try lift(handle)
+    }
+
+    public static func write(_ value: FfiCodexRemoteClient, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteClient_lift(_ handle: UInt64) throws -> FfiCodexRemoteClient {
+    return try FfiConverterTypeFfiCodexRemoteClient.lift(handle)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteClient_lower(_ value: FfiCodexRemoteClient) -> UInt64 {
+    return FfiConverterTypeFfiCodexRemoteClient.lower(value)
+}
+
+
+
+
+
+
+public protocol FfiCodexRemoteTurnObserver: AnyObject, Sendable {
+
+    func onStatus(status: FfiCodexRemoteStreamStatus)
+
+    func onEvent(event: FfiCodexRemoteTurnStreamEvent)
+
+    func onThreadDetail(response: FfiCodexRemoteThreadDetailResponse)
+
+}
+open class FfiCodexRemoteTurnObserverImpl: FfiCodexRemoteTurnObserver, @unchecked Sendable {
+    fileprivate let handle: UInt64
+
+    /// Used to instantiate a [FFIObject] without an actual handle, for fakes in tests, mostly.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public struct NoHandle {
+        public init() {}
+    }
+
+    // TODO: We'd like this to be `private` but for Swifty reasons,
+    // we can't implement `FfiConverter` without making this `required` and we can't
+    // make it `required` without making it `public`.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    required public init(unsafeFromHandle handle: UInt64) {
+        self.handle = handle
+    }
+
+    // This constructor can be used to instantiate a fake object.
+    // - Parameter noHandle: Placeholder value so we can have a constructor separate from the default empty one that may be implemented for classes extending [FFIObject].
+    //
+    // - Warning:
+    //     Any object instantiated with this constructor cannot be passed to an actual Rust-backed object. Since there isn't a backing handle the FFI lower functions will crash.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public init(noHandle: NoHandle) {
+        self.handle = 0
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public func uniffiCloneHandle() -> UInt64 {
+        return try! rustCall { uniffi_ct_core_fn_clone_fficodexremoteturnobserver(self.handle, $0) }
+    }
+    // No primary constructor declared for this class.
+
+    deinit {
+        if handle == 0 {
+            // Mock objects have handle=0 don't try to free them
+            return
+        }
+
+        try! rustCall { uniffi_ct_core_fn_free_fficodexremoteturnobserver(handle, $0) }
+    }
+
+
+
+
+open func onStatus(status: FfiCodexRemoteStreamStatus)  {try! rustCall() {
+    uniffi_ct_core_fn_method_fficodexremoteturnobserver_on_status(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeFfiCodexRemoteStreamStatus_lower(status),$0
+    )
+}
+}
+
+open func onEvent(event: FfiCodexRemoteTurnStreamEvent)  {try! rustCall() {
+    uniffi_ct_core_fn_method_fficodexremoteturnobserver_on_event(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeFfiCodexRemoteTurnStreamEvent_lower(event),$0
+    )
+}
+}
+
+open func onThreadDetail(response: FfiCodexRemoteThreadDetailResponse)  {try! rustCall() {
+    uniffi_ct_core_fn_method_fficodexremoteturnobserver_on_thread_detail(
+            self.uniffiCloneHandle(),
+        FfiConverterTypeFfiCodexRemoteThreadDetailResponse_lower(response),$0
+    )
+}
+}
+
+
+
+}
+
+
+
+// Put the implementation in a struct so we don't pollute the top-level namespace
+fileprivate struct UniffiCallbackInterfaceFfiCodexRemoteTurnObserver {
+
+    // Create the VTable using a series of closures.
+    // Swift automatically converts these into C callback functions.
+    //
+    // Store the vtable directly.
+    static let vtable: UniffiVTableCallbackInterfaceFfiCodexRemoteTurnObserver = UniffiVTableCallbackInterfaceFfiCodexRemoteTurnObserver(
+        uniffiFree: { (uniffiHandle: UInt64) -> () in
+            do {
+                try FfiConverterTypeFfiCodexRemoteTurnObserver.handleMap.remove(handle: uniffiHandle)
+            } catch {
+                print("Uniffi callback interface FfiCodexRemoteTurnObserver: handle missing in uniffiFree")
+            }
+        },
+        uniffiClone: { (uniffiHandle: UInt64) -> UInt64 in
+            do {
+                return try FfiConverterTypeFfiCodexRemoteTurnObserver.handleMap.clone(handle: uniffiHandle)
+            } catch {
+                fatalError("Uniffi callback interface FfiCodexRemoteTurnObserver: handle missing in uniffiClone")
+            }
+        },
+        onStatus: { (
+            uniffiHandle: UInt64,
+            status: RustBuffer,
+            uniffiOutReturn: UnsafeMutableRawPointer,
+            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
+        ) in
+            let makeCall = {
+                () throws -> () in
+                guard let uniffiObj = try? FfiConverterTypeFfiCodexRemoteTurnObserver.handleMap.get(handle: uniffiHandle) else {
+                    throw UniffiInternalError.unexpectedStaleHandle
+                }
+                return uniffiObj.onStatus(
+                     status: try FfiConverterTypeFfiCodexRemoteStreamStatus_lift(status)
+                )
+            }
+
+
+            let writeReturn = { () }
+            uniffiTraitInterfaceCall(
+                callStatus: uniffiCallStatus,
+                makeCall: makeCall,
+                writeReturn: writeReturn
+            )
+        },
+        onEvent: { (
+            uniffiHandle: UInt64,
+            event: RustBuffer,
+            uniffiOutReturn: UnsafeMutableRawPointer,
+            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
+        ) in
+            let makeCall = {
+                () throws -> () in
+                guard let uniffiObj = try? FfiConverterTypeFfiCodexRemoteTurnObserver.handleMap.get(handle: uniffiHandle) else {
+                    throw UniffiInternalError.unexpectedStaleHandle
+                }
+                return uniffiObj.onEvent(
+                     event: try FfiConverterTypeFfiCodexRemoteTurnStreamEvent_lift(event)
+                )
+            }
+
+
+            let writeReturn = { () }
+            uniffiTraitInterfaceCall(
+                callStatus: uniffiCallStatus,
+                makeCall: makeCall,
+                writeReturn: writeReturn
+            )
+        },
+        onThreadDetail: { (
+            uniffiHandle: UInt64,
+            response: RustBuffer,
+            uniffiOutReturn: UnsafeMutableRawPointer,
+            uniffiCallStatus: UnsafeMutablePointer<RustCallStatus>
+        ) in
+            let makeCall = {
+                () throws -> () in
+                guard let uniffiObj = try? FfiConverterTypeFfiCodexRemoteTurnObserver.handleMap.get(handle: uniffiHandle) else {
+                    throw UniffiInternalError.unexpectedStaleHandle
+                }
+                return uniffiObj.onThreadDetail(
+                     response: try FfiConverterTypeFfiCodexRemoteThreadDetailResponse_lift(response)
+                )
+            }
+
+
+            let writeReturn = { () }
+            uniffiTraitInterfaceCall(
+                callStatus: uniffiCallStatus,
+                makeCall: makeCall,
+                writeReturn: writeReturn
+            )
+        }
+    )
+
+    // Rust stores this pointer for future callback invocations, so it must live
+    // for the process lifetime (not just for the init function call).
+    static let vtablePtr: UnsafePointer<UniffiVTableCallbackInterfaceFfiCodexRemoteTurnObserver> = {
+        let ptr = UnsafeMutablePointer<UniffiVTableCallbackInterfaceFfiCodexRemoteTurnObserver>.allocate(capacity: 1)
+        ptr.initialize(to: vtable)
+        return UnsafePointer(ptr)
+    }()
+}
+
+private func uniffiCallbackInitFfiCodexRemoteTurnObserver() {
+    uniffi_ct_core_fn_init_callback_vtable_fficodexremoteturnobserver(UniffiCallbackInterfaceFfiCodexRemoteTurnObserver.vtablePtr)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteTurnObserver: FfiConverter {
+    fileprivate static let handleMap = UniffiHandleMap<FfiCodexRemoteTurnObserver>()
+
+    typealias FfiType = UInt64
+    typealias SwiftType = FfiCodexRemoteTurnObserver
+
+    public static func lift(_ handle: UInt64) throws -> FfiCodexRemoteTurnObserver {
+        if ((handle & 1) == 0) {
+            // Rust-generated handle, construct a new class that uses the handle to implement the
+            // interface
+            return FfiCodexRemoteTurnObserverImpl(unsafeFromHandle: handle)
+        } else {
+            // Swift-generated handle, get the object from the handle map
+            return try handleMap.remove(handle: handle)
+        }
+    }
+
+    public static func lower(_ value: FfiCodexRemoteTurnObserver) -> UInt64 {
+         if let rustImpl = value as? FfiCodexRemoteTurnObserverImpl {
+             // Rust-implemented object.  Clone the handle and return it
+            return rustImpl.uniffiCloneHandle()
+         } else {
+            // Swift object, generate a new vtable handle and return that.
+            return handleMap.insert(obj: value)
+         }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteTurnObserver {
+        let handle: UInt64 = try readInt(&buf)
+        return try lift(handle)
+    }
+
+    public static func write(_ value: FfiCodexRemoteTurnObserver, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteTurnObserver_lift(_ handle: UInt64) throws -> FfiCodexRemoteTurnObserver {
+    return try FfiConverterTypeFfiCodexRemoteTurnObserver.lift(handle)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteTurnObserver_lower(_ value: FfiCodexRemoteTurnObserver) -> UInt64 {
+    return FfiConverterTypeFfiCodexRemoteTurnObserver.lower(value)
+}
+
+
+
+
+public struct FfiCodexRemoteActiveTurn: Equatable, Hashable {
+    public var turnId: String
+    public var status: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(turnId: String, status: String) {
+        self.turnId = turnId
+        self.status = status
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteActiveTurn: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteActiveTurn: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteActiveTurn {
+        return
+            try FfiCodexRemoteActiveTurn(
+                turnId: FfiConverterString.read(from: &buf),
+                status: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteActiveTurn, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.turnId, into: &buf)
+        FfiConverterString.write(value.status, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteActiveTurn_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteActiveTurn {
+    return try FfiConverterTypeFfiCodexRemoteActiveTurn.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteActiveTurn_lower(_ value: FfiCodexRemoteActiveTurn) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteActiveTurn.lower(value)
+}
+
+
 public struct FfiCodexRemoteControlEndpoint: Equatable, Hashable {
     public var baseUrl: String
     public var credentialRef: String?
@@ -485,9 +1058,9 @@ public struct FfiCodexRemoteControlEndpoint: Equatable, Hashable {
         self.credentialRef = credentialRef
     }
 
-    
 
-    
+
+
 }
 
 #if compiler(>=6)
@@ -501,7 +1074,7 @@ public struct FfiConverterTypeFfiCodexRemoteControlEndpoint: FfiConverterRustBuf
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteControlEndpoint {
         return
             try FfiCodexRemoteControlEndpoint(
-                baseUrl: FfiConverterString.read(from: &buf), 
+                baseUrl: FfiConverterString.read(from: &buf),
                 credentialRef: FfiConverterOptionString.read(from: &buf)
         )
     }
@@ -528,6 +1101,1712 @@ public func FfiConverterTypeFfiCodexRemoteControlEndpoint_lower(_ value: FfiCode
 }
 
 
+public struct FfiCodexRemoteFollowTurnResult: Equatable, Hashable {
+    public var errorMessage: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(errorMessage: String?) {
+        self.errorMessage = errorMessage
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteFollowTurnResult: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteFollowTurnResult: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteFollowTurnResult {
+        return
+            try FfiCodexRemoteFollowTurnResult(
+                errorMessage: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteFollowTurnResult, into buf: inout [UInt8]) {
+        FfiConverterOptionString.write(value.errorMessage, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteFollowTurnResult_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteFollowTurnResult {
+    return try FfiConverterTypeFfiCodexRemoteFollowTurnResult.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteFollowTurnResult_lower(_ value: FfiCodexRemoteFollowTurnResult) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteFollowTurnResult.lower(value)
+}
+
+
+public struct FfiCodexRemoteHealth: Equatable, Hashable {
+    public var service: String
+    public var version: String
+    public var os: String
+    public var arch: String
+    public var appServerAvailable: Bool
+    public var appServerProbe: String
+    public var codexHome: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(service: String, version: String, os: String, arch: String, appServerAvailable: Bool, appServerProbe: String, codexHome: String) {
+        self.service = service
+        self.version = version
+        self.os = os
+        self.arch = arch
+        self.appServerAvailable = appServerAvailable
+        self.appServerProbe = appServerProbe
+        self.codexHome = codexHome
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteHealth: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteHealth: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteHealth {
+        return
+            try FfiCodexRemoteHealth(
+                service: FfiConverterString.read(from: &buf),
+                version: FfiConverterString.read(from: &buf),
+                os: FfiConverterString.read(from: &buf),
+                arch: FfiConverterString.read(from: &buf),
+                appServerAvailable: FfiConverterBool.read(from: &buf),
+                appServerProbe: FfiConverterString.read(from: &buf),
+                codexHome: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteHealth, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.service, into: &buf)
+        FfiConverterString.write(value.version, into: &buf)
+        FfiConverterString.write(value.os, into: &buf)
+        FfiConverterString.write(value.arch, into: &buf)
+        FfiConverterBool.write(value.appServerAvailable, into: &buf)
+        FfiConverterString.write(value.appServerProbe, into: &buf)
+        FfiConverterString.write(value.codexHome, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteHealth_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteHealth {
+    return try FfiConverterTypeFfiCodexRemoteHealth.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteHealth_lower(_ value: FfiCodexRemoteHealth) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteHealth.lower(value)
+}
+
+
+public struct FfiCodexRemoteHealthDecodeResult: Equatable, Hashable {
+    public var health: FfiCodexRemoteHealth?
+    public var errorMessage: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(health: FfiCodexRemoteHealth?, errorMessage: String?) {
+        self.health = health
+        self.errorMessage = errorMessage
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteHealthDecodeResult: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteHealthDecodeResult: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteHealthDecodeResult {
+        return
+            try FfiCodexRemoteHealthDecodeResult(
+                health: FfiConverterOptionTypeFfiCodexRemoteHealth.read(from: &buf),
+                errorMessage: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteHealthDecodeResult, into buf: inout [UInt8]) {
+        FfiConverterOptionTypeFfiCodexRemoteHealth.write(value.health, into: &buf)
+        FfiConverterOptionString.write(value.errorMessage, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteHealthDecodeResult_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteHealthDecodeResult {
+    return try FfiConverterTypeFfiCodexRemoteHealthDecodeResult.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteHealthDecodeResult_lower(_ value: FfiCodexRemoteHealthDecodeResult) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteHealthDecodeResult.lower(value)
+}
+
+
+public struct FfiCodexRemoteModelList: Equatable, Hashable {
+    public var source: String
+    public var models: [FfiCodexRemoteModelOption]
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(source: String, models: [FfiCodexRemoteModelOption]) {
+        self.source = source
+        self.models = models
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteModelList: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteModelList: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteModelList {
+        return
+            try FfiCodexRemoteModelList(
+                source: FfiConverterString.read(from: &buf),
+                models: FfiConverterSequenceTypeFfiCodexRemoteModelOption.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteModelList, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.source, into: &buf)
+        FfiConverterSequenceTypeFfiCodexRemoteModelOption.write(value.models, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteModelList_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteModelList {
+    return try FfiConverterTypeFfiCodexRemoteModelList.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteModelList_lower(_ value: FfiCodexRemoteModelList) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteModelList.lower(value)
+}
+
+
+public struct FfiCodexRemoteModelOption: Equatable, Hashable {
+    public var id: String
+    public var model: String
+    public var displayName: String
+    public var description: String
+    public var isDefault: Bool
+    public var defaultReasoningEffort: String?
+    public var supportedReasoningEfforts: [FfiCodexRemoteReasoningEffortOption]
+    public var additionalSpeedTiers: [String]
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(id: String, model: String, displayName: String, description: String, isDefault: Bool, defaultReasoningEffort: String?, supportedReasoningEfforts: [FfiCodexRemoteReasoningEffortOption], additionalSpeedTiers: [String]) {
+        self.id = id
+        self.model = model
+        self.displayName = displayName
+        self.description = description
+        self.isDefault = isDefault
+        self.defaultReasoningEffort = defaultReasoningEffort
+        self.supportedReasoningEfforts = supportedReasoningEfforts
+        self.additionalSpeedTiers = additionalSpeedTiers
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteModelOption: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteModelOption: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteModelOption {
+        return
+            try FfiCodexRemoteModelOption(
+                id: FfiConverterString.read(from: &buf),
+                model: FfiConverterString.read(from: &buf),
+                displayName: FfiConverterString.read(from: &buf),
+                description: FfiConverterString.read(from: &buf),
+                isDefault: FfiConverterBool.read(from: &buf),
+                defaultReasoningEffort: FfiConverterOptionString.read(from: &buf),
+                supportedReasoningEfforts: FfiConverterSequenceTypeFfiCodexRemoteReasoningEffortOption.read(from: &buf),
+                additionalSpeedTiers: FfiConverterSequenceString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteModelOption, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.id, into: &buf)
+        FfiConverterString.write(value.model, into: &buf)
+        FfiConverterString.write(value.displayName, into: &buf)
+        FfiConverterString.write(value.description, into: &buf)
+        FfiConverterBool.write(value.isDefault, into: &buf)
+        FfiConverterOptionString.write(value.defaultReasoningEffort, into: &buf)
+        FfiConverterSequenceTypeFfiCodexRemoteReasoningEffortOption.write(value.supportedReasoningEfforts, into: &buf)
+        FfiConverterSequenceString.write(value.additionalSpeedTiers, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteModelOption_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteModelOption {
+    return try FfiConverterTypeFfiCodexRemoteModelOption.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteModelOption_lower(_ value: FfiCodexRemoteModelOption) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteModelOption.lower(value)
+}
+
+
+public struct FfiCodexRemoteReasoningEffortOption: Equatable, Hashable {
+    public var reasoningEffort: String
+    public var description: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(reasoningEffort: String, description: String) {
+        self.reasoningEffort = reasoningEffort
+        self.description = description
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteReasoningEffortOption: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteReasoningEffortOption: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteReasoningEffortOption {
+        return
+            try FfiCodexRemoteReasoningEffortOption(
+                reasoningEffort: FfiConverterString.read(from: &buf),
+                description: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteReasoningEffortOption, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.reasoningEffort, into: &buf)
+        FfiConverterString.write(value.description, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteReasoningEffortOption_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteReasoningEffortOption {
+    return try FfiConverterTypeFfiCodexRemoteReasoningEffortOption.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteReasoningEffortOption_lower(_ value: FfiCodexRemoteReasoningEffortOption) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteReasoningEffortOption.lower(value)
+}
+
+
+public struct FfiCodexRemoteSemanticThread: Equatable, Hashable {
+    public var id: String
+    public var title: String
+    public var preview: String
+    public var cwd: String?
+    public var status: String
+    public var activeTurn: FfiCodexRemoteActiveTurn?
+    public var updatedAt: String
+    public var source: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(id: String, title: String, preview: String, cwd: String?, status: String, activeTurn: FfiCodexRemoteActiveTurn?, updatedAt: String, source: String?) {
+        self.id = id
+        self.title = title
+        self.preview = preview
+        self.cwd = cwd
+        self.status = status
+        self.activeTurn = activeTurn
+        self.updatedAt = updatedAt
+        self.source = source
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteSemanticThread: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteSemanticThread: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteSemanticThread {
+        return
+            try FfiCodexRemoteSemanticThread(
+                id: FfiConverterString.read(from: &buf),
+                title: FfiConverterString.read(from: &buf),
+                preview: FfiConverterString.read(from: &buf),
+                cwd: FfiConverterOptionString.read(from: &buf),
+                status: FfiConverterString.read(from: &buf),
+                activeTurn: FfiConverterOptionTypeFfiCodexRemoteActiveTurn.read(from: &buf),
+                updatedAt: FfiConverterString.read(from: &buf),
+                source: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteSemanticThread, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.id, into: &buf)
+        FfiConverterString.write(value.title, into: &buf)
+        FfiConverterString.write(value.preview, into: &buf)
+        FfiConverterOptionString.write(value.cwd, into: &buf)
+        FfiConverterString.write(value.status, into: &buf)
+        FfiConverterOptionTypeFfiCodexRemoteActiveTurn.write(value.activeTurn, into: &buf)
+        FfiConverterString.write(value.updatedAt, into: &buf)
+        FfiConverterOptionString.write(value.source, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteSemanticThread_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteSemanticThread {
+    return try FfiConverterTypeFfiCodexRemoteSemanticThread.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteSemanticThread_lower(_ value: FfiCodexRemoteSemanticThread) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteSemanticThread.lower(value)
+}
+
+
+public struct FfiCodexRemoteSnapshot: Equatable, Hashable {
+    public var health: FfiCodexRemoteHealth
+    public var threadList: FfiCodexRemoteThreadList
+    public var modelList: FfiCodexRemoteModelList
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(health: FfiCodexRemoteHealth, threadList: FfiCodexRemoteThreadList, modelList: FfiCodexRemoteModelList) {
+        self.health = health
+        self.threadList = threadList
+        self.modelList = modelList
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteSnapshot: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteSnapshot: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteSnapshot {
+        return
+            try FfiCodexRemoteSnapshot(
+                health: FfiConverterTypeFfiCodexRemoteHealth.read(from: &buf),
+                threadList: FfiConverterTypeFfiCodexRemoteThreadList.read(from: &buf),
+                modelList: FfiConverterTypeFfiCodexRemoteModelList.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteSnapshot, into buf: inout [UInt8]) {
+        FfiConverterTypeFfiCodexRemoteHealth.write(value.health, into: &buf)
+        FfiConverterTypeFfiCodexRemoteThreadList.write(value.threadList, into: &buf)
+        FfiConverterTypeFfiCodexRemoteModelList.write(value.modelList, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteSnapshot_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteSnapshot {
+    return try FfiConverterTypeFfiCodexRemoteSnapshot.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteSnapshot_lower(_ value: FfiCodexRemoteSnapshot) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteSnapshot.lower(value)
+}
+
+
+public struct FfiCodexRemoteSnapshotResult: Equatable, Hashable {
+    public var snapshot: FfiCodexRemoteSnapshot?
+    public var errorMessage: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(snapshot: FfiCodexRemoteSnapshot?, errorMessage: String?) {
+        self.snapshot = snapshot
+        self.errorMessage = errorMessage
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteSnapshotResult: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteSnapshotResult: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteSnapshotResult {
+        return
+            try FfiCodexRemoteSnapshotResult(
+                snapshot: FfiConverterOptionTypeFfiCodexRemoteSnapshot.read(from: &buf),
+                errorMessage: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteSnapshotResult, into buf: inout [UInt8]) {
+        FfiConverterOptionTypeFfiCodexRemoteSnapshot.write(value.snapshot, into: &buf)
+        FfiConverterOptionString.write(value.errorMessage, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteSnapshotResult_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteSnapshotResult {
+    return try FfiConverterTypeFfiCodexRemoteSnapshotResult.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteSnapshotResult_lower(_ value: FfiCodexRemoteSnapshotResult) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteSnapshotResult.lower(value)
+}
+
+
+public struct FfiCodexRemoteStreamStatus: Equatable, Hashable {
+    public var status: String
+    public var message: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(status: String, message: String?) {
+        self.status = status
+        self.message = message
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteStreamStatus: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteStreamStatus: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteStreamStatus {
+        return
+            try FfiCodexRemoteStreamStatus(
+                status: FfiConverterString.read(from: &buf),
+                message: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteStreamStatus, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.status, into: &buf)
+        FfiConverterOptionString.write(value.message, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteStreamStatus_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteStreamStatus {
+    return try FfiConverterTypeFfiCodexRemoteStreamStatus.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteStreamStatus_lower(_ value: FfiCodexRemoteStreamStatus) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteStreamStatus.lower(value)
+}
+
+
+public struct FfiCodexRemoteThreadCreateResponse: Equatable, Hashable {
+    public var thread: FfiCodexRemoteSemanticThread
+    public var model: String?
+    public var modelProvider: String?
+    public var serviceTier: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(thread: FfiCodexRemoteSemanticThread, model: String?, modelProvider: String?, serviceTier: String?) {
+        self.thread = thread
+        self.model = model
+        self.modelProvider = modelProvider
+        self.serviceTier = serviceTier
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteThreadCreateResponse: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteThreadCreateResponse: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteThreadCreateResponse {
+        return
+            try FfiCodexRemoteThreadCreateResponse(
+                thread: FfiConverterTypeFfiCodexRemoteSemanticThread.read(from: &buf),
+                model: FfiConverterOptionString.read(from: &buf),
+                modelProvider: FfiConverterOptionString.read(from: &buf),
+                serviceTier: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteThreadCreateResponse, into buf: inout [UInt8]) {
+        FfiConverterTypeFfiCodexRemoteSemanticThread.write(value.thread, into: &buf)
+        FfiConverterOptionString.write(value.model, into: &buf)
+        FfiConverterOptionString.write(value.modelProvider, into: &buf)
+        FfiConverterOptionString.write(value.serviceTier, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadCreateResponse_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteThreadCreateResponse {
+    return try FfiConverterTypeFfiCodexRemoteThreadCreateResponse.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadCreateResponse_lower(_ value: FfiCodexRemoteThreadCreateResponse) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteThreadCreateResponse.lower(value)
+}
+
+
+public struct FfiCodexRemoteThreadCreateResponseResult: Equatable, Hashable {
+    public var response: FfiCodexRemoteThreadCreateResponse?
+    public var errorMessage: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(response: FfiCodexRemoteThreadCreateResponse?, errorMessage: String?) {
+        self.response = response
+        self.errorMessage = errorMessage
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteThreadCreateResponseResult: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteThreadCreateResponseResult: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteThreadCreateResponseResult {
+        return
+            try FfiCodexRemoteThreadCreateResponseResult(
+                response: FfiConverterOptionTypeFfiCodexRemoteThreadCreateResponse.read(from: &buf),
+                errorMessage: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteThreadCreateResponseResult, into buf: inout [UInt8]) {
+        FfiConverterOptionTypeFfiCodexRemoteThreadCreateResponse.write(value.response, into: &buf)
+        FfiConverterOptionString.write(value.errorMessage, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadCreateResponseResult_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteThreadCreateResponseResult {
+    return try FfiConverterTypeFfiCodexRemoteThreadCreateResponseResult.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadCreateResponseResult_lower(_ value: FfiCodexRemoteThreadCreateResponseResult) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteThreadCreateResponseResult.lower(value)
+}
+
+
+public struct FfiCodexRemoteThreadDetail: Equatable, Hashable {
+    public var id: String
+    public var title: String
+    public var preview: String
+    public var status: String
+    public var activeTurn: FfiCodexRemoteActiveTurn?
+    public var updatedAt: String
+    public var cwd: String?
+    public var source: String?
+    public var modelProvider: String?
+    public var turnCount: UInt64
+    public var transcript: [FfiCodexRemoteTranscriptRow]
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(id: String, title: String, preview: String, status: String, activeTurn: FfiCodexRemoteActiveTurn?, updatedAt: String, cwd: String?, source: String?, modelProvider: String?, turnCount: UInt64, transcript: [FfiCodexRemoteTranscriptRow]) {
+        self.id = id
+        self.title = title
+        self.preview = preview
+        self.status = status
+        self.activeTurn = activeTurn
+        self.updatedAt = updatedAt
+        self.cwd = cwd
+        self.source = source
+        self.modelProvider = modelProvider
+        self.turnCount = turnCount
+        self.transcript = transcript
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteThreadDetail: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteThreadDetail: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteThreadDetail {
+        return
+            try FfiCodexRemoteThreadDetail(
+                id: FfiConverterString.read(from: &buf),
+                title: FfiConverterString.read(from: &buf),
+                preview: FfiConverterString.read(from: &buf),
+                status: FfiConverterString.read(from: &buf),
+                activeTurn: FfiConverterOptionTypeFfiCodexRemoteActiveTurn.read(from: &buf),
+                updatedAt: FfiConverterString.read(from: &buf),
+                cwd: FfiConverterOptionString.read(from: &buf),
+                source: FfiConverterOptionString.read(from: &buf),
+                modelProvider: FfiConverterOptionString.read(from: &buf),
+                turnCount: FfiConverterUInt64.read(from: &buf),
+                transcript: FfiConverterSequenceTypeFfiCodexRemoteTranscriptRow.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteThreadDetail, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.id, into: &buf)
+        FfiConverterString.write(value.title, into: &buf)
+        FfiConverterString.write(value.preview, into: &buf)
+        FfiConverterString.write(value.status, into: &buf)
+        FfiConverterOptionTypeFfiCodexRemoteActiveTurn.write(value.activeTurn, into: &buf)
+        FfiConverterString.write(value.updatedAt, into: &buf)
+        FfiConverterOptionString.write(value.cwd, into: &buf)
+        FfiConverterOptionString.write(value.source, into: &buf)
+        FfiConverterOptionString.write(value.modelProvider, into: &buf)
+        FfiConverterUInt64.write(value.turnCount, into: &buf)
+        FfiConverterSequenceTypeFfiCodexRemoteTranscriptRow.write(value.transcript, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadDetail_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteThreadDetail {
+    return try FfiConverterTypeFfiCodexRemoteThreadDetail.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadDetail_lower(_ value: FfiCodexRemoteThreadDetail) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteThreadDetail.lower(value)
+}
+
+
+public struct FfiCodexRemoteThreadDetailDecodeResult: Equatable, Hashable {
+    public var thread: FfiCodexRemoteThreadDetail?
+    public var errorMessage: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(thread: FfiCodexRemoteThreadDetail?, errorMessage: String?) {
+        self.thread = thread
+        self.errorMessage = errorMessage
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteThreadDetailDecodeResult: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteThreadDetailDecodeResult: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteThreadDetailDecodeResult {
+        return
+            try FfiCodexRemoteThreadDetailDecodeResult(
+                thread: FfiConverterOptionTypeFfiCodexRemoteThreadDetail.read(from: &buf),
+                errorMessage: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteThreadDetailDecodeResult, into buf: inout [UInt8]) {
+        FfiConverterOptionTypeFfiCodexRemoteThreadDetail.write(value.thread, into: &buf)
+        FfiConverterOptionString.write(value.errorMessage, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadDetailDecodeResult_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteThreadDetailDecodeResult {
+    return try FfiConverterTypeFfiCodexRemoteThreadDetailDecodeResult.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadDetailDecodeResult_lower(_ value: FfiCodexRemoteThreadDetailDecodeResult) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteThreadDetailDecodeResult.lower(value)
+}
+
+
+public struct FfiCodexRemoteThreadDetailResponse: Equatable, Hashable {
+    public var source: String
+    public var thread: FfiCodexRemoteThreadDetail
+    public var transcriptEntries: [FfiCodexRemoteTranscriptEntry]
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(source: String, thread: FfiCodexRemoteThreadDetail, transcriptEntries: [FfiCodexRemoteTranscriptEntry]) {
+        self.source = source
+        self.thread = thread
+        self.transcriptEntries = transcriptEntries
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteThreadDetailResponse: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteThreadDetailResponse: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteThreadDetailResponse {
+        return
+            try FfiCodexRemoteThreadDetailResponse(
+                source: FfiConverterString.read(from: &buf),
+                thread: FfiConverterTypeFfiCodexRemoteThreadDetail.read(from: &buf),
+                transcriptEntries: FfiConverterSequenceTypeFfiCodexRemoteTranscriptEntry.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteThreadDetailResponse, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.source, into: &buf)
+        FfiConverterTypeFfiCodexRemoteThreadDetail.write(value.thread, into: &buf)
+        FfiConverterSequenceTypeFfiCodexRemoteTranscriptEntry.write(value.transcriptEntries, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadDetailResponse_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteThreadDetailResponse {
+    return try FfiConverterTypeFfiCodexRemoteThreadDetailResponse.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadDetailResponse_lower(_ value: FfiCodexRemoteThreadDetailResponse) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteThreadDetailResponse.lower(value)
+}
+
+
+public struct FfiCodexRemoteThreadDetailResponseResult: Equatable, Hashable {
+    public var response: FfiCodexRemoteThreadDetailResponse?
+    public var errorMessage: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(response: FfiCodexRemoteThreadDetailResponse?, errorMessage: String?) {
+        self.response = response
+        self.errorMessage = errorMessage
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteThreadDetailResponseResult: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteThreadDetailResponseResult: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteThreadDetailResponseResult {
+        return
+            try FfiCodexRemoteThreadDetailResponseResult(
+                response: FfiConverterOptionTypeFfiCodexRemoteThreadDetailResponse.read(from: &buf),
+                errorMessage: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteThreadDetailResponseResult, into buf: inout [UInt8]) {
+        FfiConverterOptionTypeFfiCodexRemoteThreadDetailResponse.write(value.response, into: &buf)
+        FfiConverterOptionString.write(value.errorMessage, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadDetailResponseResult_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteThreadDetailResponseResult {
+    return try FfiConverterTypeFfiCodexRemoteThreadDetailResponseResult.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadDetailResponseResult_lower(_ value: FfiCodexRemoteThreadDetailResponseResult) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteThreadDetailResponseResult.lower(value)
+}
+
+
+public struct FfiCodexRemoteThreadList: Equatable, Hashable {
+    public var source: String
+    public var codexHome: String
+    public var skippedRecords: UInt64
+    public var threads: [FfiCodexRemoteThreadSummary]
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(source: String, codexHome: String, skippedRecords: UInt64, threads: [FfiCodexRemoteThreadSummary]) {
+        self.source = source
+        self.codexHome = codexHome
+        self.skippedRecords = skippedRecords
+        self.threads = threads
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteThreadList: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteThreadList: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteThreadList {
+        return
+            try FfiCodexRemoteThreadList(
+                source: FfiConverterString.read(from: &buf),
+                codexHome: FfiConverterString.read(from: &buf),
+                skippedRecords: FfiConverterUInt64.read(from: &buf),
+                threads: FfiConverterSequenceTypeFfiCodexRemoteThreadSummary.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteThreadList, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.source, into: &buf)
+        FfiConverterString.write(value.codexHome, into: &buf)
+        FfiConverterUInt64.write(value.skippedRecords, into: &buf)
+        FfiConverterSequenceTypeFfiCodexRemoteThreadSummary.write(value.threads, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadList_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteThreadList {
+    return try FfiConverterTypeFfiCodexRemoteThreadList.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadList_lower(_ value: FfiCodexRemoteThreadList) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteThreadList.lower(value)
+}
+
+
+public struct FfiCodexRemoteThreadListDecodeResult: Equatable, Hashable {
+    public var threads: [FfiCodexRemoteThreadSummary]
+    public var errorMessage: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(threads: [FfiCodexRemoteThreadSummary], errorMessage: String?) {
+        self.threads = threads
+        self.errorMessage = errorMessage
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteThreadListDecodeResult: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteThreadListDecodeResult: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteThreadListDecodeResult {
+        return
+            try FfiCodexRemoteThreadListDecodeResult(
+                threads: FfiConverterSequenceTypeFfiCodexRemoteThreadSummary.read(from: &buf),
+                errorMessage: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteThreadListDecodeResult, into buf: inout [UInt8]) {
+        FfiConverterSequenceTypeFfiCodexRemoteThreadSummary.write(value.threads, into: &buf)
+        FfiConverterOptionString.write(value.errorMessage, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadListDecodeResult_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteThreadListDecodeResult {
+    return try FfiConverterTypeFfiCodexRemoteThreadListDecodeResult.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadListDecodeResult_lower(_ value: FfiCodexRemoteThreadListDecodeResult) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteThreadListDecodeResult.lower(value)
+}
+
+
+public struct FfiCodexRemoteThreadSummary: Equatable, Hashable {
+    public var id: String
+    public var title: String
+    public var updatedAt: String
+    public var cwd: String?
+    public var projectKey: String
+    public var projectName: String
+    public var status: String
+    public var activeTurn: FfiCodexRemoteActiveTurn?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(id: String, title: String, updatedAt: String, cwd: String?, projectKey: String, projectName: String, status: String, activeTurn: FfiCodexRemoteActiveTurn?) {
+        self.id = id
+        self.title = title
+        self.updatedAt = updatedAt
+        self.cwd = cwd
+        self.projectKey = projectKey
+        self.projectName = projectName
+        self.status = status
+        self.activeTurn = activeTurn
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteThreadSummary: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteThreadSummary: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteThreadSummary {
+        return
+            try FfiCodexRemoteThreadSummary(
+                id: FfiConverterString.read(from: &buf),
+                title: FfiConverterString.read(from: &buf),
+                updatedAt: FfiConverterString.read(from: &buf),
+                cwd: FfiConverterOptionString.read(from: &buf),
+                projectKey: FfiConverterString.read(from: &buf),
+                projectName: FfiConverterString.read(from: &buf),
+                status: FfiConverterString.read(from: &buf),
+                activeTurn: FfiConverterOptionTypeFfiCodexRemoteActiveTurn.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteThreadSummary, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.id, into: &buf)
+        FfiConverterString.write(value.title, into: &buf)
+        FfiConverterString.write(value.updatedAt, into: &buf)
+        FfiConverterOptionString.write(value.cwd, into: &buf)
+        FfiConverterString.write(value.projectKey, into: &buf)
+        FfiConverterString.write(value.projectName, into: &buf)
+        FfiConverterString.write(value.status, into: &buf)
+        FfiConverterOptionTypeFfiCodexRemoteActiveTurn.write(value.activeTurn, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadSummary_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteThreadSummary {
+    return try FfiConverterTypeFfiCodexRemoteThreadSummary.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteThreadSummary_lower(_ value: FfiCodexRemoteThreadSummary) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteThreadSummary.lower(value)
+}
+
+
+public struct FfiCodexRemoteToolCallPayload: Equatable, Hashable {
+    public var kind: String
+    public var summary: String
+    public var command: String?
+    public var cwd: String?
+    public var source: String?
+    public var commandActionsJson: [String]
+    public var aggregatedOutput: String?
+    public var exitCode: Int64?
+    public var durationMs: Int64?
+    public var changesJson: [String]
+    public var server: String?
+    public var tool: String?
+    public var argumentsJson: String?
+    public var mcpAppResourceUri: String?
+    public var pluginId: String?
+    public var resultJson: String?
+    public var errorJson: String?
+    public var namespace: String?
+    public var contentItemsJson: String?
+    public var success: Bool?
+    public var senderThreadId: String?
+    public var receiverThreadIds: [String]
+    public var prompt: String?
+    public var model: String?
+    public var reasoningEffort: String?
+    public var agentsStatesJson: String?
+    public var query: String?
+    public var actionJson: String?
+    public var path: String?
+    public var revisedPrompt: String?
+    public var savedPath: String?
+    public var imageStatus: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(kind: String, summary: String, command: String?, cwd: String?, source: String?, commandActionsJson: [String], aggregatedOutput: String?, exitCode: Int64?, durationMs: Int64?, changesJson: [String], server: String?, tool: String?, argumentsJson: String?, mcpAppResourceUri: String?, pluginId: String?, resultJson: String?, errorJson: String?, namespace: String?, contentItemsJson: String?, success: Bool?, senderThreadId: String?, receiverThreadIds: [String], prompt: String?, model: String?, reasoningEffort: String?, agentsStatesJson: String?, query: String?, actionJson: String?, path: String?, revisedPrompt: String?, savedPath: String?, imageStatus: String?) {
+        self.kind = kind
+        self.summary = summary
+        self.command = command
+        self.cwd = cwd
+        self.source = source
+        self.commandActionsJson = commandActionsJson
+        self.aggregatedOutput = aggregatedOutput
+        self.exitCode = exitCode
+        self.durationMs = durationMs
+        self.changesJson = changesJson
+        self.server = server
+        self.tool = tool
+        self.argumentsJson = argumentsJson
+        self.mcpAppResourceUri = mcpAppResourceUri
+        self.pluginId = pluginId
+        self.resultJson = resultJson
+        self.errorJson = errorJson
+        self.namespace = namespace
+        self.contentItemsJson = contentItemsJson
+        self.success = success
+        self.senderThreadId = senderThreadId
+        self.receiverThreadIds = receiverThreadIds
+        self.prompt = prompt
+        self.model = model
+        self.reasoningEffort = reasoningEffort
+        self.agentsStatesJson = agentsStatesJson
+        self.query = query
+        self.actionJson = actionJson
+        self.path = path
+        self.revisedPrompt = revisedPrompt
+        self.savedPath = savedPath
+        self.imageStatus = imageStatus
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteToolCallPayload: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteToolCallPayload: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteToolCallPayload {
+        return
+            try FfiCodexRemoteToolCallPayload(
+                kind: FfiConverterString.read(from: &buf),
+                summary: FfiConverterString.read(from: &buf),
+                command: FfiConverterOptionString.read(from: &buf),
+                cwd: FfiConverterOptionString.read(from: &buf),
+                source: FfiConverterOptionString.read(from: &buf),
+                commandActionsJson: FfiConverterSequenceString.read(from: &buf),
+                aggregatedOutput: FfiConverterOptionString.read(from: &buf),
+                exitCode: FfiConverterOptionInt64.read(from: &buf),
+                durationMs: FfiConverterOptionInt64.read(from: &buf),
+                changesJson: FfiConverterSequenceString.read(from: &buf),
+                server: FfiConverterOptionString.read(from: &buf),
+                tool: FfiConverterOptionString.read(from: &buf),
+                argumentsJson: FfiConverterOptionString.read(from: &buf),
+                mcpAppResourceUri: FfiConverterOptionString.read(from: &buf),
+                pluginId: FfiConverterOptionString.read(from: &buf),
+                resultJson: FfiConverterOptionString.read(from: &buf),
+                errorJson: FfiConverterOptionString.read(from: &buf),
+                namespace: FfiConverterOptionString.read(from: &buf),
+                contentItemsJson: FfiConverterOptionString.read(from: &buf),
+                success: FfiConverterOptionBool.read(from: &buf),
+                senderThreadId: FfiConverterOptionString.read(from: &buf),
+                receiverThreadIds: FfiConverterSequenceString.read(from: &buf),
+                prompt: FfiConverterOptionString.read(from: &buf),
+                model: FfiConverterOptionString.read(from: &buf),
+                reasoningEffort: FfiConverterOptionString.read(from: &buf),
+                agentsStatesJson: FfiConverterOptionString.read(from: &buf),
+                query: FfiConverterOptionString.read(from: &buf),
+                actionJson: FfiConverterOptionString.read(from: &buf),
+                path: FfiConverterOptionString.read(from: &buf),
+                revisedPrompt: FfiConverterOptionString.read(from: &buf),
+                savedPath: FfiConverterOptionString.read(from: &buf),
+                imageStatus: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteToolCallPayload, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.kind, into: &buf)
+        FfiConverterString.write(value.summary, into: &buf)
+        FfiConverterOptionString.write(value.command, into: &buf)
+        FfiConverterOptionString.write(value.cwd, into: &buf)
+        FfiConverterOptionString.write(value.source, into: &buf)
+        FfiConverterSequenceString.write(value.commandActionsJson, into: &buf)
+        FfiConverterOptionString.write(value.aggregatedOutput, into: &buf)
+        FfiConverterOptionInt64.write(value.exitCode, into: &buf)
+        FfiConverterOptionInt64.write(value.durationMs, into: &buf)
+        FfiConverterSequenceString.write(value.changesJson, into: &buf)
+        FfiConverterOptionString.write(value.server, into: &buf)
+        FfiConverterOptionString.write(value.tool, into: &buf)
+        FfiConverterOptionString.write(value.argumentsJson, into: &buf)
+        FfiConverterOptionString.write(value.mcpAppResourceUri, into: &buf)
+        FfiConverterOptionString.write(value.pluginId, into: &buf)
+        FfiConverterOptionString.write(value.resultJson, into: &buf)
+        FfiConverterOptionString.write(value.errorJson, into: &buf)
+        FfiConverterOptionString.write(value.namespace, into: &buf)
+        FfiConverterOptionString.write(value.contentItemsJson, into: &buf)
+        FfiConverterOptionBool.write(value.success, into: &buf)
+        FfiConverterOptionString.write(value.senderThreadId, into: &buf)
+        FfiConverterSequenceString.write(value.receiverThreadIds, into: &buf)
+        FfiConverterOptionString.write(value.prompt, into: &buf)
+        FfiConverterOptionString.write(value.model, into: &buf)
+        FfiConverterOptionString.write(value.reasoningEffort, into: &buf)
+        FfiConverterOptionString.write(value.agentsStatesJson, into: &buf)
+        FfiConverterOptionString.write(value.query, into: &buf)
+        FfiConverterOptionString.write(value.actionJson, into: &buf)
+        FfiConverterOptionString.write(value.path, into: &buf)
+        FfiConverterOptionString.write(value.revisedPrompt, into: &buf)
+        FfiConverterOptionString.write(value.savedPath, into: &buf)
+        FfiConverterOptionString.write(value.imageStatus, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteToolCallPayload_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteToolCallPayload {
+    return try FfiConverterTypeFfiCodexRemoteToolCallPayload.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteToolCallPayload_lower(_ value: FfiCodexRemoteToolCallPayload) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteToolCallPayload.lower(value)
+}
+
+
+public struct FfiCodexRemoteTranscriptEntry: Equatable, Hashable {
+    public var entryType: String
+    public var id: String
+    public var turnId: String
+    public var status: String?
+    public var phase: String?
+    public var createdAt: String?
+    public var kind: String
+    public var role: String
+    public var text: String
+    public var toolCall: FfiCodexRemoteToolCallPayload?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(entryType: String, id: String, turnId: String, status: String?, phase: String?, createdAt: String?, kind: String, role: String, text: String, toolCall: FfiCodexRemoteToolCallPayload?) {
+        self.entryType = entryType
+        self.id = id
+        self.turnId = turnId
+        self.status = status
+        self.phase = phase
+        self.createdAt = createdAt
+        self.kind = kind
+        self.role = role
+        self.text = text
+        self.toolCall = toolCall
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteTranscriptEntry: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteTranscriptEntry: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteTranscriptEntry {
+        return
+            try FfiCodexRemoteTranscriptEntry(
+                entryType: FfiConverterString.read(from: &buf),
+                id: FfiConverterString.read(from: &buf),
+                turnId: FfiConverterString.read(from: &buf),
+                status: FfiConverterOptionString.read(from: &buf),
+                phase: FfiConverterOptionString.read(from: &buf),
+                createdAt: FfiConverterOptionString.read(from: &buf),
+                kind: FfiConverterString.read(from: &buf),
+                role: FfiConverterString.read(from: &buf),
+                text: FfiConverterString.read(from: &buf),
+                toolCall: FfiConverterOptionTypeFfiCodexRemoteToolCallPayload.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteTranscriptEntry, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.entryType, into: &buf)
+        FfiConverterString.write(value.id, into: &buf)
+        FfiConverterString.write(value.turnId, into: &buf)
+        FfiConverterOptionString.write(value.status, into: &buf)
+        FfiConverterOptionString.write(value.phase, into: &buf)
+        FfiConverterOptionString.write(value.createdAt, into: &buf)
+        FfiConverterString.write(value.kind, into: &buf)
+        FfiConverterString.write(value.role, into: &buf)
+        FfiConverterString.write(value.text, into: &buf)
+        FfiConverterOptionTypeFfiCodexRemoteToolCallPayload.write(value.toolCall, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteTranscriptEntry_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteTranscriptEntry {
+    return try FfiConverterTypeFfiCodexRemoteTranscriptEntry.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteTranscriptEntry_lower(_ value: FfiCodexRemoteTranscriptEntry) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteTranscriptEntry.lower(value)
+}
+
+
+public struct FfiCodexRemoteTranscriptRow: Equatable, Hashable {
+    public var id: String
+    public var role: String
+    public var text: String
+    public var status: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(id: String, role: String, text: String, status: String?) {
+        self.id = id
+        self.role = role
+        self.text = text
+        self.status = status
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteTranscriptRow: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteTranscriptRow: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteTranscriptRow {
+        return
+            try FfiCodexRemoteTranscriptRow(
+                id: FfiConverterString.read(from: &buf),
+                role: FfiConverterString.read(from: &buf),
+                text: FfiConverterString.read(from: &buf),
+                status: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteTranscriptRow, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.id, into: &buf)
+        FfiConverterString.write(value.role, into: &buf)
+        FfiConverterString.write(value.text, into: &buf)
+        FfiConverterOptionString.write(value.status, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteTranscriptRow_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteTranscriptRow {
+    return try FfiConverterTypeFfiCodexRemoteTranscriptRow.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteTranscriptRow_lower(_ value: FfiCodexRemoteTranscriptRow) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteTranscriptRow.lower(value)
+}
+
+
+public struct FfiCodexRemoteTurnStreamEvent: Equatable, Hashable {
+    public var eventType: String
+    public var threadId: String
+    public var turnId: String
+    public var sequence: UInt64
+    public var text: String?
+    public var status: String?
+    public var message: String?
+    public var kind: String?
+    public var itemId: String?
+    public var eventCount: UInt64?
+    public var transcriptEntry: FfiCodexRemoteTranscriptEntry?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(eventType: String, threadId: String, turnId: String, sequence: UInt64, text: String?, status: String?, message: String?, kind: String?, itemId: String?, eventCount: UInt64?, transcriptEntry: FfiCodexRemoteTranscriptEntry?) {
+        self.eventType = eventType
+        self.threadId = threadId
+        self.turnId = turnId
+        self.sequence = sequence
+        self.text = text
+        self.status = status
+        self.message = message
+        self.kind = kind
+        self.itemId = itemId
+        self.eventCount = eventCount
+        self.transcriptEntry = transcriptEntry
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteTurnStreamEvent: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteTurnStreamEvent: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteTurnStreamEvent {
+        return
+            try FfiCodexRemoteTurnStreamEvent(
+                eventType: FfiConverterString.read(from: &buf),
+                threadId: FfiConverterString.read(from: &buf),
+                turnId: FfiConverterString.read(from: &buf),
+                sequence: FfiConverterUInt64.read(from: &buf),
+                text: FfiConverterOptionString.read(from: &buf),
+                status: FfiConverterOptionString.read(from: &buf),
+                message: FfiConverterOptionString.read(from: &buf),
+                kind: FfiConverterOptionString.read(from: &buf),
+                itemId: FfiConverterOptionString.read(from: &buf),
+                eventCount: FfiConverterOptionUInt64.read(from: &buf),
+                transcriptEntry: FfiConverterOptionTypeFfiCodexRemoteTranscriptEntry.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteTurnStreamEvent, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.eventType, into: &buf)
+        FfiConverterString.write(value.threadId, into: &buf)
+        FfiConverterString.write(value.turnId, into: &buf)
+        FfiConverterUInt64.write(value.sequence, into: &buf)
+        FfiConverterOptionString.write(value.text, into: &buf)
+        FfiConverterOptionString.write(value.status, into: &buf)
+        FfiConverterOptionString.write(value.message, into: &buf)
+        FfiConverterOptionString.write(value.kind, into: &buf)
+        FfiConverterOptionString.write(value.itemId, into: &buf)
+        FfiConverterOptionUInt64.write(value.eventCount, into: &buf)
+        FfiConverterOptionTypeFfiCodexRemoteTranscriptEntry.write(value.transcriptEntry, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteTurnStreamEvent_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteTurnStreamEvent {
+    return try FfiConverterTypeFfiCodexRemoteTurnStreamEvent.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteTurnStreamEvent_lower(_ value: FfiCodexRemoteTurnStreamEvent) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteTurnStreamEvent.lower(value)
+}
+
+
+public struct FfiCodexRemoteTurnSubmit: Equatable, Hashable {
+    public var threadId: String
+    public var turnId: String
+    public var status: String
+    public var assistantText: String
+    public var eventCount: UInt64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(threadId: String, turnId: String, status: String, assistantText: String, eventCount: UInt64) {
+        self.threadId = threadId
+        self.turnId = turnId
+        self.status = status
+        self.assistantText = assistantText
+        self.eventCount = eventCount
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteTurnSubmit: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteTurnSubmit: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteTurnSubmit {
+        return
+            try FfiCodexRemoteTurnSubmit(
+                threadId: FfiConverterString.read(from: &buf),
+                turnId: FfiConverterString.read(from: &buf),
+                status: FfiConverterString.read(from: &buf),
+                assistantText: FfiConverterString.read(from: &buf),
+                eventCount: FfiConverterUInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteTurnSubmit, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.threadId, into: &buf)
+        FfiConverterString.write(value.turnId, into: &buf)
+        FfiConverterString.write(value.status, into: &buf)
+        FfiConverterString.write(value.assistantText, into: &buf)
+        FfiConverterUInt64.write(value.eventCount, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteTurnSubmit_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteTurnSubmit {
+    return try FfiConverterTypeFfiCodexRemoteTurnSubmit.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteTurnSubmit_lower(_ value: FfiCodexRemoteTurnSubmit) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteTurnSubmit.lower(value)
+}
+
+
+public struct FfiCodexRemoteTurnSubmitDecodeResult: Equatable, Hashable {
+    public var turn: FfiCodexRemoteTurnSubmit?
+    public var errorMessage: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(turn: FfiCodexRemoteTurnSubmit?, errorMessage: String?) {
+        self.turn = turn
+        self.errorMessage = errorMessage
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiCodexRemoteTurnSubmitDecodeResult: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiCodexRemoteTurnSubmitDecodeResult: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiCodexRemoteTurnSubmitDecodeResult {
+        return
+            try FfiCodexRemoteTurnSubmitDecodeResult(
+                turn: FfiConverterOptionTypeFfiCodexRemoteTurnSubmit.read(from: &buf),
+                errorMessage: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiCodexRemoteTurnSubmitDecodeResult, into buf: inout [UInt8]) {
+        FfiConverterOptionTypeFfiCodexRemoteTurnSubmit.write(value.turn, into: &buf)
+        FfiConverterOptionString.write(value.errorMessage, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteTurnSubmitDecodeResult_lift(_ buf: RustBuffer) throws -> FfiCodexRemoteTurnSubmitDecodeResult {
+    return try FfiConverterTypeFfiCodexRemoteTurnSubmitDecodeResult.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiCodexRemoteTurnSubmitDecodeResult_lower(_ value: FfiCodexRemoteTurnSubmitDecodeResult) -> RustBuffer {
+    return FfiConverterTypeFfiCodexRemoteTurnSubmitDecodeResult.lower(value)
+}
+
+
 public struct FfiConfigDiagnostic: Equatable, Hashable {
     public var severity: FfiDiagnosticSeverity
     public var code: String
@@ -543,9 +2822,9 @@ public struct FfiConfigDiagnostic: Equatable, Hashable {
         self.message = message
     }
 
-    
 
-    
+
+
 }
 
 #if compiler(>=6)
@@ -559,9 +2838,9 @@ public struct FfiConverterTypeFfiConfigDiagnostic: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiConfigDiagnostic {
         return
             try FfiConfigDiagnostic(
-                severity: FfiConverterTypeFfiDiagnosticSeverity.read(from: &buf), 
-                code: FfiConverterString.read(from: &buf), 
-                path: FfiConverterString.read(from: &buf), 
+                severity: FfiConverterTypeFfiDiagnosticSeverity.read(from: &buf),
+                code: FfiConverterString.read(from: &buf),
+                path: FfiConverterString.read(from: &buf),
                 message: FfiConverterString.read(from: &buf)
         )
     }
@@ -607,9 +2886,9 @@ public struct FfiHostConfig: Equatable, Hashable {
         self.endpoints = endpoints
     }
 
-    
 
-    
+
+
 }
 
 #if compiler(>=6)
@@ -623,10 +2902,10 @@ public struct FfiConverterTypeFfiHostConfig: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiHostConfig {
         return
             try FfiHostConfig(
-                id: FfiConverterString.read(from: &buf), 
-                label: FfiConverterString.read(from: &buf), 
-                note: FfiConverterOptionString.read(from: &buf), 
-                tags: FfiConverterSequenceString.read(from: &buf), 
+                id: FfiConverterString.read(from: &buf),
+                label: FfiConverterString.read(from: &buf),
+                note: FfiConverterOptionString.read(from: &buf),
+                tags: FfiConverterSequenceString.read(from: &buf),
                 endpoints: FfiConverterTypeFfiHostEndpoints.read(from: &buf)
         )
     }
@@ -667,9 +2946,9 @@ public struct FfiHostEndpoints: Equatable, Hashable {
         self.codexRemoteControl = codexRemoteControl
     }
 
-    
 
-    
+
+
 }
 
 #if compiler(>=6)
@@ -683,7 +2962,7 @@ public struct FfiConverterTypeFfiHostEndpoints: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiHostEndpoints {
         return
             try FfiHostEndpoints(
-                ssh: FfiConverterOptionTypeFfiSshEndpoint.read(from: &buf), 
+                ssh: FfiConverterOptionTypeFfiSshEndpoint.read(from: &buf),
                 codexRemoteControl: FfiConverterOptionTypeFfiCodexRemoteControlEndpoint.read(from: &buf)
         )
     }
@@ -723,9 +3002,9 @@ public struct FfiPortableConfigDecodeResult: Equatable, Hashable {
         self.errorMessage = errorMessage
     }
 
-    
 
-    
+
+
 }
 
 #if compiler(>=6)
@@ -739,8 +3018,8 @@ public struct FfiConverterTypeFfiPortableConfigDecodeResult: FfiConverterRustBuf
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiPortableConfigDecodeResult {
         return
             try FfiPortableConfigDecodeResult(
-                document: FfiConverterOptionTypeFfiPortableConfigDocument.read(from: &buf), 
-                diagnostics: FfiConverterSequenceTypeFfiConfigDiagnostic.read(from: &buf), 
+                document: FfiConverterOptionTypeFfiPortableConfigDocument.read(from: &buf),
+                diagnostics: FfiConverterSequenceTypeFfiConfigDiagnostic.read(from: &buf),
                 errorMessage: FfiConverterOptionString.read(from: &buf)
         )
     }
@@ -779,9 +3058,9 @@ public struct FfiPortableConfigDocument: Equatable, Hashable {
         self.hosts = hosts
     }
 
-    
 
-    
+
+
 }
 
 #if compiler(>=6)
@@ -795,7 +3074,7 @@ public struct FfiConverterTypeFfiPortableConfigDocument: FfiConverterRustBuffer 
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiPortableConfigDocument {
         return
             try FfiPortableConfigDocument(
-                schemaVersion: FfiConverterUInt32.read(from: &buf), 
+                schemaVersion: FfiConverterUInt32.read(from: &buf),
                 hosts: FfiConverterSequenceTypeFfiHostConfig.read(from: &buf)
         )
     }
@@ -833,9 +3112,9 @@ public struct FfiPortableConfigEncodeResult: Equatable, Hashable {
         self.errorMessage = errorMessage
     }
 
-    
 
-    
+
+
 }
 
 #if compiler(>=6)
@@ -849,7 +3128,7 @@ public struct FfiConverterTypeFfiPortableConfigEncodeResult: FfiConverterRustBuf
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiPortableConfigEncodeResult {
         return
             try FfiPortableConfigEncodeResult(
-                json: FfiConverterOptionString.read(from: &buf), 
+                json: FfiConverterOptionString.read(from: &buf),
                 errorMessage: FfiConverterOptionString.read(from: &buf)
         )
     }
@@ -891,9 +3170,9 @@ public struct FfiSshEndpoint: Equatable, Hashable {
         self.credentialRef = credentialRef
     }
 
-    
 
-    
+
+
 }
 
 #if compiler(>=6)
@@ -907,9 +3186,9 @@ public struct FfiConverterTypeFfiSshEndpoint: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiSshEndpoint {
         return
             try FfiSshEndpoint(
-                address: FfiConverterString.read(from: &buf), 
-                port: FfiConverterUInt32.read(from: &buf), 
-                username: FfiConverterOptionString.read(from: &buf), 
+                address: FfiConverterString.read(from: &buf),
+                port: FfiConverterUInt32.read(from: &buf),
+                username: FfiConverterOptionString.read(from: &buf),
                 credentialRef: FfiConverterOptionString.read(from: &buf)
         )
     }
@@ -937,11 +3216,143 @@ public func FfiConverterTypeFfiSshEndpoint_lower(_ value: FfiSshEndpoint) -> Rus
     return FfiConverterTypeFfiSshEndpoint.lower(value)
 }
 
+
+public struct FfiTurnStreamProjection: Equatable, Hashable {
+    public var threadId: String?
+    public var turnId: String?
+    public var assistantText: String
+    public var status: String?
+    public var errorMessage: String?
+    public var eventCount: UInt64?
+    public var isTerminal: Bool
+    public var lastSequence: UInt64
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(threadId: String?, turnId: String?, assistantText: String, status: String?, errorMessage: String?, eventCount: UInt64?, isTerminal: Bool, lastSequence: UInt64) {
+        self.threadId = threadId
+        self.turnId = turnId
+        self.assistantText = assistantText
+        self.status = status
+        self.errorMessage = errorMessage
+        self.eventCount = eventCount
+        self.isTerminal = isTerminal
+        self.lastSequence = lastSequence
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiTurnStreamProjection: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiTurnStreamProjection: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiTurnStreamProjection {
+        return
+            try FfiTurnStreamProjection(
+                threadId: FfiConverterOptionString.read(from: &buf),
+                turnId: FfiConverterOptionString.read(from: &buf),
+                assistantText: FfiConverterString.read(from: &buf),
+                status: FfiConverterOptionString.read(from: &buf),
+                errorMessage: FfiConverterOptionString.read(from: &buf),
+                eventCount: FfiConverterOptionUInt64.read(from: &buf),
+                isTerminal: FfiConverterBool.read(from: &buf),
+                lastSequence: FfiConverterUInt64.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiTurnStreamProjection, into buf: inout [UInt8]) {
+        FfiConverterOptionString.write(value.threadId, into: &buf)
+        FfiConverterOptionString.write(value.turnId, into: &buf)
+        FfiConverterString.write(value.assistantText, into: &buf)
+        FfiConverterOptionString.write(value.status, into: &buf)
+        FfiConverterOptionString.write(value.errorMessage, into: &buf)
+        FfiConverterOptionUInt64.write(value.eventCount, into: &buf)
+        FfiConverterBool.write(value.isTerminal, into: &buf)
+        FfiConverterUInt64.write(value.lastSequence, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiTurnStreamProjection_lift(_ buf: RustBuffer) throws -> FfiTurnStreamProjection {
+    return try FfiConverterTypeFfiTurnStreamProjection.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiTurnStreamProjection_lower(_ value: FfiTurnStreamProjection) -> RustBuffer {
+    return FfiConverterTypeFfiTurnStreamProjection.lower(value)
+}
+
+
+public struct FfiTurnStreamProjectionResult: Equatable, Hashable {
+    public var projection: FfiTurnStreamProjection?
+    public var errorMessage: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(projection: FfiTurnStreamProjection?, errorMessage: String?) {
+        self.projection = projection
+        self.errorMessage = errorMessage
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension FfiTurnStreamProjectionResult: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeFfiTurnStreamProjectionResult: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiTurnStreamProjectionResult {
+        return
+            try FfiTurnStreamProjectionResult(
+                projection: FfiConverterOptionTypeFfiTurnStreamProjection.read(from: &buf),
+                errorMessage: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: FfiTurnStreamProjectionResult, into buf: inout [UInt8]) {
+        FfiConverterOptionTypeFfiTurnStreamProjection.write(value.projection, into: &buf)
+        FfiConverterOptionString.write(value.errorMessage, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiTurnStreamProjectionResult_lift(_ buf: RustBuffer) throws -> FfiTurnStreamProjectionResult {
+    return try FfiConverterTypeFfiTurnStreamProjectionResult.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeFfiTurnStreamProjectionResult_lower(_ value: FfiTurnStreamProjectionResult) -> RustBuffer {
+    return FfiConverterTypeFfiTurnStreamProjectionResult.lower(value)
+}
+
 // Note that we don't yet support `indirect` for enums.
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 
 public enum FfiDiagnosticSeverity: Equatable, Hashable {
-    
+
     case error
     case warning
 
@@ -964,26 +3375,26 @@ public struct FfiConverterTypeFfiDiagnosticSeverity: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FfiDiagnosticSeverity {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-        
+
         case 1: return .error
-        
+
         case 2: return .warning
-        
+
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: FfiDiagnosticSeverity, into buf: inout [UInt8]) {
         switch value {
-        
-        
+
+
         case .error:
             writeInt(&buf, Int32(1))
-        
-        
+
+
         case .warning:
             writeInt(&buf, Int32(2))
-        
+
         }
     }
 }
@@ -1003,6 +3414,78 @@ public func FfiConverterTypeFfiDiagnosticSeverity_lower(_ value: FfiDiagnosticSe
     return FfiConverterTypeFfiDiagnosticSeverity.lower(value)
 }
 
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionUInt64: FfiConverterRustBuffer {
+    typealias SwiftType = UInt64?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterUInt64.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterUInt64.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionInt64: FfiConverterRustBuffer {
+    typealias SwiftType = Int64?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterInt64.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterInt64.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionBool: FfiConverterRustBuffer {
+    typealias SwiftType = Bool?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterBool.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterBool.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
 
 #if swift(>=5.8)
 @_documentation(visibility: private)
@@ -1031,6 +3514,30 @@ fileprivate struct FfiConverterOptionString: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionTypeFfiCodexRemoteActiveTurn: FfiConverterRustBuffer {
+    typealias SwiftType = FfiCodexRemoteActiveTurn?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeFfiCodexRemoteActiveTurn.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeFfiCodexRemoteActiveTurn.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionTypeFfiCodexRemoteControlEndpoint: FfiConverterRustBuffer {
     typealias SwiftType = FfiCodexRemoteControlEndpoint?
 
@@ -1047,6 +3554,198 @@ fileprivate struct FfiConverterOptionTypeFfiCodexRemoteControlEndpoint: FfiConve
         switch try readInt(&buf) as Int8 {
         case 0: return nil
         case 1: return try FfiConverterTypeFfiCodexRemoteControlEndpoint.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeFfiCodexRemoteHealth: FfiConverterRustBuffer {
+    typealias SwiftType = FfiCodexRemoteHealth?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeFfiCodexRemoteHealth.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeFfiCodexRemoteHealth.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeFfiCodexRemoteSnapshot: FfiConverterRustBuffer {
+    typealias SwiftType = FfiCodexRemoteSnapshot?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeFfiCodexRemoteSnapshot.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeFfiCodexRemoteSnapshot.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeFfiCodexRemoteThreadCreateResponse: FfiConverterRustBuffer {
+    typealias SwiftType = FfiCodexRemoteThreadCreateResponse?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeFfiCodexRemoteThreadCreateResponse.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeFfiCodexRemoteThreadCreateResponse.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeFfiCodexRemoteThreadDetail: FfiConverterRustBuffer {
+    typealias SwiftType = FfiCodexRemoteThreadDetail?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeFfiCodexRemoteThreadDetail.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeFfiCodexRemoteThreadDetail.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeFfiCodexRemoteThreadDetailResponse: FfiConverterRustBuffer {
+    typealias SwiftType = FfiCodexRemoteThreadDetailResponse?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeFfiCodexRemoteThreadDetailResponse.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeFfiCodexRemoteThreadDetailResponse.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeFfiCodexRemoteToolCallPayload: FfiConverterRustBuffer {
+    typealias SwiftType = FfiCodexRemoteToolCallPayload?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeFfiCodexRemoteToolCallPayload.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeFfiCodexRemoteToolCallPayload.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeFfiCodexRemoteTranscriptEntry: FfiConverterRustBuffer {
+    typealias SwiftType = FfiCodexRemoteTranscriptEntry?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeFfiCodexRemoteTranscriptEntry.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeFfiCodexRemoteTranscriptEntry.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeFfiCodexRemoteTurnSubmit: FfiConverterRustBuffer {
+    typealias SwiftType = FfiCodexRemoteTurnSubmit?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeFfiCodexRemoteTurnSubmit.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeFfiCodexRemoteTurnSubmit.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
     }
@@ -1103,6 +3802,30 @@ fileprivate struct FfiConverterOptionTypeFfiSshEndpoint: FfiConverterRustBuffer 
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionTypeFfiTurnStreamProjection: FfiConverterRustBuffer {
+    typealias SwiftType = FfiTurnStreamProjection?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeFfiTurnStreamProjection.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeFfiTurnStreamProjection.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceString: FfiConverterRustBuffer {
     typealias SwiftType = [String]
 
@@ -1120,6 +3843,131 @@ fileprivate struct FfiConverterSequenceString: FfiConverterRustBuffer {
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
             seq.append(try FfiConverterString.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeFfiCodexRemoteModelOption: FfiConverterRustBuffer {
+    typealias SwiftType = [FfiCodexRemoteModelOption]
+
+    public static func write(_ value: [FfiCodexRemoteModelOption], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeFfiCodexRemoteModelOption.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [FfiCodexRemoteModelOption] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [FfiCodexRemoteModelOption]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeFfiCodexRemoteModelOption.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeFfiCodexRemoteReasoningEffortOption: FfiConverterRustBuffer {
+    typealias SwiftType = [FfiCodexRemoteReasoningEffortOption]
+
+    public static func write(_ value: [FfiCodexRemoteReasoningEffortOption], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeFfiCodexRemoteReasoningEffortOption.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [FfiCodexRemoteReasoningEffortOption] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [FfiCodexRemoteReasoningEffortOption]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeFfiCodexRemoteReasoningEffortOption.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeFfiCodexRemoteThreadSummary: FfiConverterRustBuffer {
+    typealias SwiftType = [FfiCodexRemoteThreadSummary]
+
+    public static func write(_ value: [FfiCodexRemoteThreadSummary], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeFfiCodexRemoteThreadSummary.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [FfiCodexRemoteThreadSummary] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [FfiCodexRemoteThreadSummary]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeFfiCodexRemoteThreadSummary.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeFfiCodexRemoteTranscriptEntry: FfiConverterRustBuffer {
+    typealias SwiftType = [FfiCodexRemoteTranscriptEntry]
+
+    public static func write(_ value: [FfiCodexRemoteTranscriptEntry], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeFfiCodexRemoteTranscriptEntry.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [FfiCodexRemoteTranscriptEntry] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [FfiCodexRemoteTranscriptEntry]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeFfiCodexRemoteTranscriptEntry.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeFfiCodexRemoteTranscriptRow: FfiConverterRustBuffer {
+    typealias SwiftType = [FfiCodexRemoteTranscriptRow]
+
+    public static func write(_ value: [FfiCodexRemoteTranscriptRow], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeFfiCodexRemoteTranscriptRow.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [FfiCodexRemoteTranscriptRow] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [FfiCodexRemoteTranscriptRow]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeFfiCodexRemoteTranscriptRow.read(from: &buf))
         }
         return seq
     }
@@ -1174,6 +4022,54 @@ fileprivate struct FfiConverterSequenceTypeFfiHostConfig: FfiConverterRustBuffer
         return seq
     }
 }
+public func codexRemoteDecodeHealthJson(input: String) -> FfiCodexRemoteHealthDecodeResult  {
+    return try!  FfiConverterTypeFfiCodexRemoteHealthDecodeResult_lift(try! rustCall() {
+    uniffi_ct_core_fn_func_codex_remote_decode_health_json(
+        FfiConverterString.lower(input),$0
+    )
+})
+}
+public func codexRemoteDecodeThreadDetailJson(input: String) -> FfiCodexRemoteThreadDetailDecodeResult  {
+    return try!  FfiConverterTypeFfiCodexRemoteThreadDetailDecodeResult_lift(try! rustCall() {
+    uniffi_ct_core_fn_func_codex_remote_decode_thread_detail_json(
+        FfiConverterString.lower(input),$0
+    )
+})
+}
+public func codexRemoteDecodeThreadListJson(input: String) -> FfiCodexRemoteThreadListDecodeResult  {
+    return try!  FfiConverterTypeFfiCodexRemoteThreadListDecodeResult_lift(try! rustCall() {
+    uniffi_ct_core_fn_func_codex_remote_decode_thread_list_json(
+        FfiConverterString.lower(input),$0
+    )
+})
+}
+public func codexRemoteDecodeTurnSubmitJson(input: String) -> FfiCodexRemoteTurnSubmitDecodeResult  {
+    return try!  FfiConverterTypeFfiCodexRemoteTurnSubmitDecodeResult_lift(try! rustCall() {
+    uniffi_ct_core_fn_func_codex_remote_decode_turn_submit_json(
+        FfiConverterString.lower(input),$0
+    )
+})
+}
+public func codexRemoteTurnStreamApplyEventJson(projection: FfiTurnStreamProjection, eventJson: String) -> FfiTurnStreamProjectionResult  {
+    return try!  FfiConverterTypeFfiTurnStreamProjectionResult_lift(try! rustCall() {
+    uniffi_ct_core_fn_func_codex_remote_turn_stream_apply_event_json(
+        FfiConverterTypeFfiTurnStreamProjection_lower(projection),
+        FfiConverterString.lower(eventJson),$0
+    )
+})
+}
+public func codexRemoteTurnStreamEmptyProjection() -> FfiTurnStreamProjection  {
+    return try!  FfiConverterTypeFfiTurnStreamProjection_lift(try! rustCall() {
+    uniffi_ct_core_fn_func_codex_remote_turn_stream_empty_projection($0
+    )
+})
+}
+public func codexRemoteWireContractVersion() -> UInt32  {
+    return try!  FfiConverterUInt32.lift(try! rustCall() {
+    uniffi_ct_core_fn_func_codex_remote_wire_contract_version($0
+    )
+})
+}
 public func portableConfigDecodeJson(input: String) -> FfiPortableConfigDecodeResult  {
     return try!  FfiConverterTypeFfiPortableConfigDecodeResult_lift(try! rustCall() {
     uniffi_ct_core_fn_func_portable_config_decode_json(
@@ -1217,6 +4113,27 @@ private let initializationResult: InitializationResult = {
     if bindings_contract_version != scaffolding_contract_version {
         return InitializationResult.contractVersionMismatch
     }
+    if (uniffi_ct_core_checksum_func_codex_remote_decode_health_json() != 5393) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ct_core_checksum_func_codex_remote_decode_thread_detail_json() != 27944) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ct_core_checksum_func_codex_remote_decode_thread_list_json() != 64558) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ct_core_checksum_func_codex_remote_decode_turn_submit_json() != 1955) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ct_core_checksum_func_codex_remote_turn_stream_apply_event_json() != 17698) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ct_core_checksum_func_codex_remote_turn_stream_empty_projection() != 42965) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ct_core_checksum_func_codex_remote_wire_contract_version() != 54092) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_ct_core_checksum_func_portable_config_decode_json() != 15857) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -1229,7 +4146,38 @@ private let initializationResult: InitializationResult = {
     if (uniffi_ct_core_checksum_func_portable_config_validate() != 34450) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_ct_core_checksum_method_fficodexremoteclient_create_thread() != 21690) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ct_core_checksum_method_fficodexremoteclient_follow_turn() != 51937) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ct_core_checksum_method_fficodexremoteclient_load_snapshot() != 42686) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ct_core_checksum_method_fficodexremoteclient_load_thread_detail() != 41703) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ct_core_checksum_method_fficodexremoteclient_recover_active_turn() != 3763) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ct_core_checksum_method_fficodexremoteclient_submit_turn() != 19263) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ct_core_checksum_method_fficodexremoteturnobserver_on_status() != 23896) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ct_core_checksum_method_fficodexremoteturnobserver_on_event() != 7444) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ct_core_checksum_method_fficodexremoteturnobserver_on_thread_detail() != 19219) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_ct_core_checksum_constructor_fficodexremoteclient_new() != 140) {
+        return InitializationResult.apiChecksumMismatch
+    }
 
+    uniffiCallbackInitFfiCodexRemoteTurnObserver()
     return InitializationResult.ok
 }()
 

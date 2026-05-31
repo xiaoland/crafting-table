@@ -1,4 +1,3 @@
-import Darwin
 import Foundation
 
 struct CodexRemoteSnapshot {
@@ -825,6 +824,26 @@ struct CodexRemoteModelOption: Decodable, Identifiable {
         case additionalSpeedTiers
     }
 
+    init(
+        id: String,
+        model: String,
+        displayName: String,
+        description: String,
+        isDefault: Bool,
+        defaultReasoningEffort: String?,
+        supportedReasoningEfforts: [CodexRemoteReasoningEffortOption],
+        additionalSpeedTiers: [String]
+    ) {
+        self.id = id
+        self.model = model
+        self.displayName = displayName
+        self.description = description
+        self.isDefault = isDefault
+        self.defaultReasoningEffort = defaultReasoningEffort
+        self.supportedReasoningEfforts = supportedReasoningEfforts
+        self.additionalSpeedTiers = additionalSpeedTiers
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
@@ -922,25 +941,21 @@ struct CodexRemoteTurnStreamEvent: Decodable, Identifiable {
 
 struct CodexRemoteClient {
     func loadSnapshot(endpoint: String) async throws -> CodexRemoteSnapshot {
-        let baseURL = try normalizedBaseURL(from: endpoint)
-        let healthURL = baseURL.appendingPathComponent("health")
-        let threadsURL = try threadsURL(from: baseURL)
-        let modelsURL = baseURL.appendingPathComponent("models")
-
-        async let health = fetch(CodexRemoteHealth.self, from: healthURL)
-        async let threadList = fetch(CodexRemoteThreadList.self, from: threadsURL)
-        async let modelList = loadOptionalModelList(from: modelsURL)
-
-        return try await CodexRemoteSnapshot(health: health, threadList: threadList, modelList: modelList)
+        let result = await runCore { FfiCodexRemoteClient().loadSnapshot(endpoint: endpoint) }
+        guard let snapshot = result.snapshot else {
+            throw CodexRemoteClientError.core(result.errorMessage)
+        }
+        return CodexRemoteSnapshot(snapshot)
     }
 
     func loadThreadDetail(endpoint: String, threadID: String) async throws -> CodexRemoteThreadDetailResponse {
-        let baseURL = try normalizedBaseURL(from: endpoint)
-        let threadURL = baseURL
-            .appendingPathComponent("threads")
-            .appendingPathComponent(threadID)
-
-        return try await fetch(CodexRemoteThreadDetailResponse.self, from: threadURL)
+        let result = await runCore {
+            FfiCodexRemoteClient().loadThreadDetail(endpoint: endpoint, threadId: threadID)
+        }
+        guard let response = result.response else {
+            throw CodexRemoteClientError.core(result.errorMessage)
+        }
+        return CodexRemoteThreadDetailResponse(response)
     }
 
     func createThread(
@@ -949,15 +964,18 @@ struct CodexRemoteClient {
         model: String? = nil,
         serviceTier: String? = nil
     ) async throws -> CodexRemoteThreadCreateResponse {
-        let baseURL = try normalizedBaseURL(from: endpoint)
-        let threadsURL = baseURL.appendingPathComponent("threads")
-        let payload = CodexRemoteThreadCreatePayload(
-            cwd: cwd,
-            model: model,
-            serviceTier: serviceTier
-        )
-
-        return try await send(payload, to: threadsURL)
+        let result = await runCore {
+            FfiCodexRemoteClient().createThread(
+                endpoint: endpoint,
+                cwd: cwd,
+                model: model,
+                serviceTier: serviceTier
+            )
+        }
+        guard let response = result.response else {
+            throw CodexRemoteClientError.core(result.errorMessage)
+        }
+        return CodexRemoteThreadCreateResponse(response)
     }
 
     func submitTurn(
@@ -971,272 +989,425 @@ struct CodexRemoteClient {
         permissionMode: String? = nil,
         waitForCompletion: Bool = false
     ) async throws -> CodexRemoteTurnResult {
-        let baseURL = try normalizedBaseURL(from: endpoint)
-        let turnURL = baseURL
-            .appendingPathComponent("threads")
-            .appendingPathComponent(threadID)
-            .appendingPathComponent("turns")
-        let payload = CodexRemoteTurnSubmitPayload(
-            input: input,
-            cwd: cwd,
-            model: model,
-            reasoningEffort: reasoningEffort,
-            serviceTier: serviceTier,
-            permissionMode: permissionMode,
-            waitForCompletion: waitForCompletion
-        )
-
-        return try await send(payload, to: turnURL)
+        let result = await runCore {
+            FfiCodexRemoteClient().submitTurn(
+                endpoint: endpoint,
+                threadId: threadID,
+                input: input,
+                cwd: cwd,
+                model: model,
+                reasoningEffort: reasoningEffort,
+                serviceTier: serviceTier,
+                permissionMode: permissionMode,
+                waitForCompletion: waitForCompletion
+            )
+        }
+        guard let turn = result.turn else {
+            throw CodexRemoteClientError.core(result.errorMessage)
+        }
+        return CodexRemoteTurnResult(turn)
     }
 
     func streamTurnEvents(
         endpoint: String,
         threadID: String,
         turnID: String,
+        onStatus: @escaping @Sendable (CodexRemoteStreamStatus) async -> Void,
+        onThreadDetail: @escaping @Sendable (CodexRemoteThreadDetailResponse) async -> Void,
         onEvent: @escaping @Sendable (CodexRemoteTurnStreamEvent) async -> Void
     ) async throws {
-        let baseURL = try normalizedBaseURL(from: endpoint)
-        let eventsURL = try turnEventsURL(from: baseURL, threadID: threadID, turnID: turnID)
-        let webSocket = URLSession.shared.webSocketTask(with: eventsURL)
-        webSocket.resume()
-
-        defer {
-            webSocket.cancel(with: .goingAway, reason: nil)
+        let observer = CodexRemoteCoreTurnObserver(
+            onStatus: onStatus,
+            onThreadDetail: onThreadDetail,
+            onEvent: onEvent
+        )
+        let result = await runCore {
+            FfiCodexRemoteClient().followTurn(
+                endpoint: endpoint,
+                threadId: threadID,
+                turnId: turnID,
+                observer: observer
+            )
         }
-
-        while Task.isCancelled == false {
-            let message = try await webSocket.receive()
-            let event = try decodeTurnStreamEvent(from: message)
-            await onEvent(event)
-
-            if event.isTerminal {
-                return
-            }
-        }
-    }
-
-    private func fetch<Response: Decodable>(_ type: Response.Type, from url: URL) async throws -> Response {
-        do {
-            let (data, response) = try await URLSession.shared.data(from: url)
-
-            return try decode(type, from: data, response: response)
-        } catch {
-            guard isTransientNetworkError(error) else {
-                throw error
-            }
-
-            try await Task.sleep(nanoseconds: 350_000_000)
-            let (data, response) = try await URLSession.shared.data(from: url)
-
-            return try decode(type, from: data, response: response)
+        await observer.drain()
+        if let errorMessage = result.errorMessage {
+            throw CodexRemoteClientError.core(errorMessage)
         }
     }
 
-    private func loadOptionalModelList(from url: URL) async -> CodexRemoteModelList {
-        do {
-            return try await fetch(CodexRemoteModelList.self, from: url)
-        } catch {
-            return CodexRemoteModelList(source: "unavailable", models: [])
-        }
-    }
-
-    private func send<Body: Encodable, Response: Decodable>(_ body: Body, to url: URL) async throws -> Response {
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        return try decode(Response.self, from: data, response: response)
-    }
-
-    private func decode<Response: Decodable>(_ type: Response.Type, from data: Data, response: URLResponse) throws -> Response {
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200..<300).contains(httpResponse.statusCode)
-        else {
-            if let apiError = try? decoder.decode(CodexRemoteAPIError.self, from: data) {
-                throw CodexRemoteClientError.server(apiError.error)
-            }
-
-            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
-            throw CodexRemoteClientError.badStatus(statusCode)
-        }
-
-        return try decoder.decode(type, from: data)
-    }
-
-    private func isTransientNetworkError(_ error: Error) -> Bool {
-        if let urlError = error as? URLError {
-            return [
-                .networkConnectionLost,
-                .cannotConnectToHost,
-                .timedOut,
-                .cannotFindHost,
-                .dnsLookupFailed
-            ].contains(urlError.code)
-        }
-
-        let nsError = error as NSError
-
-        if nsError.domain == NSURLErrorDomain {
-            let code = URLError.Code(rawValue: nsError.code)
-            return isTransientNetworkError(URLError(code))
-        }
-
-        if nsError.domain == NSPOSIXErrorDomain {
-            return [
-                ECONNABORTED,
-                ECONNRESET,
-                ETIMEDOUT
-            ].contains(Int32(nsError.code))
-        }
-
-        if let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
-            return isTransientNetworkError(underlyingError)
-        }
-
-        return false
-    }
-
-    private func decodeTurnStreamEvent(
-        from message: URLSessionWebSocketTask.Message
-    ) throws -> CodexRemoteTurnStreamEvent {
-        let data: Data
-
-        switch message {
-        case .data(let messageData):
-            data = messageData
-        case .string(let text):
-            guard let messageData = text.data(using: .utf8) else {
-                throw CodexRemoteClientError.invalidWebSocketMessage
-            }
-            data = messageData
-        @unknown default:
-            throw CodexRemoteClientError.invalidWebSocketMessage
-        }
-
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode(CodexRemoteTurnStreamEvent.self, from: data)
-    }
-
-    private func normalizedBaseURL(from endpoint: String) throws -> URL {
-        let trimmedEndpoint = endpoint.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard let url = URL(string: trimmedEndpoint),
-              let scheme = url.scheme,
-              ["http", "https"].contains(scheme),
-              url.host != nil
-        else {
-            throw CodexRemoteClientError.invalidEndpoint
-        }
-
-        return url
-    }
-
-    private func threadsURL(from baseURL: URL) throws -> URL {
-        let url = baseURL.appendingPathComponent("threads")
-
-        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-            throw CodexRemoteClientError.invalidEndpoint
-        }
-
-        components.queryItems = [
-            URLQueryItem(name: "limit", value: "20")
-        ]
-
-        guard let threadsURL = components.url else {
-            throw CodexRemoteClientError.invalidEndpoint
-        }
-
-        return threadsURL
-    }
-
-    private func turnEventsURL(from baseURL: URL, threadID: String, turnID: String) throws -> URL {
-        let url = baseURL
-            .appendingPathComponent("threads")
-            .appendingPathComponent(threadID)
-            .appendingPathComponent("turns")
-            .appendingPathComponent(turnID)
-            .appendingPathComponent("events")
-
-        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-            throw CodexRemoteClientError.invalidEndpoint
-        }
-
-        switch components.scheme {
-        case "http":
-            components.scheme = "ws"
-        case "https":
-            components.scheme = "wss"
-        default:
-            throw CodexRemoteClientError.invalidEndpoint
-        }
-
-        guard let eventsURL = components.url else {
-            throw CodexRemoteClientError.invalidEndpoint
-        }
-
-        return eventsURL
+    private func runCore<Result>(
+        _ operation: @escaping @Sendable () -> Result
+    ) async -> Result {
+        await Task.detached(priority: .userInitiated, operation: operation).value
     }
 }
 
-private struct CodexRemoteTurnSubmitPayload: Encodable {
-    let input: String
-    let cwd: String?
-    let model: String?
-    let reasoningEffort: String?
-    let serviceTier: String?
-    let permissionMode: String?
-    let waitForCompletion: Bool
+private final class CodexRemoteCoreTurnObserver: FfiCodexRemoteTurnObserver, @unchecked Sendable {
+    private let onStatus: @Sendable (CodexRemoteStreamStatus) async -> Void
+    private let onThreadDetail: @Sendable (CodexRemoteThreadDetailResponse) async -> Void
+    private let onEvent: @Sendable (CodexRemoteTurnStreamEvent) async -> Void
+    private let lock = NSLock()
+    private var deliveryTask = Task<Void, Never> {}
 
-    enum CodingKeys: String, CodingKey {
-        case input
-        case cwd
-        case model
-        case reasoningEffort = "reasoning_effort"
-        case serviceTier = "service_tier"
-        case permissionMode = "permission_mode"
-        case waitForCompletion = "wait_for_completion"
+    init(
+        onStatus: @escaping @Sendable (CodexRemoteStreamStatus) async -> Void,
+        onThreadDetail: @escaping @Sendable (CodexRemoteThreadDetailResponse) async -> Void,
+        onEvent: @escaping @Sendable (CodexRemoteTurnStreamEvent) async -> Void
+    ) {
+        self.onStatus = onStatus
+        self.onThreadDetail = onThreadDetail
+        self.onEvent = onEvent
+    }
+
+    func onStatus(status: FfiCodexRemoteStreamStatus) {
+        let status = CodexRemoteStreamStatus(status)
+        enqueue { [onStatus] in await onStatus(status) }
+    }
+
+    func onEvent(event: FfiCodexRemoteTurnStreamEvent) {
+        let event = CodexRemoteTurnStreamEvent(event)
+        enqueue { [onEvent] in await onEvent(event) }
+    }
+
+    func onThreadDetail(response: FfiCodexRemoteThreadDetailResponse) {
+        let response = CodexRemoteThreadDetailResponse(response)
+        enqueue { [onThreadDetail] in await onThreadDetail(response) }
+    }
+
+    func drain() async {
+        let task = lockedDeliveryTask()
+        await task.value
+    }
+
+    private func enqueue(_ operation: @escaping @Sendable () async -> Void) {
+        lock.lock()
+        let previousTask = deliveryTask
+        deliveryTask = Task {
+            await previousTask.value
+            await operation()
+        }
+        lock.unlock()
+    }
+
+    private func lockedDeliveryTask() -> Task<Void, Never> {
+        lock.lock()
+        let task = deliveryTask
+        lock.unlock()
+        return task
     }
 }
 
-private struct CodexRemoteThreadCreatePayload: Encodable {
-    let cwd: String
-    let model: String?
-    let serviceTier: String?
-
-    enum CodingKeys: String, CodingKey {
-        case cwd
-        case model
-        case serviceTier = "service_tier"
-    }
-}
-
-private struct CodexRemoteAPIError: Decodable {
-    let error: String
+struct CodexRemoteStreamStatus {
+    let status: String
+    let message: String?
 }
 
 enum CodexRemoteClientError: LocalizedError {
-    case invalidEndpoint
-    case invalidWebSocketMessage
-    case badStatus(Int)
-    case server(String)
+    case core(String?)
 
     var errorDescription: String? {
         switch self {
-        case .invalidEndpoint:
-            return "Enter a valid Codex Remote Server endpoint."
-        case .invalidWebSocketMessage:
-            return "Codex Remote Server returned an invalid stream event."
-        case .badStatus(let statusCode):
-            return statusCode > 0 ? "Codex Remote Server returned HTTP \(statusCode)." : "Codex Remote Server returned an invalid response."
-        case .server(let message):
-            return message
+        case .core(let message):
+            return message ?? "Codex Remote Client returned an invalid response."
         }
+    }
+}
+
+private extension CodexRemoteSnapshot {
+    init(_ snapshot: FfiCodexRemoteSnapshot) {
+        self.init(
+            health: CodexRemoteHealth(snapshot.health),
+            threadList: CodexRemoteThreadList(snapshot.threadList),
+            modelList: CodexRemoteModelList(snapshot.modelList)
+        )
+    }
+}
+
+private extension CodexRemoteHealth {
+    init(_ health: FfiCodexRemoteHealth) {
+        self.init(
+            service: health.service,
+            version: health.version,
+            platform: CodexRemotePlatform(os: health.os, arch: health.arch),
+            codex: CodexRemoteCodexHealth(
+                cliPath: nil,
+                version: nil,
+                appServerAvailable: health.appServerAvailable,
+                appServerProbe: health.appServerProbe,
+                codexHome: health.codexHome
+            )
+        )
+    }
+}
+
+private extension CodexRemoteThreadList {
+    init(_ list: FfiCodexRemoteThreadList) {
+        self.init(
+            source: list.source,
+            codexHome: list.codexHome,
+            skippedRecords: Int(list.skippedRecords),
+            threads: list.threads.map(CodexRemoteThread.init)
+        )
+    }
+}
+
+private extension CodexRemoteThread {
+    init(_ thread: FfiCodexRemoteThreadSummary) {
+        self.init(
+            id: thread.id,
+            title: thread.title,
+            updatedAt: thread.updatedAt,
+            cwd: thread.cwd,
+            projectKey: thread.projectKey,
+            projectName: thread.projectName,
+            status: thread.status,
+            activeTurn: thread.activeTurn.map(CodexRemoteActiveTurn.init)
+        )
+    }
+}
+
+private extension CodexRemoteActiveTurn {
+    init(_ activeTurn: FfiCodexRemoteActiveTurn) {
+        self.init(turnId: activeTurn.turnId, status: activeTurn.status)
+    }
+}
+
+private extension CodexRemoteThreadDetailResponse {
+    init(_ response: FfiCodexRemoteThreadDetailResponse) {
+        self.init(
+            source: response.source,
+            thread: CodexRemoteThreadDetail(response.thread),
+            transcriptEntries: response.transcriptEntries.map(CodexRemoteTranscriptEntry.init)
+        )
+    }
+}
+
+private extension CodexRemoteThreadCreateResponse {
+    init(_ response: FfiCodexRemoteThreadCreateResponse) {
+        self.init(
+            thread: CodexRemoteSemanticThread(response.thread),
+            model: response.model,
+            modelProvider: response.modelProvider,
+            serviceTier: response.serviceTier
+        )
+    }
+}
+
+private extension CodexRemoteSemanticThread {
+    init(_ thread: FfiCodexRemoteSemanticThread) {
+        self.init(
+            id: thread.id,
+            title: thread.title,
+            preview: thread.preview,
+            cwd: thread.cwd,
+            status: thread.status,
+            activeTurn: thread.activeTurn.map(CodexRemoteActiveTurn.init),
+            updatedAt: thread.updatedAt,
+            source: thread.source
+        )
+    }
+}
+
+private extension CodexRemoteThreadDetail {
+    init(_ thread: FfiCodexRemoteThreadDetail) {
+        self.init(
+            id: thread.id,
+            title: thread.title,
+            preview: thread.preview,
+            cwd: thread.cwd,
+            status: thread.status,
+            activeTurn: thread.activeTurn.map(CodexRemoteActiveTurn.init),
+            updatedAt: thread.updatedAt,
+            source: thread.source,
+            modelProvider: thread.modelProvider,
+            turnCount: Int(thread.turnCount)
+        )
+    }
+}
+
+private extension CodexRemoteModelList {
+    init(_ list: FfiCodexRemoteModelList) {
+        self.init(source: list.source, models: list.models.map(CodexRemoteModelOption.init))
+    }
+}
+
+private extension CodexRemoteModelOption {
+    init(_ model: FfiCodexRemoteModelOption) {
+        self.init(
+            id: model.id,
+            model: model.model,
+            displayName: model.displayName,
+            description: model.description,
+            isDefault: model.isDefault,
+            defaultReasoningEffort: model.defaultReasoningEffort,
+            supportedReasoningEfforts: model.supportedReasoningEfforts.map(CodexRemoteReasoningEffortOption.init),
+            additionalSpeedTiers: model.additionalSpeedTiers
+        )
+    }
+}
+
+private extension CodexRemoteReasoningEffortOption {
+    init(_ effort: FfiCodexRemoteReasoningEffortOption) {
+        self.init(reasoningEffort: effort.reasoningEffort, description: effort.description)
+    }
+}
+
+private extension CodexRemoteTurnResult {
+    init(_ turn: FfiCodexRemoteTurnSubmit) {
+        self.init(
+            threadId: turn.threadId,
+            turnId: turn.turnId,
+            status: turn.status,
+            assistantText: turn.assistantText,
+            eventCount: Int(turn.eventCount)
+        )
+    }
+}
+
+private extension CodexRemoteTurnStreamEvent {
+    init(_ event: FfiCodexRemoteTurnStreamEvent) {
+        self.init(
+            eventType: event.eventType,
+            threadId: event.threadId,
+            turnId: event.turnId,
+            sequence: event.sequence,
+            text: event.text,
+            status: event.status,
+            message: event.message,
+            kind: event.kind,
+            itemId: event.itemId,
+            eventCount: event.eventCount.map(Int.init),
+            transcriptEntry: event.transcriptEntry.map(CodexRemoteTranscriptEntry.init)
+        )
+    }
+}
+
+private extension CodexRemoteStreamStatus {
+    init(_ status: FfiCodexRemoteStreamStatus) {
+        self.init(status: status.status, message: status.message)
+    }
+}
+
+private extension CodexRemoteTranscriptEntry {
+    init(_ entry: FfiCodexRemoteTranscriptEntry) {
+        let envelope = CodexRemoteTranscriptEnvelope(
+            id: entry.id,
+            turnId: entry.turnId,
+            status: entry.status,
+            phase: entry.phase,
+            createdAt: entry.createdAt
+        )
+
+        switch entry.entryType {
+        case "user_message":
+            self = .userMessage(CodexRemoteTranscriptTextMessage(envelope: envelope, text: entry.text))
+        case "assistant_message":
+            self = .assistantMessage(CodexRemoteTranscriptTextMessage(envelope: envelope, text: entry.text))
+        case "tool_call_message":
+            self = .toolCallMessage(
+                CodexRemoteToolCallMessage(
+                    envelope: envelope,
+                    payload: entry.toolCall.map(CodexRemoteToolCallPayload.init)
+                        ?? CodexRemoteToolCallPayload.fallback(kind: entry.kind, summary: entry.text)
+                )
+            )
+        default:
+            self = .genericEventMessage(
+                CodexRemoteGenericEventMessage(
+                    envelope: envelope,
+                    kind: entry.kind,
+                    text: entry.text
+                )
+            )
+        }
+    }
+}
+
+private extension CodexRemoteToolCallPayload {
+    init(_ payload: FfiCodexRemoteToolCallPayload) {
+        self.init(
+            kind: payload.kind,
+            summary: payload.summary,
+            command: payload.command,
+            cwd: payload.cwd,
+            source: payload.source,
+            commandActions: payload.commandActionsJson.map(CodexRemoteJSONValue.fromJSONString),
+            aggregatedOutput: payload.aggregatedOutput,
+            exitCode: payload.exitCode.map(Int.init),
+            durationMs: payload.durationMs.map(Int.init),
+            changes: payload.changesJson.map(CodexRemoteJSONValue.fromJSONString),
+            server: payload.server,
+            tool: payload.tool,
+            arguments: payload.argumentsJson.map(CodexRemoteJSONValue.fromJSONString),
+            mcpAppResourceUri: payload.mcpAppResourceUri,
+            pluginId: payload.pluginId,
+            result: payload.resultJson.map(CodexRemoteJSONValue.fromJSONString),
+            error: payload.errorJson.map(CodexRemoteJSONValue.fromJSONString),
+            namespace: payload.namespace,
+            contentItems: payload.contentItemsJson.map(CodexRemoteJSONValue.fromJSONString),
+            success: payload.success,
+            senderThreadId: payload.senderThreadId,
+            receiverThreadIds: payload.receiverThreadIds,
+            prompt: payload.prompt,
+            model: payload.model,
+            reasoningEffort: payload.reasoningEffort,
+            agentsStates: payload.agentsStatesJson.map(CodexRemoteJSONValue.fromJSONString),
+            query: payload.query,
+            action: payload.actionJson.map(CodexRemoteJSONValue.fromJSONString),
+            path: payload.path,
+            revisedPrompt: payload.revisedPrompt,
+            savedPath: payload.savedPath,
+            status: payload.imageStatus
+        )
+    }
+
+    static func fallback(kind: String, summary: String) -> CodexRemoteToolCallPayload {
+        CodexRemoteToolCallPayload(
+            kind: kind,
+            summary: summary,
+            command: nil,
+            cwd: nil,
+            source: nil,
+            commandActions: nil,
+            aggregatedOutput: nil,
+            exitCode: nil,
+            durationMs: nil,
+            changes: nil,
+            server: nil,
+            tool: nil,
+            arguments: nil,
+            mcpAppResourceUri: nil,
+            pluginId: nil,
+            result: nil,
+            error: nil,
+            namespace: nil,
+            contentItems: nil,
+            success: nil,
+            senderThreadId: nil,
+            receiverThreadIds: nil,
+            prompt: nil,
+            model: nil,
+            reasoningEffort: nil,
+            agentsStates: nil,
+            query: nil,
+            action: nil,
+            path: nil,
+            revisedPrompt: nil,
+            savedPath: nil,
+            status: nil
+        )
+    }
+}
+
+private extension CodexRemoteJSONValue {
+    static func fromJSONString(_ text: String) -> CodexRemoteJSONValue {
+        guard let data = text.data(using: .utf8),
+              let value = try? JSONDecoder().decode(CodexRemoteJSONValue.self, from: data)
+        else {
+            return .string(text)
+        }
+
+        return value
     }
 }
 

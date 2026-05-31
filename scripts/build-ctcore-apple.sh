@@ -29,6 +29,10 @@ cargo build \
     --out-dir "${OUT_DIR}"
 )
 
+perl -pi -e 's/[ \t]+$//' \
+  "${OUT_DIR}/ct_core.swift" \
+  "${OUT_DIR}/ct_coreFFI.h"
+
 cargo build \
   --manifest-path "${CTCORE_DIR}/Cargo.toml" \
   --features "${SWIFT_FEATURES}" \

@@ -96,6 +96,7 @@ Plan:
 - During polling, update the same live transcript overlay from thread detail so the UI does not freeze on stale text.
 - CTCore now exposes thread `status` plus `active_turn` derived from app-server `turns[].status == inProgress`; the iPad uses thread detail to resume an active turn stream after refresh, thread selection, or stream loss.
 - A client WebSocket disconnect does not cancel the server-side turn; the server subscription loop exits while the background app-server reader continues until `turn/completed` or error.
+- Follow-up ownership correction: the iPad no longer owns the Codex Remote networking stack. CTCore now provides the shared Codex Remote Client for health/thread/model loading, thread creation, turn submission, WebSocket streaming, reconnect, and polling fallback. The iPad keeps UI state, transcript projection, and SwiftUI rendering only.
 
 Verification:
 
@@ -104,6 +105,9 @@ Verification:
 - 2026-05-31: `cargo test --manifest-path CTCore/Cargo.toml --features codex-remote-control-server --lib codex_remote_control::server::app_server::tests` passed.
 - 2026-05-31: `cargo fmt --manifest-path CTCore/Cargo.toml --check` passed.
 - 2026-05-31: `xcodebuild -project clients/apple/CraftingTable.xcodeproj -scheme CraftingTable -configuration Debug -destination 'id=BEC303B0-A080-4E5E-9DD8-A297D0B0200E' build` passed.
+- 2026-05-31: `cargo test --manifest-path CTCore/Cargo.toml --features swift-bindings --lib swift_bindings::tests` passed after introducing the shared CTCore client FFI.
+- 2026-05-31: `cargo test --manifest-path CTCore/Cargo.toml --features codex-remote-control-client --lib codex_remote_control::client` passed after moving reconnect/poll fallback into CTCore.
+- 2026-05-31: `xcodebuildmcp build_sim` passed for `CraftingTable` on iPad Pro 13-inch (M5) after the iPad switched to the CTCore client.
 
 ### Slice 3 - Show Tool-Call Details
 
