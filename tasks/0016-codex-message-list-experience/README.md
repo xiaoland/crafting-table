@@ -138,7 +138,7 @@ Follow-up:
 
 - If the Swift transcript DTOs grow further, move them out of `CodexRemoteClient.swift` into a dedicated Codex Remote transcript model file.
 
-### Slice 4 - Group Similar Tool Calls
+### Slice 4 - Group Consecutive Tool Calls By Kind
 
 Problem: one row per tool call is noisy during active turns and after persisted detail loads.
 
@@ -151,10 +151,11 @@ Plan:
   - generic event entry
 - Treat Codex app-server as the source of item semantics: preserve `Turn.items` order, typed item payloads, and live `threadId`/`turnId`/`itemId` lifecycle notifications in CTCore.
 - Do not assume or invent a group id. Current app-server evidence shows ordered typed items, not an explicit tool-call group contract.
-- Group adjacent `ToolCallMessage` entries within the same turn when their payload kinds are compatible, preserving chronological order inside the group.
+- Group adjacent `ToolCallMessage` entries within the same turn when their payload kinds are identical, preserving chronological order inside the group.
 - If a future app-server protocol exposes a stronger batch boundary, preserve that boundary in CTCore and render it directly.
 - Do not group user or assistant messages.
 - Default collapsed state should show kind, count, latest status, and timestamp; expanded state shows each item with details.
+- Implemented in `CodexRemoteTranscriptRows` as a local UI projection plus group row/popover components, leaving CTCore transcript entries unchanged.
 
 Verification:
 

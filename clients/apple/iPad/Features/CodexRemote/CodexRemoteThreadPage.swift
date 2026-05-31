@@ -89,12 +89,13 @@ private struct CodexRemoteTranscript: View {
                     } else if messages.isEmpty && hasStreamingActivity == false {
                         emptyState
                     } else {
-                        ForEach(messages) { message in
-                            CodexRemoteMessageRow(message: message)
-                        }
-
-                        ForEach(visibleStreamingMessages) { message in
-                            CodexRemoteMessageRow(message: message)
+                        ForEach(transcriptRows) { row in
+                            switch row {
+                            case .message(let message):
+                                CodexRemoteMessageRow(message: message)
+                            case .toolCallGroup(let group):
+                                CodexRemoteToolCallGroupRow(group: group)
+                            }
                         }
 
                         if hasFallbackStreamingMessage {
@@ -160,6 +161,10 @@ private struct CodexRemoteTranscript: View {
         return streamingMessages.filter { message in
             existingMessageIDs.contains(message.id) == false
         }
+    }
+
+    private var transcriptRows: [CodexRemoteTranscriptRow] {
+        CodexRemoteTranscriptRow.project(messages + visibleStreamingMessages)
     }
 
     private var visibleStreamingMessagesFingerprint: String {
@@ -571,33 +576,6 @@ private struct CodexRemoteToolCallDetailPopover: View {
     private var copyText: String {
         let detailText = payload.detailText
         return detailText.isEmpty ? payload.summary : detailText
-    }
-}
-
-private struct CodexRemoteToolCallDetailRowView: View {
-    let row: CodexRemoteToolCallDetailRow
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(row.title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-
-            Text(row.value)
-                .font(detailFont)
-                .foregroundStyle(.primary)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private var detailFont: Font {
-        switch row.title {
-        case "Command", "Output", "Arguments", "Result", "Error", "Action", "Command actions", "Changes", "Content items", "Agents states":
-            return .system(.callout, design: .monospaced)
-        default:
-            return .callout
-        }
     }
 }
 
