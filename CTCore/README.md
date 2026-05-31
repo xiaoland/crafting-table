@@ -11,7 +11,9 @@ This crate starts small. It should own portable business contracts and validatio
 - `codex-remote-control-client`: control-client state projection over the server-owned wire contract.
 - `inkcre-graph`: Goal Forest, Capture, Work Session, and Remote Continuity mapping to InKCre block/relation graph forms.
 - `local-llm-core`: Local LLM manifest schema, readiness rules, service states, and minimal OpenAI-compatible request/response contracts.
-- `swift-bindings`: UniFFI binding facade for iPad Swift clients, currently exposing portable config decode/encode/validation.
+- `uniffi-bindings`: shared UniFFI build dependency used by platform binding features.
+- `swift-bindings`: UniFFI binding facade for Apple Swift clients, currently exposing portable config decode/encode/validation.
+- `kotlin-bindings`: UniFFI binding facade for Android Kotlin clients, exposing portable config plus Codex Remote control-client projection helpers.
 
 No feature is enabled by default.
 
@@ -43,6 +45,7 @@ cargo test --manifest-path CTCore/Cargo.toml --features codex-remote-control-cli
 cargo test --manifest-path CTCore/Cargo.toml --features inkcre-graph
 cargo test --manifest-path CTCore/Cargo.toml --features local-llm-core
 cargo test --manifest-path CTCore/Cargo.toml --features swift-bindings
+cargo test --manifest-path CTCore/Cargo.toml --features kotlin-bindings
 ```
 
 ## Apple Binding
@@ -54,3 +57,11 @@ scripts/smoke-ctcore-swift-binding.sh
 
 The script regenerates UniFFI Swift bindings and builds the local `CTCore.xcframework` used by Apple targets.
 The smoke script compiles the generated Swift binding against CTCore and verifies portable config validation plus JSON round-trip behavior.
+
+## Android Binding
+
+```sh
+scripts/build-ctcore-android.sh
+```
+
+The script regenerates checked-in UniFFI Kotlin bindings and builds local Android `libct_core.so` artifacts for development. Kotlin source is tracked; native Android libraries are generated locally and ignored by git.

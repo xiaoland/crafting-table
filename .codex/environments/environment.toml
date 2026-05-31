@@ -20,6 +20,11 @@ icon = "play"
 command = "./scripts/run-macos-client.sh"
 
 [[actions]]
+name = "Run Android Client"
+icon = "play"
+command = "./scripts/run-android-client.sh --debug"
+
+[[actions]]
 name = "Run Windows Client"
 icon = "play"
 platforms = ["windows"]

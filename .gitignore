@@ -38,6 +38,14 @@ clients/windows/dist/*
 !clients/windows/dist/.gitkeep
 clients/windows/src-tauri/gen/schemas/
 
+# Android build products
+.gradle/
+local.properties
+clients/android/**/build/
+clients/android/.kotlin/
+clients/android/.idea/
+clients/android/ctcore-bindings/src/main/jniLibs/**/*.so
+
 # Swift Package Manager
 Packages/
 Package.resolved

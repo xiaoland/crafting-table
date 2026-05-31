@@ -28,7 +28,9 @@ codex-remote-control-client = [
 ]
 inkcre-graph = ["dep:serde", "dep:serde_json"]
 local-llm-core = ["dep:serde", "dep:serde_json"]
-swift-bindings = ["portable-config", "codex-remote-control-client", "dep:uniffi"]
+uniffi-bindings = ["dep:uniffi"]
+swift-bindings = ["portable-config", "codex-remote-control-client", "uniffi-bindings"]
+kotlin-bindings = ["portable-config", "codex-remote-control-client", "uniffi-bindings"]
 
 [dependencies]
 anyhow = { version = "1.0", optional = true }
@@ -51,7 +53,7 @@ tower = { version = "0.5", features = ["util"] }
 [[bin]]
 name = "uniffi-bindgen"
 path = "uniffi-bindgen.rs"
-required-features = ["swift-bindings"]
+required-features = ["uniffi-bindings"]
 
 [[bin]]
 name = "ct-codex-remote-server"

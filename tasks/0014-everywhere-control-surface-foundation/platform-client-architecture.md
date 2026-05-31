@@ -136,8 +136,8 @@ Why:
 First target shape:
 
 - Codex Remote host list and connection setup
-- thread list/detail/stream control UI
-- pairing/auth flow against desktop hosts
+- thread list/detail and turn control UI
+- pairing/auth flow against desktop hosts after the manual URL slice
 - CTCore `codex-remote-control-client` and optional `portable-config` through Kotlin bindings
 
 Open decisions:
@@ -183,7 +183,10 @@ scripts/
 Near-term structure:
 
 - Apple project structure has moved to `clients/apple/`, with the existing iPad source under `clients/apple/iPad/`.
-- Android client root exists as a placeholder with no Gradle build system yet.
+- Android client root now has a Gradle Kotlin DSL project with `app` and `ctcore-bindings` modules.
+- Android currently implements manual Codex Remote host URL entry, health check, thread list/detail, and turn submission.
+- Android routes Codex Remote response decoding through CTCore UniFFI helpers, keeping the UI off the server-owned wire JSON details.
+- Android generated UniFFI Kotlin binding source is checked in; generated Android native libraries are ignored local build artifacts.
 - Windows now has a first Tauri v2 app skeleton under `clients/windows/`.
 - `CraftingTableMac` now exists under `clients/apple/macOS/`
 - macOS now starts the CTCore Codex Remote Server in-process through a narrow C ABI.
@@ -207,6 +210,14 @@ Android:
 - UniFFI generates Kotlin binding source.
 - Gradle packages bindings and native libraries into a local module or AAR.
 - Android Studio builds the app normally after the artifact step.
+- `scripts/build-ctcore-android.sh` regenerates Kotlin binding source and builds local `libct_core.so` artifacts when an Android NDK is installed.
+
+Icon assets:
+
+- iPad `AppIcon.png` is the visual source for platform client icons.
+- macOS has a generated `AppIcon.appiconset` derived from the iPad icon.
+- Android launcher `mipmap-*` icons are derived from the iPad icon.
+- Windows `icon.ico` is derived from the iPad icon.
 
 Windows:
 

@@ -547,6 +547,44 @@ Implementation evidence:
 - `scripts/run-windows-client.sh --check` installs frontend dependencies, builds the TypeScript/Vite frontend, checks Rust formatting, and runs `cargo check` for the Tauri backend.
 - `scripts/run-windows-client.ps1 check` is the Windows-native equivalent for PowerShell.
 
+## Phase 10 - Android Codex Remote Client
+
+Goal: add the first Android client with only Codex Remote control-client capability.
+
+Direction:
+
+- Android uses Kotlin + Jetpack Compose.
+- Android is a control endpoint only in this slice; it does not embed or supervise Codex Host Runtime.
+- CTCore remains the owner of portable config, Codex Remote response decoding, and control-client projection semantics.
+- Android owns UI, cleartext/local-network policy, Android package shape, credential storage, and future pairing/discovery adapters.
+- Generated Kotlin binding source is checked in; generated native `.so` artifacts are local build products.
+
+First implementation slices:
+
+1. scaffold `clients/android/` as a Gradle Kotlin DSL Android project
+2. add a local `ctcore-bindings` Android library module
+3. add `kotlin-bindings` to CTCore and generate checked-in UniFFI Kotlin source
+4. build a Compose UI for manual host URL entry, health check, thread list/detail, and turn submission
+5. route Codex Remote response decoding through CTCore UniFFI helpers instead of Android UI-owned JSON parsing
+6. keep streaming WebSocket, pairing/auth, and LAN discovery out of the first Android surface
+7. add CTCore Android artifact script for native library generation through the Android NDK
+
+Out of scope for the first Android slice:
+
+- Android Host Runtime
+- Goal Forest, Capture, Work Session, and Local LLM
+- QR pairing, token management, mDNS/LAN discovery, and persisted host database
+- committing generated Android native libraries
+
+Verification:
+
+- `cargo fmt --manifest-path CTCore/Cargo.toml -- --check`
+- `cargo check --manifest-path CTCore/Cargo.toml --features kotlin-bindings`
+- generated Kotlin binding exists under `clients/android/ctcore-bindings/src/main/java`
+- `bash -n scripts/build-ctcore-android.sh scripts/run-android-client.sh`
+- Gradle `:app:assembleDebug` once Android SDK/Gradle is available
+- `scripts/run-android-client.sh --debug` installs and launches the app on an authorized USB debugging device
+
 ## Recommended first implementation slice
 
 Do not begin with repo-wide restructuring.

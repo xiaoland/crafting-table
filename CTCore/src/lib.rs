@@ -13,8 +13,8 @@ pub mod local_llm_core;
 #[cfg(feature = "portable-config")]
 pub mod portable_config;
 
-#[cfg(feature = "swift-bindings")]
+#[cfg(any(feature = "swift-bindings", feature = "kotlin-bindings"))]
 pub mod swift_bindings;
 
-#[cfg(feature = "swift-bindings")]
+#[cfg(any(feature = "swift-bindings", feature = "kotlin-bindings"))]
 uniffi::setup_scaffolding!();
