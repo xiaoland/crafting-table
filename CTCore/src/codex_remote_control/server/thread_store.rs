@@ -50,6 +50,8 @@ pub fn list_threads(
             cwd: None,
             project_key: "unknown".to_string(),
             project_name: "Unknown Project".to_string(),
+            status: "unknown".to_string(),
+            active_turn: None,
         })
         .collect();
 

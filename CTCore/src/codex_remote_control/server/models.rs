@@ -50,6 +50,8 @@ pub struct ThreadSummary {
     pub cwd: Option<String>,
     pub project_key: String,
     pub project_name: String,
+    pub status: String,
+    pub active_turn: Option<ActiveTurnSummary>,
 }
 
 #[derive(Debug, Serialize)]
@@ -107,6 +109,7 @@ pub struct SemanticThreadSummary {
     pub preview: String,
     pub cwd: Option<String>,
     pub status: String,
+    pub active_turn: Option<ActiveTurnSummary>,
     pub updated_at: String,
     pub source: Option<String>,
 }
@@ -118,10 +121,17 @@ pub struct SemanticThreadDetail {
     pub preview: String,
     pub cwd: Option<String>,
     pub status: String,
+    pub active_turn: Option<ActiveTurnSummary>,
     pub updated_at: String,
     pub source: Option<String>,
     pub model_provider: Option<String>,
     pub turn_count: usize,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+pub struct ActiveTurnSummary {
+    pub turn_id: String,
+    pub status: String,
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq)]

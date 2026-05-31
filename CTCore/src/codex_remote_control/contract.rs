@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-pub const WIRE_CONTRACT_VERSION: u16 = 1;
+pub const WIRE_CONTRACT_VERSION: u16 = 2;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -53,6 +53,8 @@ pub struct ThreadSummary {
     pub cwd: Option<String>,
     pub project_key: String,
     pub project_name: String,
+    pub status: String,
+    pub active_turn: Option<ActiveTurnSummary>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -126,6 +128,7 @@ pub struct SemanticThreadSummary {
     pub preview: String,
     pub cwd: Option<String>,
     pub status: String,
+    pub active_turn: Option<ActiveTurnSummary>,
     pub updated_at: String,
     pub source: Option<String>,
 }
@@ -138,10 +141,18 @@ pub struct SemanticThreadDetail {
     pub preview: String,
     pub cwd: Option<String>,
     pub status: String,
+    pub active_turn: Option<ActiveTurnSummary>,
     pub updated_at: String,
     pub source: Option<String>,
     pub model_provider: Option<String>,
     pub turn_count: usize,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub struct ActiveTurnSummary {
+    pub turn_id: String,
+    pub status: String,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

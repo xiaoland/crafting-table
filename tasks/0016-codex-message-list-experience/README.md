@@ -89,16 +89,21 @@ Problem: when WebSocket streaming fails mid-turn, the client labels the state as
 
 Plan:
 
-- Track the highest stream sequence handled for the active turn.
+- Track the highest stream sequence handled for the active turn. Implemented with a dedicated `streamingLastSequence` so replay does not duplicate assistant deltas.
 - Retry the WebSocket with bounded backoff while the turn is not terminal.
 - Use server replay to rebuild missed events, ignoring already-applied sequence numbers.
 - After repeated WebSocket failure or an unavailable stream, poll `GET /threads/:thread_id` until the selected turn reaches a terminal status or a timeout budget is reached.
 - During polling, update the same live transcript overlay from thread detail so the UI does not freeze on stale text.
+- CTCore now exposes thread `status` plus `active_turn` derived from app-server `turns[].status == inProgress`; the iPad uses thread detail to resume an active turn stream after refresh, thread selection, or stream loss.
+- A client WebSocket disconnect does not cancel the server-side turn; the server subscription loop exits while the background app-server reader continues until `turn/completed` or error.
 
 Verification:
 
 - Client-level test seam or manual smoke with a forced WebSocket close after some events.
 - Expected result: status moves through reconnecting/polling, transcript continues to update or finalizes from thread detail, and no duplicate streamed rows appear.
+- 2026-05-31: `cargo test --manifest-path CTCore/Cargo.toml --features codex-remote-control-server --lib codex_remote_control::server::app_server::tests` passed.
+- 2026-05-31: `cargo fmt --manifest-path CTCore/Cargo.toml --check` passed.
+- 2026-05-31: `xcodebuild -project clients/apple/CraftingTable.xcodeproj -scheme CraftingTable -configuration Debug -destination 'id=BEC303B0-A080-4E5E-9DD8-A297D0B0200E' build` passed.
 
 ### Slice 3 - Show Tool-Call Details
 

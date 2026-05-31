@@ -51,11 +51,31 @@ private struct CodexRemoteHostRuntime {
     var streamingMessages: [CodexRemoteTranscriptEntry] = []
     var streamingStatus: String?
     var streamingEventCount = 0
+    var streamingLastSequence = 0
     var streamErrorMessage: String?
     var turnStreamTask: Task<Void, Never>?
     var streamingDidComplete = false
 
     static let empty = CodexRemoteHostRuntime()
+}
+
+private enum CodexRemoteTurnRecovery {
+    static let reconnectDelays: [UInt64] = [
+        0,
+        1_000_000_000,
+        2_000_000_000
+    ]
+
+    static let pollingDelays: [UInt64] = [
+        0,
+        1_000_000_000,
+        2_000_000_000,
+        3_000_000_000,
+        5_000_000_000,
+        8_000_000_000,
+        13_000_000_000,
+        21_000_000_000
+    ]
 }
 
 struct CodexRemoteScreen: View {
@@ -246,9 +266,24 @@ struct CodexRemoteScreen: View {
                 return
             }
 
+            var activeTurnToRecover: String?
             updateHostState(hostID) { state in
                 state.threadDetailResponse = response
                 reconcileStreamIfNeeded(with: response, state: &state)
+                activeTurnToRecover = prepareActiveTurnRecoveryIfNeeded(
+                    threadID: threadID,
+                    response: response,
+                    state: &state
+                )
+            }
+
+            if let activeTurnToRecover {
+                startTurnEventStream(
+                    endpoint: endpoint,
+                    hostID: hostID,
+                    threadID: threadID,
+                    turnID: activeTurnToRecover
+                )
             }
         } catch {
             guard hostStates[hostID]?.selectedThreadID == threadID
@@ -323,6 +358,7 @@ struct CodexRemoteScreen: View {
                 state.streamingMessages = []
                 state.streamingStatus = result.status
                 state.streamingEventCount = 0
+                state.streamingLastSequence = 0
                 state.streamErrorMessage = nil
                 state.streamingDidComplete = false
             }
@@ -730,6 +766,7 @@ struct CodexRemoteScreen: View {
             state.streamingMessages = []
             state.streamingStatus = nil
             state.streamingEventCount = 0
+            state.streamingLastSequence = 0
             state.streamErrorMessage = nil
             state.streamingDidComplete = false
         }
@@ -771,6 +808,36 @@ struct CodexRemoteScreen: View {
         min(max(availableWidth * 0.30, 300), 380)
     }
 
+    private func prepareActiveTurnRecoveryIfNeeded(
+        threadID: String,
+        response: CodexRemoteThreadDetailResponse,
+        state: inout CodexRemoteHostRuntime
+    ) -> String? {
+        guard let activeTurn = response.thread.activeTurn,
+              activeTurn.status == "inProgress",
+              state.turnStreamTask == nil
+        else {
+            return nil
+        }
+
+        let isSameTurn = state.streamingThreadID == threadID && state.streamingTurnID == activeTurn.turnId
+
+        if isSameTurn == false {
+            state.streamingThreadID = threadID
+            state.streamingTurnID = activeTurn.turnId
+            state.streamingAssistantText = ""
+            state.streamingMessages = []
+            state.streamingEventCount = 0
+            state.streamingLastSequence = 0
+            state.streamingDidComplete = false
+        }
+
+        state.streamingStatus = "reconnecting"
+        state.streamErrorMessage = nil
+
+        return activeTurn.turnId
+    }
+
     private func scheduleThreadRefreshes(threadID: String, hostID: String) {
         Task {
             let refreshDelays: [UInt64] = [2_000_000_000, 8_000_000_000]
@@ -795,34 +862,77 @@ struct CodexRemoteScreen: View {
         turnID: String
     ) {
         let streamTask = Task {
-            do {
-                try await client.streamTurnEvents(
-                    endpoint: endpoint,
-                    threadID: threadID,
-                    turnID: turnID
-                ) { event in
-                    await MainActor.run {
-                        handleTurnStreamEvent(event, hostID: hostID, threadID: threadID, turnID: turnID)
-                    }
-                }
-
-                await MainActor.run {
-                    finishTurnStreamIfCurrent(hostID: hostID, threadID: threadID, turnID: turnID)
-                }
-            } catch {
+            for (attempt, reconnectDelay) in CodexRemoteTurnRecovery.reconnectDelays.enumerated() {
                 guard Task.isCancelled == false else {
                     return
                 }
 
-                await MainActor.run {
-                    guard isCurrentStream(hostID: hostID, threadID: threadID, turnID: turnID) else {
+                if reconnectDelay > 0 {
+                    markTurnStreamReconnecting(
+                        hostID: hostID,
+                        threadID: threadID,
+                        turnID: turnID,
+                        attempt: attempt
+                    )
+
+                    try? await Task.sleep(nanoseconds: reconnectDelay)
+
+                    guard Task.isCancelled == false else {
+                        return
+                    }
+                }
+
+                do {
+                    try await client.streamTurnEvents(
+                        endpoint: endpoint,
+                        threadID: threadID,
+                        turnID: turnID
+                    ) { event in
+                        await MainActor.run {
+                            handleTurnStreamEvent(event, hostID: hostID, threadID: threadID, turnID: turnID)
+                        }
+                    }
+
+                    let shouldPoll = finishTurnStreamIfCurrent(
+                        hostID: hostID,
+                        threadID: threadID,
+                        turnID: turnID
+                    )
+
+                    if shouldPoll {
+                        await pollTurnUntilRecovered(
+                            endpoint: endpoint,
+                            hostID: hostID,
+                            threadID: threadID,
+                            turnID: turnID,
+                            lastErrorMessage: nil
+                        )
+                    }
+                    return
+                } catch {
+                    guard Task.isCancelled == false else {
                         return
                     }
 
-                    updateHostState(hostID) { state in
-                        state.streamErrorMessage = error.localizedDescription
-                        state.streamingStatus = "polling"
-                        state.turnStreamTask = nil
+                    let hasMoreAttempts = attempt + 1 < CodexRemoteTurnRecovery.reconnectDelays.count
+
+                    markTurnStreamFailure(
+                        error,
+                        hostID: hostID,
+                        threadID: threadID,
+                        turnID: turnID,
+                        willRetry: hasMoreAttempts
+                    )
+
+                    if hasMoreAttempts == false {
+                        await pollTurnUntilRecovered(
+                            endpoint: endpoint,
+                            hostID: hostID,
+                            threadID: threadID,
+                            turnID: turnID,
+                            lastErrorMessage: error.localizedDescription
+                        )
+                        return
                     }
                 }
             }
@@ -849,7 +959,15 @@ struct CodexRemoteScreen: View {
 
         let eventSequence = Int(min(event.sequence, UInt64(Int.max)))
 
+        if eventSequence > 0,
+           let state = hostStates[hostID],
+           eventSequence <= state.streamingLastSequence
+        {
+            return
+        }
+
         updateHostState(hostID) { state in
+            state.streamingLastSequence = max(state.streamingLastSequence, eventSequence)
             state.streamingEventCount = max(state.streamingEventCount, eventSequence)
 
             switch event.eventType {
@@ -895,14 +1013,161 @@ struct CodexRemoteScreen: View {
     }
 
     @MainActor
-    private func finishTurnStreamIfCurrent(hostID: String, threadID: String, turnID: String) {
+    private func markTurnStreamReconnecting(
+        hostID: String,
+        threadID: String,
+        turnID: String,
+        attempt: Int
+    ) {
         guard isCurrentStream(hostID: hostID, threadID: threadID, turnID: turnID) else {
             return
         }
 
         updateHostState(hostID) { state in
-            state.turnStreamTask = nil
+            state.streamingStatus = "reconnecting"
+            state.streamErrorMessage = attempt > 0 ? "Reconnecting turn stream..." : nil
         }
+    }
+
+    @MainActor
+    private func markTurnStreamFailure(
+        _ error: Error,
+        hostID: String,
+        threadID: String,
+        turnID: String,
+        willRetry: Bool
+    ) {
+        guard isCurrentStream(hostID: hostID, threadID: threadID, turnID: turnID) else {
+            return
+        }
+
+        updateHostState(hostID) { state in
+            state.streamErrorMessage = error.localizedDescription
+            state.streamingStatus = willRetry ? "reconnecting" : "polling"
+        }
+    }
+
+    @MainActor
+    private func finishTurnStreamIfCurrent(hostID: String, threadID: String, turnID: String) -> Bool {
+        guard isCurrentStream(hostID: hostID, threadID: threadID, turnID: turnID) else {
+            return false
+        }
+
+        var shouldPoll = false
+        updateHostState(hostID) { state in
+            shouldPoll = state.streamingTurnID == turnID
+
+            if shouldPoll == false {
+                state.turnStreamTask = nil
+            }
+        }
+
+        return shouldPoll
+    }
+
+    private func pollTurnUntilRecovered(
+        endpoint: String,
+        hostID: String,
+        threadID: String,
+        turnID: String,
+        lastErrorMessage: String?
+    ) async {
+        for pollingDelay in CodexRemoteTurnRecovery.pollingDelays {
+            guard Task.isCancelled == false else {
+                return
+            }
+
+            if pollingDelay > 0 {
+                try? await Task.sleep(nanoseconds: pollingDelay)
+            }
+
+            let shouldPoll = await MainActor.run {
+                guard isCurrentStream(hostID: hostID, threadID: threadID, turnID: turnID) else {
+                    return false
+                }
+
+                updateHostState(hostID) { state in
+                    state.streamingStatus = "polling"
+                    if let lastErrorMessage {
+                        state.streamErrorMessage = lastErrorMessage
+                    }
+                }
+                return true
+            }
+
+            guard shouldPoll else {
+                return
+            }
+
+            do {
+                let response = try await client.loadThreadDetail(endpoint: endpoint, threadID: threadID)
+                let recovered = applyPolledThreadDetail(
+                    response,
+                    hostID: hostID,
+                    threadID: threadID,
+                    turnID: turnID
+                )
+
+                if recovered {
+                    return
+                }
+            } catch {
+                await MainActor.run {
+                    guard isCurrentStream(hostID: hostID, threadID: threadID, turnID: turnID) else {
+                        return
+                    }
+
+                    updateHostState(hostID) { state in
+                        state.streamingStatus = "polling"
+                        state.streamErrorMessage = error.localizedDescription
+                    }
+                }
+            }
+        }
+
+        await MainActor.run {
+            guard isCurrentStream(hostID: hostID, threadID: threadID, turnID: turnID) else {
+                return
+            }
+
+            updateHostState(hostID) { state in
+                state.turnStreamTask = nil
+                state.streamingStatus = "polling"
+                state.streamErrorMessage = "Turn stream recovery timed out. Refresh to check the latest state."
+            }
+        }
+    }
+
+    @MainActor
+    private func applyPolledThreadDetail(
+        _ response: CodexRemoteThreadDetailResponse,
+        hostID: String,
+        threadID: String,
+        turnID: String
+    ) -> Bool {
+        guard selectedHostID == hostID,
+              hostStates[hostID]?.selectedThreadID == threadID,
+              isCurrentStream(hostID: hostID, threadID: threadID, turnID: turnID)
+        else {
+            return true
+        }
+
+        var recovered = false
+        updateHostState(hostID) { state in
+            state.threadDetailResponse = response
+
+            if response.thread.activeTurn?.turnId == turnID {
+                state.streamingStatus = "polling"
+            } else {
+                state.streamingDidComplete = true
+                state.streamingStatus = persistedTurnStatus(for: turnID, response: response) ?? "completed"
+            }
+
+            reconcileStreamIfNeeded(with: response, state: &state)
+            recovered = state.streamingTurnID == nil
+        }
+
+        return recovered
     }
 
     @MainActor
@@ -917,6 +1182,7 @@ struct CodexRemoteScreen: View {
             state.streamingMessages = []
             state.streamingStatus = nil
             state.streamingEventCount = 0
+            state.streamingLastSequence = 0
             state.streamErrorMessage = nil
             state.streamingDidComplete = false
         }
@@ -947,8 +1213,11 @@ struct CodexRemoteScreen: View {
                 && message.isAssistantMessage
                 && isTerminalTurnStatus(message.status)
         }
+        let isTurnStillActive = response.thread.activeTurn?.turnId == streamingTurnID
 
-        guard (state.streamingDidComplete && hasAssistantForTurn) || hasCompletedAssistantForTurn else {
+        guard hasCompletedAssistantForTurn
+            || (state.streamingDidComplete && (hasAssistantForTurn || isTurnStillActive == false))
+        else {
             return
         }
 
@@ -968,6 +1237,7 @@ struct CodexRemoteScreen: View {
         state.streamingMessages = []
         state.streamingStatus = nil
         state.streamingEventCount = 0
+        state.streamingLastSequence = 0
         state.streamErrorMessage = nil
         state.streamingDidComplete = false
     }
@@ -1003,7 +1273,18 @@ struct CodexRemoteScreen: View {
             return false
         }
 
-        return ["completed", "failed", "cancelled", "canceled"].contains(status.lowercased())
+        return ["completed", "failed", "interrupted", "cancelled", "canceled"].contains(status.lowercased())
+    }
+
+    private func persistedTurnStatus(
+        for turnID: String,
+        response: CodexRemoteThreadDetailResponse
+    ) -> String? {
+        response.transcriptEntries
+            .reversed()
+            .filter { $0.turnId == turnID }
+            .compactMap(\.status)
+            .first { isTerminalTurnStatus($0) }
     }
 
     private func streamingMessage(from event: CodexRemoteTurnStreamEvent) -> CodexRemoteTranscriptEntry? {

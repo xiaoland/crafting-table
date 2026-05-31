@@ -13,9 +13,9 @@ use super::{
     codex,
     config::Config,
     models::{
-        CodexModelSummary, CodexReasoningEffortSummary, ModelListResponse, SemanticThreadDetail,
-        SemanticThreadSummary, ThreadCreateResponse, ThreadDetailResponse, ThreadListResponse,
-        ThreadResumeResponse, ThreadSummary, ToolCallPayload, TranscriptEntry,
+        ActiveTurnSummary, CodexModelSummary, CodexReasoningEffortSummary, ModelListResponse,
+        SemanticThreadDetail, SemanticThreadSummary, ThreadCreateResponse, ThreadDetailResponse,
+        ThreadListResponse, ThreadResumeResponse, ThreadSummary, ToolCallPayload, TranscriptEntry,
         TranscriptEntryEnvelope, TurnPermissionMode, TurnSubmitResponse,
     },
     turn_events::TurnEventBroker,
@@ -731,6 +731,8 @@ fn summarize_thread_for_list(thread: &Value) -> ThreadSummary {
         cwd,
         project_key,
         project_name,
+        status: thread_status(thread),
+        active_turn: active_turn_summary(thread),
     }
 }
 
@@ -742,12 +744,8 @@ fn summarize_semantic_thread(thread: &Value) -> SemanticThreadSummary {
         title: list_summary.title,
         preview: string_field(thread, "preview").unwrap_or_default(),
         cwd: string_field(thread, "cwd"),
-        status: thread
-            .get("status")
-            .and_then(|status| status.get("type"))
-            .and_then(Value::as_str)
-            .unwrap_or("unknown")
-            .to_string(),
+        status: list_summary.status,
+        active_turn: list_summary.active_turn,
         updated_at: list_summary.updated_at,
         source: thread
             .get("source")
@@ -771,11 +769,49 @@ fn summarize_thread_detail(thread: &Value) -> SemanticThreadDetail {
         preview: summary.preview,
         cwd: summary.cwd,
         status: summary.status,
+        active_turn: summary.active_turn,
         updated_at: summary.updated_at,
         source: summary.source,
         model_provider: string_field(thread, "modelProvider"),
         turn_count,
     }
+}
+
+fn thread_status(thread: &Value) -> String {
+    thread
+        .get("status")
+        .and_then(|status| status.get("type"))
+        .and_then(Value::as_str)
+        .unwrap_or("unknown")
+        .to_string()
+}
+
+fn active_turn_summary(thread: &Value) -> Option<ActiveTurnSummary> {
+    thread
+        .get("turns")
+        .and_then(Value::as_array)?
+        .iter()
+        .rev()
+        .filter_map(|turn| {
+            let status = turn_status(turn)?;
+            let turn_id = string_field(turn, "id")?;
+
+            if status.eq_ignore_ascii_case("inProgress") {
+                Some(ActiveTurnSummary { turn_id, status })
+            } else {
+                None
+            }
+        })
+        .next()
+}
+
+fn turn_status(turn: &Value) -> Option<String> {
+    string_field(turn, "status").or_else(|| {
+        turn.get("status")
+            .and_then(|status| status.get("type"))
+            .and_then(Value::as_str)
+            .map(ToString::to_string)
+    })
 }
 
 fn summarize_transcript_entries(thread: &Value) -> Vec<TranscriptEntry> {
@@ -787,7 +823,7 @@ fn summarize_transcript_entries(thread: &Value) -> Vec<TranscriptEntry> {
         .iter()
         .flat_map(|turn| {
             let turn_id = string_field(turn, "id").unwrap_or_default();
-            let turn_status = string_field(turn, "status");
+            let turn_status = turn_status(turn);
             let created_at = number_or_string_field(turn, "startedAt")
                 .or_else(|| number_or_string_field(turn, "completedAt"));
 
@@ -1142,8 +1178,8 @@ mod tests {
 
     use super::{
         build_thread_name_set_params, build_thread_start_params, build_turn_start_params,
-        completion_matches, project_metadata, summarize_model, summarize_thread_for_list,
-        summarize_transcript_entries,
+        completion_matches, project_metadata, summarize_model, summarize_semantic_thread,
+        summarize_thread_for_list, summarize_transcript_entries,
     };
 
     #[test]
@@ -1161,6 +1197,8 @@ mod tests {
         assert_eq!(summary.title, "Named thread");
         assert_eq!(summary.updated_at, "1777696194");
         assert_eq!(summary.project_name, "Unknown Project");
+        assert_eq!(summary.status, "unknown");
+        assert!(summary.active_turn.is_none());
     }
 
     #[test]
@@ -1197,6 +1235,38 @@ mod tests {
             "/Users/lanzhijiang/Development/workbench"
         );
         assert_eq!(summary.project_name, "workbench");
+    }
+
+    #[test]
+    fn maps_active_turn_from_thread_detail() {
+        let thread = json!({
+            "id": "thread-active",
+            "preview": "Working",
+            "status": {
+                "type": "active",
+                "activeFlags": []
+            },
+            "updatedAt": 1777700100,
+            "turns": [
+                {
+                    "id": "turn-complete",
+                    "status": "completed",
+                    "items": []
+                },
+                {
+                    "id": "turn-active",
+                    "status": "inProgress",
+                    "items": []
+                }
+            ]
+        });
+
+        let summary = summarize_semantic_thread(&thread);
+        let active_turn = summary.active_turn.expect("active turn");
+
+        assert_eq!(summary.status, "active");
+        assert_eq!(active_turn.turn_id, "turn-active");
+        assert_eq!(active_turn.status, "inProgress");
     }
 
     #[test]

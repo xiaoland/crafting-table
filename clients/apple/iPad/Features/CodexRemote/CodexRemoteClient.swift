@@ -53,6 +53,8 @@ struct CodexRemoteThread: Decodable, Identifiable {
     let cwd: String?
     let projectKey: String?
     let projectName: String?
+    let status: String
+    let activeTurn: CodexRemoteActiveTurn?
 
     var displayUpdatedAt: String {
         CodexRemoteDateDisplay.format(updatedAt) ?? updatedAt
@@ -188,6 +190,7 @@ struct CodexRemoteSemanticThread: Decodable, Identifiable {
     let preview: String
     let cwd: String?
     let status: String
+    let activeTurn: CodexRemoteActiveTurn?
     let updatedAt: String
     let source: String?
 
@@ -202,7 +205,9 @@ struct CodexRemoteSemanticThread: Decodable, Identifiable {
             updatedAt: updatedAt,
             cwd: projectPath,
             projectKey: projectPath,
-            projectName: nil
+            projectName: nil,
+            status: status,
+            activeTurn: activeTurn
         )
     }
 }
@@ -213,6 +218,7 @@ struct CodexRemoteThreadDetail: Decodable, Identifiable {
     let preview: String
     let cwd: String?
     let status: String
+    let activeTurn: CodexRemoteActiveTurn?
     let updatedAt: String
     let source: String?
     let modelProvider: String?
@@ -221,6 +227,11 @@ struct CodexRemoteThreadDetail: Decodable, Identifiable {
     var displayUpdatedAt: String {
         CodexRemoteDateDisplay.format(updatedAt) ?? updatedAt
     }
+}
+
+struct CodexRemoteActiveTurn: Decodable, Equatable {
+    let turnId: String
+    let status: String
 }
 
 enum CodexRemoteTranscriptEntry: Decodable, Identifiable {
