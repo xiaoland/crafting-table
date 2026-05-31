@@ -15,7 +15,8 @@ use super::{
     models::{
         CodexModelSummary, CodexReasoningEffortSummary, ModelListResponse, SemanticThreadDetail,
         SemanticThreadSummary, ThreadCreateResponse, ThreadDetailResponse, ThreadListResponse,
-        ThreadMessage, ThreadResumeResponse, ThreadSummary, TurnPermissionMode, TurnSubmitResponse,
+        ThreadResumeResponse, ThreadSummary, ToolCallPayload, TranscriptEntry,
+        TranscriptEntryEnvelope, TurnPermissionMode, TurnSubmitResponse,
     },
     turn_events::TurnEventBroker,
 };
@@ -76,7 +77,7 @@ pub async fn read_thread(config: &Config, thread_id: &str) -> anyhow::Result<Thr
     Ok(ThreadDetailResponse {
         source: "app_server",
         thread: summarize_thread_detail(thread),
-        messages: summarize_thread_messages(thread),
+        transcript_entries: summarize_transcript_entries(thread),
     })
 }
 
@@ -576,30 +577,33 @@ impl CodexAppServerClient {
                             .and_then(Value::as_str)
                             .or_else(|| method.split('/').nth(1))
                             .unwrap_or(method);
-                        let summary =
-                            item.and_then(|item| summarize_thread_item(item, turn_id, None, None));
+                        let transcript_entry = item
+                            .and_then(|item| transcript_entry_from_item(item, turn_id, None, None));
                         let item_id = item
                             .and_then(|item| string_field(item, "id"))
-                            .or_else(|| summary.as_ref().map(|message| message.id.clone()));
-                        let status = summary
+                            .or_else(|| transcript_entry.as_ref().map(transcript_entry_id));
+                        let status = transcript_entry
                             .as_ref()
-                            .and_then(|message| message.status.as_deref())
+                            .and_then(transcript_entry_status)
                             .or_else(|| {
                                 item.and_then(|item| item.get("status"))
                                     .and_then(Value::as_str)
-                            });
-                        let text = summary
+                            })
+                            .map(ToString::to_string);
+                        let text = transcript_entry
                             .as_ref()
-                            .map(|message| message.text.as_str())
-                            .filter(|text| !text.trim().is_empty());
+                            .map(transcript_entry_text)
+                            .filter(|text| !text.trim().is_empty())
+                            .map(ToString::to_string);
                         broker
                             .publish_item_updated(
                                 thread_id,
                                 turn_id,
                                 kind,
                                 item_id.as_deref(),
-                                text,
-                                status,
+                                text.as_deref(),
+                                status.as_deref(),
+                                transcript_entry,
                             )
                             .await;
                     }
@@ -774,7 +778,7 @@ fn summarize_thread_detail(thread: &Value) -> SemanticThreadDetail {
     }
 }
 
-fn summarize_thread_messages(thread: &Value) -> Vec<ThreadMessage> {
+fn summarize_transcript_entries(thread: &Value) -> Vec<TranscriptEntry> {
     let Some(turns) = thread.get("turns").and_then(Value::as_array) else {
         return Vec::new();
     };
@@ -792,7 +796,7 @@ fn summarize_thread_messages(thread: &Value) -> Vec<ThreadMessage> {
                 .into_iter()
                 .flatten()
                 .filter_map(move |item| {
-                    summarize_thread_item(
+                    transcript_entry_from_item(
                         item,
                         &turn_id,
                         turn_status.as_deref(),
@@ -803,42 +807,212 @@ fn summarize_thread_messages(thread: &Value) -> Vec<ThreadMessage> {
         .collect()
 }
 
-fn summarize_thread_item(
+fn transcript_entry_from_item(
     item: &Value,
     turn_id: &str,
     turn_status: Option<&str>,
     created_at: Option<String>,
-) -> Option<ThreadMessage> {
+) -> Option<TranscriptEntry> {
     let kind = string_field(item, "type")?;
     let id = string_field(item, "id").unwrap_or_else(|| format!("{turn_id}:{kind}"));
-
-    let (role, text) = match kind.as_str() {
-        "userMessage" => ("user", user_message_text(item)),
-        "agentMessage" => ("assistant", string_field(item, "text").unwrap_or_default()),
-        "commandExecution" => ("tool", command_execution_text(item)),
-        "mcpToolCall" | "dynamicToolCall" | "collabAgentToolCall" => ("tool", tool_call_text(item)),
-        "webSearch" => ("tool", web_search_text(item)),
-        "fileChange" => ("tool", file_change_text(item)),
-        "contextCompaction" => ("event", "Context compacted".to_string()),
-        "imageGeneration" => ("tool", image_generation_text(item)),
-        _ => ("event", generic_item_text(item, &kind)),
-    };
-
-    let text = text.trim().to_string();
-    if text.is_empty() {
-        return None;
-    }
-
-    Some(ThreadMessage {
+    let envelope = TranscriptEntryEnvelope {
         id,
         turn_id: turn_id.to_string(),
-        role: role.to_string(),
-        kind,
-        text,
         status: string_field(item, "status").or_else(|| turn_status.map(ToString::to_string)),
         phase: string_field(item, "phase"),
         created_at,
-    })
+    };
+
+    match kind.as_str() {
+        "userMessage" => non_empty_text(user_message_text(item))
+            .map(|text| TranscriptEntry::UserMessage { envelope, text }),
+        "agentMessage" => non_empty_text(string_field(item, "text").unwrap_or_default())
+            .map(|text| TranscriptEntry::AssistantMessage { envelope, text }),
+        "commandExecution"
+        | "fileChange"
+        | "mcpToolCall"
+        | "dynamicToolCall"
+        | "collabAgentToolCall"
+        | "webSearch"
+        | "imageView"
+        | "imageGeneration" => tool_call_payload_from_item(item, &kind)
+            .map(|payload| TranscriptEntry::ToolCallMessage { envelope, payload }),
+        _ => {
+            let text =
+                non_empty_text(generic_item_text(item, &kind)).unwrap_or_else(|| kind.clone());
+            Some(TranscriptEntry::GenericEventMessage {
+                envelope,
+                kind,
+                text,
+                raw: item.clone(),
+            })
+        }
+    }
+}
+
+fn tool_call_payload_from_item(item: &Value, kind: &str) -> Option<ToolCallPayload> {
+    match kind {
+        "commandExecution" => {
+            let command = string_field(item, "command").unwrap_or_default();
+            let summary = if command.trim().is_empty() {
+                "Command".to_string()
+            } else {
+                command.clone()
+            };
+            Some(ToolCallPayload::CommandExecution {
+                summary,
+                command,
+                cwd: string_field(item, "cwd"),
+                source: string_field(item, "source"),
+                command_actions: item
+                    .get("commandActions")
+                    .and_then(Value::as_array)
+                    .cloned()
+                    .unwrap_or_default(),
+                aggregated_output: string_field(item, "aggregatedOutput"),
+                exit_code: item.get("exitCode").and_then(Value::as_i64),
+                duration_ms: item.get("durationMs").and_then(Value::as_i64),
+            })
+        }
+        "fileChange" => {
+            let changes = item
+                .get("changes")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            Some(ToolCallPayload::FileChange {
+                summary: format!("{} file changes", changes.len()),
+                changes,
+            })
+        }
+        "mcpToolCall" => {
+            let tool = string_field(item, "tool").unwrap_or_else(|| "tool".to_string());
+            let server = string_field(item, "server");
+            let summary = match server.as_deref() {
+                Some(server) if !server.trim().is_empty() => format!("{server}/{tool}"),
+                _ => tool.clone(),
+            };
+            Some(ToolCallPayload::McpToolCall {
+                summary,
+                server,
+                tool,
+                arguments: item.get("arguments").cloned(),
+                mcp_app_resource_uri: string_field(item, "mcpAppResourceUri"),
+                plugin_id: string_field(item, "pluginId"),
+                result: item.get("result").cloned(),
+                error: item.get("error").cloned(),
+                duration_ms: item.get("durationMs").and_then(Value::as_i64),
+            })
+        }
+        "dynamicToolCall" => {
+            let tool = string_field(item, "tool").unwrap_or_else(|| "tool".to_string());
+            let namespace = string_field(item, "namespace");
+            let summary = match namespace.as_deref() {
+                Some(namespace) if !namespace.trim().is_empty() => format!("{namespace}/{tool}"),
+                _ => tool.clone(),
+            };
+            Some(ToolCallPayload::DynamicToolCall {
+                summary,
+                namespace,
+                tool,
+                arguments: item.get("arguments").cloned(),
+                content_items: item.get("contentItems").cloned(),
+                success: item.get("success").and_then(Value::as_bool),
+                duration_ms: item.get("durationMs").and_then(Value::as_i64),
+            })
+        }
+        "collabAgentToolCall" => {
+            let tool = string_field(item, "tool").unwrap_or_else(|| "agent tool".to_string());
+            Some(ToolCallPayload::CollabAgentToolCall {
+                summary: tool.clone(),
+                tool,
+                sender_thread_id: string_field(item, "senderThreadId"),
+                receiver_thread_ids: string_array_field(item, "receiverThreadIds"),
+                prompt: string_field(item, "prompt"),
+                model: string_field(item, "model"),
+                reasoning_effort: string_field(item, "reasoningEffort"),
+                agents_states: item.get("agentsStates").cloned(),
+            })
+        }
+        "webSearch" => {
+            let query = string_field(item, "query").unwrap_or_default();
+            Some(ToolCallPayload::WebSearch {
+                summary: if query.trim().is_empty() {
+                    "Web search".to_string()
+                } else {
+                    query.clone()
+                },
+                query,
+                action: item.get("action").cloned(),
+            })
+        }
+        "imageView" => {
+            let path = string_field(item, "path");
+            Some(ToolCallPayload::ImageView {
+                summary: path.clone().unwrap_or_else(|| "Image view".to_string()),
+                path,
+            })
+        }
+        "imageGeneration" => {
+            let result = string_field(item, "result");
+            Some(ToolCallPayload::ImageGeneration {
+                summary: result
+                    .clone()
+                    .filter(|value| !value.trim().is_empty())
+                    .unwrap_or_else(|| "Image generation".to_string()),
+                status: string_field(item, "status"),
+                revised_prompt: string_field(item, "revisedPrompt"),
+                result,
+                saved_path: string_field(item, "savedPath"),
+            })
+        }
+        _ => None,
+    }
+}
+
+fn non_empty_text(text: String) -> Option<String> {
+    let text = text.trim().to_string();
+    (!text.is_empty()).then_some(text)
+}
+
+fn transcript_entry_id(entry: &TranscriptEntry) -> String {
+    match entry {
+        TranscriptEntry::UserMessage { envelope, .. }
+        | TranscriptEntry::AssistantMessage { envelope, .. }
+        | TranscriptEntry::ToolCallMessage { envelope, .. }
+        | TranscriptEntry::GenericEventMessage { envelope, .. } => envelope.id.clone(),
+    }
+}
+
+fn transcript_entry_status(entry: &TranscriptEntry) -> Option<&str> {
+    match entry {
+        TranscriptEntry::UserMessage { envelope, .. }
+        | TranscriptEntry::AssistantMessage { envelope, .. }
+        | TranscriptEntry::ToolCallMessage { envelope, .. }
+        | TranscriptEntry::GenericEventMessage { envelope, .. } => envelope.status.as_deref(),
+    }
+}
+
+fn transcript_entry_text(entry: &TranscriptEntry) -> &str {
+    match entry {
+        TranscriptEntry::UserMessage { text, .. }
+        | TranscriptEntry::AssistantMessage { text, .. }
+        | TranscriptEntry::GenericEventMessage { text, .. } => text,
+        TranscriptEntry::ToolCallMessage { payload, .. } => tool_call_payload_summary(payload),
+    }
+}
+
+fn tool_call_payload_summary(payload: &ToolCallPayload) -> &str {
+    match payload {
+        ToolCallPayload::CommandExecution { summary, .. }
+        | ToolCallPayload::FileChange { summary, .. }
+        | ToolCallPayload::McpToolCall { summary, .. }
+        | ToolCallPayload::DynamicToolCall { summary, .. }
+        | ToolCallPayload::CollabAgentToolCall { summary, .. }
+        | ToolCallPayload::WebSearch { summary, .. }
+        | ToolCallPayload::ImageView { summary, .. }
+        | ToolCallPayload::ImageGeneration { summary, .. } => summary,
+    }
 }
 
 fn user_message_text(item: &Value) -> String {
@@ -852,56 +1026,6 @@ fn user_message_text(item: &Value) -> String {
                 .join("\n")
         })
         .unwrap_or_default()
-}
-
-fn command_execution_text(item: &Value) -> String {
-    let command = string_field(item, "command").unwrap_or_default();
-    let output = string_field(item, "aggregatedOutput").unwrap_or_default();
-
-    if output.trim().is_empty() {
-        command
-    } else {
-        format!("{command}\n\n{output}")
-    }
-}
-
-fn tool_call_text(item: &Value) -> String {
-    let tool = string_field(item, "tool").unwrap_or_else(|| "tool".to_string());
-    let status = string_field(item, "status").unwrap_or_else(|| "unknown".to_string());
-    let prompt = string_field(item, "prompt");
-
-    match prompt {
-        Some(prompt) if !prompt.trim().is_empty() => format!("{tool} ({status})\n\n{prompt}"),
-        _ => format!("{tool} ({status})"),
-    }
-}
-
-fn web_search_text(item: &Value) -> String {
-    let query = string_field(item, "query").unwrap_or_default();
-    let url = item
-        .get("action")
-        .and_then(|action| action.get("url"))
-        .and_then(Value::as_str)
-        .unwrap_or_default();
-
-    [query, url.to_string()]
-        .into_iter()
-        .filter(|part| !part.trim().is_empty())
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
-fn file_change_text(item: &Value) -> String {
-    let count = item
-        .get("changes")
-        .and_then(Value::as_array)
-        .map(Vec::len)
-        .unwrap_or_default();
-    format!("{count} file changes")
-}
-
-fn image_generation_text(item: &Value) -> String {
-    string_field(item, "result").unwrap_or_else(|| "Image generation".to_string())
 }
 
 fn generic_item_text(item: &Value, kind: &str) -> String {
@@ -1019,7 +1143,7 @@ mod tests {
     use super::{
         build_thread_name_set_params, build_thread_start_params, build_turn_start_params,
         completion_matches, project_metadata, summarize_model, summarize_thread_for_list,
-        summarize_thread_messages,
+        summarize_transcript_entries,
     };
 
     #[test]
@@ -1097,7 +1221,7 @@ mod tests {
     }
 
     #[test]
-    fn flattens_thread_messages() {
+    fn maps_typed_transcript_entries() {
         let thread = json!({
             "turns": [
                 {
@@ -1122,21 +1246,68 @@ mod tests {
                             "type": "commandExecution",
                             "id": "item-command",
                             "command": "echo ok",
-                            "aggregatedOutput": "ok"
+                            "cwd": "/tmp",
+                            "source": "exec",
+                            "commandActions": [
+                                { "type": "read", "path": "Cargo.toml" }
+                            ],
+                            "aggregatedOutput": "ok",
+                            "exitCode": 0,
+                            "durationMs": 42,
+                            "status": "completed"
+                        },
+                        {
+                            "type": "mysteryItem",
+                            "id": "item-mystery",
+                            "text": "still visible"
                         }
                     ]
                 }
             ]
         });
 
-        let messages = summarize_thread_messages(&thread);
+        let entries = summarize_transcript_entries(&thread);
 
-        assert_eq!(messages.len(), 3);
-        assert_eq!(messages[0].role, "user");
-        assert_eq!(messages[1].role, "assistant");
-        assert_eq!(messages[1].phase.as_deref(), Some("final_answer"));
-        assert_eq!(messages[2].role, "tool");
-        assert_eq!(messages[2].text, "echo ok\n\nok");
+        assert_eq!(entries.len(), 4);
+        assert!(matches!(
+            entries[0],
+            crate::codex_remote_control::server::models::TranscriptEntry::UserMessage { .. }
+        ));
+        assert!(matches!(
+            entries[1],
+            crate::codex_remote_control::server::models::TranscriptEntry::AssistantMessage { .. }
+        ));
+        match &entries[2] {
+            crate::codex_remote_control::server::models::TranscriptEntry::ToolCallMessage {
+                envelope,
+                payload,
+            } => {
+                assert_eq!(envelope.id, "item-command");
+                assert_eq!(envelope.status.as_deref(), Some("completed"));
+                match payload {
+                    crate::codex_remote_control::server::models::ToolCallPayload::CommandExecution {
+                        command,
+                        cwd,
+                        aggregated_output,
+                        exit_code,
+                        duration_ms,
+                        ..
+                    } => {
+                        assert_eq!(command, "echo ok");
+                        assert_eq!(cwd.as_deref(), Some("/tmp"));
+                        assert_eq!(aggregated_output.as_deref(), Some("ok"));
+                        assert_eq!(*exit_code, Some(0));
+                        assert_eq!(*duration_ms, Some(42));
+                    }
+                    other => panic!("expected commandExecution payload, got {other:?}"),
+                }
+            }
+            other => panic!("expected tool call entry, got {other:?}"),
+        }
+        assert!(matches!(
+            entries[3],
+            crate::codex_remote_control::server::models::TranscriptEntry::GenericEventMessage { .. }
+        ));
     }
 
     #[test]

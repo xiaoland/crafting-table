@@ -6,10 +6,12 @@ use std::{
 use serde::Serialize;
 use tokio::sync::{broadcast, Mutex};
 
+use super::models::TranscriptEntry;
+
 const REPLAY_LIMIT: usize = 200;
 const BROADCAST_CAPACITY: usize = 200;
 
-#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct TurnStreamEvent {
     #[serde(rename = "type")]
     pub event_type: String,
@@ -28,6 +30,8 @@ pub struct TurnStreamEvent {
     pub item_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub event_count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transcript_entry: Option<TranscriptEntry>,
 }
 
 impl TurnStreamEvent {
@@ -43,6 +47,7 @@ impl TurnStreamEvent {
             kind: None,
             item_id: None,
             event_count: None,
+            transcript_entry: None,
         }
     }
 
@@ -58,6 +63,7 @@ impl TurnStreamEvent {
             kind: None,
             item_id: None,
             event_count: None,
+            transcript_entry: None,
         }
     }
 
@@ -93,6 +99,7 @@ impl TurnEventBroker {
             kind: None,
             item_id: None,
             event_count: None,
+            transcript_entry: None,
         })
         .await
     }
@@ -114,6 +121,7 @@ impl TurnEventBroker {
             kind: Some("agentMessage"),
             item_id,
             event_count: None,
+            transcript_entry: None,
         })
         .await
     }
@@ -126,6 +134,7 @@ impl TurnEventBroker {
         item_id: Option<&str>,
         text: Option<&str>,
         status: Option<&str>,
+        transcript_entry: Option<TranscriptEntry>,
     ) -> Option<TurnStreamEvent> {
         self.publish(TurnEventDraft {
             event_type: "item_updated",
@@ -137,6 +146,7 @@ impl TurnEventBroker {
             kind: Some(kind),
             item_id,
             event_count: None,
+            transcript_entry,
         })
         .await
     }
@@ -158,6 +168,7 @@ impl TurnEventBroker {
             kind: None,
             item_id: None,
             event_count: Some(event_count),
+            transcript_entry: None,
         })
         .await
     }
@@ -178,6 +189,7 @@ impl TurnEventBroker {
             kind: None,
             item_id: None,
             event_count: None,
+            transcript_entry: None,
         })
         .await
     }
@@ -251,6 +263,7 @@ impl ActiveTurnEvents {
             kind: draft.kind.map(ToString::to_string),
             item_id: draft.item_id.map(ToString::to_string),
             event_count: draft.event_count,
+            transcript_entry: draft.transcript_entry,
         };
         self.next_sequence += 1;
 
@@ -273,6 +286,7 @@ struct TurnEventDraft<'a> {
     kind: Option<&'a str>,
     item_id: Option<&'a str>,
     event_count: Option<usize>,
+    transcript_entry: Option<TranscriptEntry>,
 }
 
 #[cfg(test)]
@@ -296,6 +310,7 @@ mod tests {
                 Some("item-command"),
                 Some("echo ok"),
                 Some("running"),
+                None,
             )
             .await;
         broker

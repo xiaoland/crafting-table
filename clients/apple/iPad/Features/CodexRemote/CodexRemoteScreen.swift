@@ -48,7 +48,7 @@ private struct CodexRemoteHostRuntime {
     var streamingThreadID: String?
     var streamingTurnID: String?
     var streamingAssistantText = ""
-    var streamingMessages: [CodexRemoteThreadMessage] = []
+    var streamingMessages: [CodexRemoteTranscriptEntry] = []
     var streamingStatus: String?
     var streamingEventCount = 0
     var streamErrorMessage: String?
@@ -939,12 +939,12 @@ struct CodexRemoteScreen: View {
             return
         }
 
-        let hasAssistantForTurn = response.messages.contains { message in
-            message.turnId == streamingTurnID && message.role == "assistant"
+        let hasAssistantForTurn = response.transcriptEntries.contains { message in
+            message.turnId == streamingTurnID && message.isAssistantMessage
         }
-        let hasCompletedAssistantForTurn = response.messages.contains { message in
+        let hasCompletedAssistantForTurn = response.transcriptEntries.contains { message in
             message.turnId == streamingTurnID
-                && message.role == "assistant"
+                && message.isAssistantMessage
                 && isTerminalTurnStatus(message.status)
         }
 
@@ -972,50 +972,27 @@ struct CodexRemoteScreen: View {
         return ["completed", "failed", "cancelled", "canceled"].contains(status.lowercased())
     }
 
-    private func streamingMessage(from event: CodexRemoteTurnStreamEvent) -> CodexRemoteThreadMessage? {
+    private func streamingMessage(from event: CodexRemoteTurnStreamEvent) -> CodexRemoteTranscriptEntry? {
         guard event.eventType == "item_updated",
-              let kind = event.kind?.trimmingCharacters(in: .whitespacesAndNewlines),
-              kind.isEmpty == false,
-              shouldRenderStreamingItem(kind, text: event.text)
+              let transcriptEntry = event.transcriptEntry,
+              shouldRenderStreamingItem(transcriptEntry)
         else {
             return nil
         }
 
-        return CodexRemoteThreadMessage(
-            id: event.itemId ?? "\(event.turnId):\(kind):\(event.sequence)",
-            turnId: event.turnId,
-            role: streamingItemRole(kind),
-            kind: kind,
-            text: event.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
-            status: event.status,
-            phase: nil,
-            createdAt: nil
-        )
+        return transcriptEntry
     }
 
-    private func shouldRenderStreamingItem(_ kind: String, text: String?) -> Bool {
-        if kind == "userMessage" {
+    private func shouldRenderStreamingItem(_ entry: CodexRemoteTranscriptEntry) -> Bool {
+        if entry.isUserMessage {
             return false
         }
 
-        if kind == "agentMessage" {
-            return text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        if entry.isAssistantMessage {
+            return entry.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
         }
 
         return true
-    }
-
-    private func streamingItemRole(_ kind: String) -> String {
-        if kind == "agentMessage" {
-            return "assistant"
-        }
-
-        switch kind {
-        case "commandExecution", "mcpToolCall", "dynamicToolCall", "collabAgentToolCall", "webSearch", "fileChange", "imageGeneration":
-            return "tool"
-        default:
-            return "event"
-        }
     }
 
     private func appendStreamingAssistantDelta(
@@ -1036,34 +1013,30 @@ struct CodexRemoteScreen: View {
 
         if let index = state.streamingMessages.firstIndex(where: { $0.id == itemID }) {
             let existing = state.streamingMessages[index]
-            state.streamingMessages[index] = CodexRemoteThreadMessage(
-                id: existing.id,
-                turnId: existing.turnId,
-                role: existing.role,
-                kind: existing.kind,
-                text: existing.text + delta,
-                status: event.status ?? existing.status,
-                phase: existing.phase,
-                createdAt: existing.createdAt
+            state.streamingMessages[index] = existing.replacingText(
+                existing.text + delta,
+                status: event.status
             )
         } else {
             state.streamingMessages.append(
-                CodexRemoteThreadMessage(
-                    id: itemID,
-                    turnId: event.turnId,
-                    role: "assistant",
-                    kind: "agentMessage",
-                    text: delta,
-                    status: event.status,
-                    phase: nil,
-                    createdAt: nil
+                .assistantMessage(
+                    CodexRemoteTranscriptTextMessage(
+                        envelope: CodexRemoteTranscriptEnvelope(
+                            id: itemID,
+                            turnId: event.turnId,
+                            status: event.status,
+                            phase: nil,
+                            createdAt: nil
+                        ),
+                        text: delta
+                    )
                 )
             )
         }
     }
 
     private func upsertStreamingMessage(
-        _ message: CodexRemoteThreadMessage,
+        _ message: CodexRemoteTranscriptEntry,
         state: inout CodexRemoteHostRuntime
     ) {
         if let index = state.streamingMessages.firstIndex(where: { $0.id == message.id }) {

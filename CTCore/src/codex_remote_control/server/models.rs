@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Debug, Serialize)]
 pub struct ApiError {
@@ -55,7 +56,7 @@ pub struct ThreadSummary {
 pub struct ThreadDetailResponse {
     pub source: &'static str,
     pub thread: SemanticThreadDetail,
-    pub messages: Vec<ThreadMessage>,
+    pub transcript_entries: Vec<TranscriptEntry>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -123,16 +124,113 @@ pub struct SemanticThreadDetail {
     pub turn_count: usize,
 }
 
+#[derive(Clone, Debug, Serialize, PartialEq)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum TranscriptEntry {
+    UserMessage {
+        #[serde(flatten)]
+        envelope: TranscriptEntryEnvelope,
+        text: String,
+    },
+    AssistantMessage {
+        #[serde(flatten)]
+        envelope: TranscriptEntryEnvelope,
+        text: String,
+    },
+    ToolCallMessage {
+        #[serde(flatten)]
+        envelope: TranscriptEntryEnvelope,
+        payload: ToolCallPayload,
+    },
+    GenericEventMessage {
+        #[serde(flatten)]
+        envelope: TranscriptEntryEnvelope,
+        kind: String,
+        text: String,
+        raw: Value,
+    },
+}
+
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
-pub struct ThreadMessage {
+pub struct TranscriptEntryEnvelope {
     pub id: String,
     pub turn_id: String,
-    pub role: String,
-    pub kind: String,
-    pub text: String,
     pub status: Option<String>,
     pub phase: Option<String>,
     pub created_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
+#[serde(tag = "kind")]
+pub enum ToolCallPayload {
+    #[serde(rename = "commandExecution")]
+    CommandExecution {
+        summary: String,
+        command: String,
+        cwd: Option<String>,
+        source: Option<String>,
+        command_actions: Vec<Value>,
+        aggregated_output: Option<String>,
+        exit_code: Option<i64>,
+        duration_ms: Option<i64>,
+    },
+    #[serde(rename = "fileChange")]
+    FileChange {
+        summary: String,
+        changes: Vec<Value>,
+    },
+    #[serde(rename = "mcpToolCall")]
+    McpToolCall {
+        summary: String,
+        server: Option<String>,
+        tool: String,
+        arguments: Option<Value>,
+        mcp_app_resource_uri: Option<String>,
+        plugin_id: Option<String>,
+        result: Option<Value>,
+        error: Option<Value>,
+        duration_ms: Option<i64>,
+    },
+    #[serde(rename = "dynamicToolCall")]
+    DynamicToolCall {
+        summary: String,
+        namespace: Option<String>,
+        tool: String,
+        arguments: Option<Value>,
+        content_items: Option<Value>,
+        success: Option<bool>,
+        duration_ms: Option<i64>,
+    },
+    #[serde(rename = "collabAgentToolCall")]
+    CollabAgentToolCall {
+        summary: String,
+        tool: String,
+        sender_thread_id: Option<String>,
+        receiver_thread_ids: Vec<String>,
+        prompt: Option<String>,
+        model: Option<String>,
+        reasoning_effort: Option<String>,
+        agents_states: Option<Value>,
+    },
+    #[serde(rename = "webSearch")]
+    WebSearch {
+        summary: String,
+        query: String,
+        action: Option<Value>,
+    },
+    #[serde(rename = "imageView")]
+    ImageView {
+        summary: String,
+        path: Option<String>,
+    },
+    #[serde(rename = "imageGeneration")]
+    ImageGeneration {
+        summary: String,
+        status: Option<String>,
+        revised_prompt: Option<String>,
+        result: Option<String>,
+        saved_path: Option<String>,
+    },
 }
 
 #[derive(Debug, Serialize)]

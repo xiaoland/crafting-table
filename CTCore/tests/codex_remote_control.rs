@@ -178,6 +178,7 @@ mod client_projection_tests {
             kind: None,
             item_id: None,
             event_count,
+            transcript_entry: None,
         }
     }
 }

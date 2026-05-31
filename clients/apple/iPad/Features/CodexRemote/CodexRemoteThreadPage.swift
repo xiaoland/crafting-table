@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UIKit
 
 struct CodexRemoteThreadPage: View {
     let selectedThread: CodexRemoteThread?
@@ -16,7 +17,7 @@ struct CodexRemoteThreadPage: View {
     let turnErrorMessage: String?
     let turnResult: CodexRemoteTurnResult?
     let streamingAssistantText: String
-    let streamingMessages: [CodexRemoteThreadMessage]
+    let streamingMessages: [CodexRemoteTranscriptEntry]
     let streamingStatus: String?
     let streamingEventCount: Int
     let streamErrorMessage: String?
@@ -27,7 +28,7 @@ struct CodexRemoteThreadPage: View {
             if selectedThread != nil {
                 VStack(spacing: 0) {
                     CodexRemoteTranscript(
-                        messages: detailResponse?.messages ?? [],
+                        messages: detailResponse?.transcriptEntries ?? [],
                         isLoading: isLoadingThread,
                         errorMessage: threadErrorMessage,
                         streamingAssistantText: streamingAssistantText,
@@ -67,11 +68,11 @@ struct CodexRemoteThreadPage: View {
 }
 
 private struct CodexRemoteTranscript: View {
-    let messages: [CodexRemoteThreadMessage]
+    let messages: [CodexRemoteTranscriptEntry]
     let isLoading: Bool
     let errorMessage: String?
     let streamingAssistantText: String
-    let streamingMessages: [CodexRemoteThreadMessage]
+    let streamingMessages: [CodexRemoteTranscriptEntry]
     let streamingStatus: String?
     let streamingEventCount: Int
     let streamErrorMessage: String?
@@ -153,7 +154,7 @@ private struct CodexRemoteTranscript: View {
         streamingAssistantText.isEmpty == false || (streamingStatus != nil && visibleStreamingMessages.isEmpty)
     }
 
-    private var visibleStreamingMessages: [CodexRemoteThreadMessage] {
+    private var visibleStreamingMessages: [CodexRemoteTranscriptEntry] {
         let existingMessageIDs = Set(messages.map(\.id))
 
         return streamingMessages.filter { message in
@@ -236,11 +237,14 @@ private struct CodexRemoteStreamingMessageRow: View {
 }
 
 private struct CodexRemoteMessageRow: View {
-    let message: CodexRemoteThreadMessage
+    let message: CodexRemoteTranscriptEntry
+    @State private var isShowingToolDetails = false
 
     var body: some View {
         if isConversation {
             conversationRow
+        } else if message.toolCall != nil {
+            toolCallRow
         } else {
             eventRow
         }
@@ -287,42 +291,85 @@ private struct CodexRemoteMessageRow: View {
         .frame(maxWidth: .infinity, alignment: isUserMessage ? .trailing : .leading)
     }
 
+    private var toolCallRow: some View {
+        Button {
+            isShowingToolDetails = true
+        } label: {
+            eventSummaryContent(showsDetailAffordance: true)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+        .contentShape(RoundedRectangle(cornerRadius: 8))
+        .contextMenu {
+            Button {
+                UIPasteboard.general.string = eventCopyText
+            } label: {
+                Label("Copy details", systemImage: "doc.on.doc")
+            }
+        }
+        .popover(isPresented: $isShowingToolDetails, arrowEdge: .trailing) {
+            if let toolCall = message.toolCall {
+                CodexRemoteToolCallDetailPopover(
+                    title: eventTitle,
+                    status: message.status,
+                    timestamp: message.displayCreatedAt,
+                    payload: toolCall.payload
+                )
+            }
+        }
+        .accessibilityIdentifier("codex-remote-tool-call-row")
+    }
+
     private var eventRow: some View {
         DisclosureGroup {
-            Text(messageText)
-                .font(eventTextFont)
-                .foregroundStyle(.primary)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 6)
+            eventDetails
         } label: {
-            HStack(spacing: 8) {
-                Image(systemName: eventImage)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 20)
-
-                Text(eventTitle)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-
-                Spacer(minLength: 0)
-
-                if let status = message.status,
-                   status.isEmpty == false
-                {
-                    Text(status)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
-
-                timestamp
-            }
+            eventSummaryContent(showsDetailAffordance: false)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
         .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+        .contextMenu {
+            Button {
+                UIPasteboard.general.string = eventCopyText
+            } label: {
+                Label("Copy details", systemImage: "doc.on.doc")
+            }
+        }
+    }
+
+    private func eventSummaryContent(showsDetailAffordance: Bool) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: eventImage)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 20)
+
+            Text(eventTitle)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
+            Spacer(minLength: 0)
+
+            if let status = message.status,
+               status.isEmpty == false
+            {
+                Text(status)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            timestamp
+
+            if showsDetailAffordance {
+                Image(systemName: "info.circle")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 
     @ViewBuilder
@@ -340,11 +387,11 @@ private struct CodexRemoteMessageRow: View {
     }
 
     private var isConversation: Bool {
-        isUserMessage || message.role == "assistant"
+        isUserMessage || message.isAssistantMessage
     }
 
     private var isUserMessage: Bool {
-        message.role == "user"
+        message.isUserMessage
     }
 
     private var roleTitle: String {
@@ -372,6 +419,10 @@ private struct CodexRemoteMessageRow: View {
     }
 
     private var eventTitle: String {
+        if let toolCall = message.toolCall {
+            return toolCall.payload.displayTitle
+        }
+
         switch message.kind {
         case "":
             return message.role.capitalized
@@ -415,9 +466,134 @@ private struct CodexRemoteMessageRow: View {
         }
     }
 
+    @ViewBuilder
+    private var eventDetails: some View {
+        Text(messageText)
+            .font(eventTextFont)
+            .foregroundStyle(.primary)
+            .textSelection(.enabled)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 6)
+    }
+
     private var eventTextFont: Font {
         switch message.kind {
         case "commandExecution":
+            return .system(.callout, design: .monospaced)
+        default:
+            return .callout
+        }
+    }
+
+    private var eventCopyText: String {
+        if let toolCall = message.toolCall {
+            let detailText = toolCall.payload.detailText
+            return detailText.isEmpty ? messageText : detailText
+        }
+
+        return messageText
+    }
+}
+
+private struct CodexRemoteToolCallDetailPopover: View {
+    let title: String
+    let status: String?
+    let timestamp: String?
+    let payload: CodexRemoteToolCallPayload
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    let rows = payload.detailRows
+
+                    if rows.isEmpty {
+                        Text(payload.summary)
+                            .font(.callout)
+                            .foregroundStyle(.primary)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        ForEach(rows) { row in
+                            CodexRemoteToolCallDetailRowView(row: row)
+                        }
+                    }
+                }
+                .padding(16)
+            }
+        }
+        .frame(width: 560, height: 520)
+        .presentationCompactAdaptation(.sheet)
+    }
+
+    private var header: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+
+                HStack(spacing: 8) {
+                    if let status,
+                       status.isEmpty == false
+                    {
+                        Text(status)
+                    }
+
+                    if let timestamp {
+                        Text(timestamp)
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 12)
+
+            Button {
+                UIPasteboard.general.string = copyText
+            } label: {
+                Label("Copy details", systemImage: "doc.on.doc")
+                    .labelStyle(.iconOnly)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel("Copy details")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+    }
+
+    private var copyText: String {
+        let detailText = payload.detailText
+        return detailText.isEmpty ? payload.summary : detailText
+    }
+}
+
+private struct CodexRemoteToolCallDetailRowView: View {
+    let row: CodexRemoteToolCallDetailRow
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(row.title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Text(row.value)
+                .font(detailFont)
+                .foregroundStyle(.primary)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var detailFont: Font {
+        switch row.title {
+        case "Command", "Output", "Arguments", "Result", "Error", "Action", "Command actions", "Changes", "Content items", "Agents states":
             return .system(.callout, design: .monospaced)
         default:
             return .callout
