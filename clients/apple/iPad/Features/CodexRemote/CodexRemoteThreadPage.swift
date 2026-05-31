@@ -216,11 +216,7 @@ private struct CodexRemoteStreamingMessageRow: View {
                     ProgressView()
                         .controlSize(.small)
                 } else {
-                    CodexRemoteMarkdownText(text: text)
-                        .font(.body)
-                        .foregroundStyle(.primary)
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
+                    CodexRemoteRichMessageText(text: text, isUserMessage: false)
                 }
             }
             .padding(.horizontal, 13)
@@ -369,17 +365,9 @@ private struct CodexRemoteMessageRow: View {
     @ViewBuilder
     private var messageBody: some View {
         if isUserMessage {
-            Text(messageText)
-                .font(.body)
-                .foregroundStyle(.white)
-                .textSelection(.enabled)
-                .fixedSize(horizontal: false, vertical: true)
+            CodexRemoteRichMessageText(text: messageText, isUserMessage: true)
         } else {
-            CodexRemoteMarkdownText(text: messageText)
-                .font(.body)
-                .foregroundStyle(.primary)
-                .textSelection(.enabled)
-                .fixedSize(horizontal: false, vertical: true)
+            CodexRemoteRichMessageText(text: messageText, isUserMessage: false)
         }
     }
 
@@ -434,22 +422,6 @@ private struct CodexRemoteMessageRow: View {
         default:
             return .callout
         }
-    }
-}
-
-private struct CodexRemoteMarkdownText: View {
-    let text: String
-
-    var body: some View {
-        Text(renderedText)
-    }
-
-    private var renderedText: AttributedString {
-        let options = AttributedString.MarkdownParsingOptions(
-            interpretedSyntax: .inlineOnlyPreservingWhitespace
-        )
-
-        return (try? AttributedString(markdown: text, options: options)) ?? AttributedString(text)
     }
 }
 
