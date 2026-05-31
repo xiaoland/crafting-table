@@ -29,7 +29,7 @@ Platform clients still own OS adapters: UI, window lifecycle, login/autostart, b
 
 Relevant feature split:
 
-- `codex-remote-control-server`: server-owned wire contract, host runtime state, Codex app-server adaptation, desktop scout projection, pairing/auth vocabulary, and in-process server runtime API.
+- `codex-remote-control-server`: server-owned wire contract, host runtime state, codex-app server adaptation, pairing/auth vocabulary, and in-process server runtime API.
 - `codex-remote-control-client`: control-client projection, request helpers, reconnect semantics, and stream state normalization.
 - `portable-config`: non-secret host and endpoint config shared by all clients that need saved host metadata.
 
@@ -81,6 +81,7 @@ First target shape:
 - reuse CTCore Swift binding packaging, extended for macOS slices
 - embed Codex Host Runtime through CTCore in-process API
 - make launch-at-login and background residency macOS adapter responsibilities
+- make Codex Remote Server bind scope a macOS client setting, with local-only and trusted local-network modes
 - keep the initial target limited to Host Runtime status, controls, and event stream visibility
 
 Open decisions:
@@ -97,13 +98,13 @@ Why:
 - CTCore and Codex Host Runtime are Rust-first, so the host runtime can stay native and in-process.
 - Tauri keeps the backend and packaging model closer to Rust than a Python UI bridge.
 - Tray, autostart, local commands, filesystem, and bundled desktop packaging are normal Tauri concerns.
-- The UI can stay thin while Rust owns protocol semantics, runtime state machines, and Codex app-server adaptation.
+- The UI can stay thin while Rust owns protocol semantics, runtime state machines, and codex-app server adaptation.
 
 Risks:
 
 - Tauri introduces a web UI layer, so visual/system integration will differ from SwiftUI and Kotlin clients.
 - Frontend state must not become the owner of Codex Remote semantics.
-- Windows-specific scout and background behavior still need native adapter work.
+- Windows-specific background behavior still needs native adapter work.
 
 First target shape:
 
@@ -120,7 +121,7 @@ Open decisions:
 
 - frontend stack inside Tauri: plain TypeScript, React, Svelte, or another lightweight layer
 - packaging target and update path
-- whether Windows scout uses UI Automation directly from Rust or a dedicated adapter crate
+- whether Windows needs any host-local Codex adapter beyond codex-app server process management
 
 ## Android client
 
@@ -173,9 +174,6 @@ clients/
     src-tauri/
     app/
 
-Companion/
-  legacy binary/dev harness until runtime code moves into CTCore
-
 scripts/
   build-ctcore-apple.sh
   build-ctcore-android.sh
@@ -188,8 +186,8 @@ Near-term structure:
 - Android and Windows client roots exist as placeholders with no Gradle/Tauri build system yet.
 - `CraftingTableMac` now exists under `clients/apple/macOS/`
 - next macOS work should connect the UI to the CTCore Host Runtime API instead of a local preview store
-- keep `Companion/` as a source of host-runtime code to migrate, not as the target product runtime
-- keep direct Companion process launchers out of Codex environment actions; development scripts should present this as Dev Codex Host Runtime or macOS client lifecycle
+- the old host-side service crate has been removed; Codex Remote Server implementation lives in CTCore
+- keep direct server process launchers out of product client flows; development scripts may present CTCore smoke commands as Dev Codex Host Runtime
 - add only the client folders needed by the first executable platform slice
 
 ## Build workflow hypothesis

@@ -5,7 +5,7 @@ use axum::Router;
 use tokio::net::TcpListener;
 use tracing::info;
 
-use crate::{config::Config, routes};
+use super::{config::Config, routes};
 
 pub async fn build_router(config: Config) -> Router {
     let state = Arc::new(routes::AppState::new(config).await);
@@ -21,10 +21,25 @@ where
     Shutdown: Future<Output = ()> + Send + 'static,
 {
     let bind = config.bind;
-    let app = build_router(config).await;
     let listener = TcpListener::bind(bind)
         .await
         .with_context(|| format!("failed to bind {bind}"))?;
+
+    serve_listener_with_shutdown(listener, config, shutdown).await
+}
+
+pub async fn serve_listener_with_shutdown<Shutdown>(
+    listener: TcpListener,
+    config: Config,
+    shutdown: Shutdown,
+) -> anyhow::Result<()>
+where
+    Shutdown: Future<Output = ()> + Send + 'static,
+{
+    let bind = listener
+        .local_addr()
+        .context("failed to inspect listener bind address")?;
+    let app = build_router(config).await;
 
     info!(bind = %bind, "starting Codex Remote host runtime");
     axum::serve(listener, app)

@@ -7,22 +7,11 @@ struct CodexRemoteSnapshot {
     let modelList: CodexRemoteModelList
 }
 
-struct CodexRemoteDesktopSnapshot: Decodable {
-    let platform: String
-    let source: String
-    let targetAppName: String?
-    let confidence: String
-    let windowCount: Int
-    let activeWindowTitle: String?
-    let errors: [String]
-}
-
 struct CodexRemoteHealth: Decodable {
     let service: String
     let version: String
     let platform: CodexRemotePlatform
     let codex: CodexRemoteCodexHealth
-    let scouts: CodexRemoteScoutHealth
 }
 
 struct CodexRemotePlatform: Decodable {
@@ -36,24 +25,6 @@ struct CodexRemoteCodexHealth: Decodable {
     let appServerAvailable: Bool
     let appServerProbe: String
     let codexHome: String
-}
-
-struct CodexRemoteScoutHealth: Decodable {
-    let macos: CodexRemoteScoutStatus
-    let windows: CodexRemoteScoutStatus
-}
-
-struct CodexRemoteScoutStatus: Decodable {
-    let configured: Bool
-    let probe: String
-
-    var label: String {
-        configured ? "configured" : "pending"
-    }
-
-    var systemImage: String {
-        configured ? "checkmark.circle.fill" : "clock"
-    }
 }
 
 struct CodexRemoteThreadList: Decodable {
@@ -455,15 +426,6 @@ struct CodexRemoteClient {
         return try await send(payload, to: turnURL)
     }
 
-    func loadDesktopSnapshot(endpoint: String) async throws -> CodexRemoteDesktopSnapshot {
-        let baseURL = try normalizedBaseURL(from: endpoint)
-        let desktopURL = baseURL
-            .appendingPathComponent("desktop")
-            .appendingPathComponent("snapshot")
-
-        return try await fetch(CodexRemoteDesktopSnapshot.self, from: desktopURL)
-    }
-
     func streamTurnEvents(
         endpoint: String,
         threadID: String,
@@ -702,11 +664,11 @@ enum CodexRemoteClientError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidEndpoint:
-            return "Enter a valid Companion endpoint."
+            return "Enter a valid Codex Remote Server endpoint."
         case .invalidWebSocketMessage:
-            return "Companion returned an invalid stream event."
+            return "Codex Remote Server returned an invalid stream event."
         case .badStatus(let statusCode):
-            return statusCode > 0 ? "Companion returned HTTP \(statusCode)." : "Companion returned an invalid response."
+            return statusCode > 0 ? "Codex Remote Server returned HTTP \(statusCode)." : "Codex Remote Server returned an invalid response."
         case .server(let message):
             return message
         }

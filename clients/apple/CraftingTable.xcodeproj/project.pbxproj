@@ -42,6 +42,8 @@
 		B14000010000000000000001 /* AboutScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B14000110000000000000001 /* AboutScreen.swift */; };
 		C17000010000000000000001 /* ct_core.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17000110000000000000001 /* ct_core.swift */; };
 		C18000020000000000000001 /* CTCore.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C18000110000000000000001 /* CTCore.xcframework */; };
+		D10000010000000000000006 /* CTCoreHostRuntimeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000110000000000000006 /* CTCoreHostRuntimeService.swift */; };
+		D18000020000000000000001 /* CTCore.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C18000110000000000000001 /* CTCore.xcframework */; };
 		D10000010000000000000001 /* CraftingTableMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000110000000000000001 /* CraftingTableMacApp.swift */; };
 		D10000010000000000000002 /* MacHostRuntimeModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000110000000000000002 /* MacHostRuntimeModels.swift */; };
 		D10000010000000000000003 /* MacHostRuntimeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10000110000000000000003 /* MacHostRuntimeStore.swift */; };
@@ -91,6 +93,7 @@
 		D10000110000000000000003 /* MacHostRuntimeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacHostRuntimeStore.swift; sourceTree = "<group>"; };
 		D10000110000000000000004 /* HostRuntimeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostRuntimeView.swift; sourceTree = "<group>"; };
 		D10000110000000000000005 /* CraftingTableMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CraftingTableMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D10000110000000000000006 /* CTCoreHostRuntimeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CTCoreHostRuntimeService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,6 +112,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D18000020000000000000001 /* CTCore.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -130,6 +134,7 @@
 				D10000310000000000000002 /* App */,
 				D10000310000000000000003 /* Models */,
 				D10000310000000000000004 /* Stores */,
+				D10000310000000000000006 /* Services */,
 				D10000310000000000000005 /* Views */,
 			);
 			path = macOS;
@@ -157,6 +162,14 @@
 				D10000110000000000000003 /* MacHostRuntimeStore.swift */,
 			);
 			path = Stores;
+			sourceTree = "<group>";
+		};
+		D10000310000000000000006 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				D10000110000000000000006 /* CTCoreHostRuntimeService.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 		D10000310000000000000005 /* Views */ = {
@@ -339,7 +352,7 @@
 			buildConfigurationList = A10000510000000000000002 /* Build configuration list for PBXNativeTarget "CraftingTable" */;
 			buildPhases = (
 				B14000210000000000000001 /* Generate Logo Assets */,
-				C17000210000000000000001 /* Build CTCore iOS Artifact */,
+				C17000210000000000000001 /* Build CTCore Apple Artifact */,
 				A10000210000000000000002 /* Sources */,
 				A10000210000000000000001 /* Frameworks */,
 				A10000210000000000000003 /* Resources */,
@@ -362,6 +375,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = D10000510000000000000001 /* Build configuration list for PBXNativeTarget "CraftingTableMac" */;
 			buildPhases = (
+				D17000210000000000000001 /* Build CTCore Apple Artifact */,
 				D10000210000000000000002 /* Sources */,
 				D10000210000000000000001 /* Frameworks */,
 				D10000210000000000000003 /* Resources */,
@@ -461,7 +475,7 @@
 			shellPath = /bin/sh;
 			shellScript = "REPO_ROOT=\"${SRCROOT}/../..\" xcrun --sdk macosx swift \"${SRCROOT}/../../scripts/generate-logo-assets.swift\"\n";
 		};
-		C17000210000000000000001 /* Build CTCore iOS Artifact */ = {
+		C17000210000000000000001 /* Build CTCore Apple Artifact */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -474,16 +488,40 @@
 				"$(SRCROOT)/../../CTCore/src/lib.rs",
 				"$(SRCROOT)/../../CTCore/src/portable_config/mod.rs",
 				"$(SRCROOT)/../../CTCore/src/swift_bindings.rs",
-				"$(SRCROOT)/../../scripts/build-ctcore-ios.sh",
+				"$(SRCROOT)/../../scripts/build-ctcore-apple.sh",
 			);
-			name = "Build CTCore iOS Artifact";
+			name = "Build CTCore Apple Artifact";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/../../scripts/build-ctcore-ios.sh\"\n";
+			shellScript = "\"${SRCROOT}/../../scripts/build-ctcore-apple.sh\"\n";
+		};
+		D17000210000000000000001 /* Build CTCore Apple Artifact */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../../CTCore/Cargo.toml",
+				"$(SRCROOT)/../../CTCore/src/lib.rs",
+				"$(SRCROOT)/../../CTCore/src/codex_remote_control/server/ffi.rs",
+				"$(SRCROOT)/../../CTCore/src/swift_bindings.rs",
+				"$(SRCROOT)/../../scripts/build-ctcore-apple.sh",
+			);
+			name = "Build CTCore Apple Artifact";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/../../scripts/build-ctcore-apple.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -532,6 +570,7 @@
 				D10000010000000000000001 /* CraftingTableMacApp.swift in Sources */,
 				D10000010000000000000002 /* MacHostRuntimeModels.swift in Sources */,
 				D10000010000000000000003 /* MacHostRuntimeStore.swift in Sources */,
+				D10000010000000000000006 /* CTCoreHostRuntimeService.swift in Sources */,
 				D10000010000000000000004 /* HostRuntimeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

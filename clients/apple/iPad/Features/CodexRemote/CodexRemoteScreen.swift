@@ -29,10 +29,8 @@ private struct CodexRemoteHostRuntime {
     var threadList: CodexRemoteThreadList?
     var locallyCreatedThreads: [CodexRemoteThread] = []
     var modelList: CodexRemoteModelList?
-    var desktopSnapshot: CodexRemoteDesktopSnapshot?
     var isLoading = false
     var errorMessage: String?
-    var desktopErrorMessage: String?
     var selectedThreadID: String?
     var selectedModel = ""
     var selectedReasoningEffort = ""
@@ -123,9 +121,7 @@ struct CodexRemoteScreen: View {
             endpoint: activeEndpointBinding,
             health: activeState.health,
             threadList: activeState.threadList,
-            desktopSnapshot: activeState.desktopSnapshot,
             errorMessage: activeState.errorMessage,
-            desktopErrorMessage: activeState.desktopErrorMessage,
             selectedThreadID: activeState.selectedThreadID,
             selectedThreadDetail: activeState.threadDetailResponse?.thread,
             isLoading: activeState.isLoading,
@@ -189,7 +185,6 @@ struct CodexRemoteScreen: View {
         updateHostState(hostID) { state in
             state.isLoading = true
             state.errorMessage = nil
-            state.desktopErrorMessage = nil
         }
 
         do {
@@ -216,20 +211,6 @@ struct CodexRemoteScreen: View {
             updateHostProfile(hostID) { hostProfile in
                 hostProfile.lastHealthStatus = "unreachable"
                 hostProfile.lastUsedAt = Date()
-            }
-        }
-
-        do {
-            let desktopSnapshot = try await client.loadDesktopSnapshot(endpoint: endpoint)
-
-            updateHostState(hostID) { state in
-                state.desktopSnapshot = desktopSnapshot
-                state.desktopErrorMessage = nil
-            }
-        } catch {
-            updateHostState(hostID) { state in
-                state.desktopSnapshot = nil
-                state.desktopErrorMessage = error.localizedDescription
             }
         }
 
@@ -731,9 +712,7 @@ struct CodexRemoteScreen: View {
             state.health = nil
             state.threadList = nil
             state.modelList = nil
-            state.desktopSnapshot = nil
             state.errorMessage = nil
-            state.desktopErrorMessage = nil
             state.selectedThreadID = nil
             state.selectedModel = ""
             state.selectedReasoningEffort = ""
@@ -900,7 +879,7 @@ struct CodexRemoteScreen: View {
                 }
             case "error":
                 state.streamingStatus = "error"
-                state.streamErrorMessage = event.message ?? "Companion stream failed."
+                state.streamErrorMessage = event.message ?? "Codex Remote Server stream failed."
             default:
                 break
             }
@@ -1113,9 +1092,7 @@ private struct CodexRemoteSidebar: View {
     @Binding var endpoint: String
     let health: CodexRemoteHealth?
     let threadList: CodexRemoteThreadList?
-    let desktopSnapshot: CodexRemoteDesktopSnapshot?
     let errorMessage: String?
-    let desktopErrorMessage: String?
     let selectedThreadID: String?
     let selectedThreadDetail: CodexRemoteThreadDetail?
     let isLoading: Bool
@@ -1136,7 +1113,6 @@ private struct CodexRemoteSidebar: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     runtimeSection
-                    desktopSection
                     threadSection
                 }
                 .padding(16)
@@ -1150,7 +1126,7 @@ private struct CodexRemoteSidebar: View {
         VStack(alignment: .leading, spacing: 14) {
             ScreenIntro(
                 title: "Codex Remote",
-                subtitle: "Continue Codex threads through a trusted desktop companion.",
+                subtitle: "Continue Codex threads through a trusted desktop server.",
                 systemImage: "rectangle.connected.to.line.below"
             )
 
@@ -1250,20 +1226,9 @@ private struct CodexRemoteSidebar: View {
                         .truncationMode(.middle)
                 }
             } else {
-                ContentUnavailableView("Connect a Companion", systemImage: "network")
+                ContentUnavailableView("Connect a Codex Remote Server", systemImage: "network")
                     .frame(maxWidth: .infinity, minHeight: 96)
             }
-        }
-    }
-
-    private var desktopSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            CodexRemoteSectionTitle(title: "Desktop", systemImage: "rectangle.on.rectangle")
-
-            CodexRemoteDesktopSummary(
-                snapshot: desktopSnapshot,
-                errorMessage: desktopErrorMessage
-            )
         }
     }
 
@@ -1373,52 +1338,6 @@ private struct CodexRemoteSidebar: View {
 
     private var activeHostTitle: String {
         activeProfile?.displayLabel ?? "Host"
-    }
-}
-
-struct CodexRemoteDesktopSummary: View {
-    let snapshot: CodexRemoteDesktopSnapshot?
-    let errorMessage: String?
-
-    var body: some View {
-        Group {
-            if let snapshot {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
-                        CodexRemoteInlinePill(
-                            title: snapshot.confidence,
-                            systemImage: "scope"
-                        )
-
-                        Text(snapshot.source)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-
-                    Text(snapshot.activeWindowTitle ?? snapshot.targetAppName ?? "Codex")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    if snapshot.errors.isEmpty == false {
-                        Text(snapshot.errors.joined(separator: " | "))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                    }
-                }
-            } else if let errorMessage {
-                CodexRemoteErrorLine(message: errorMessage)
-                    .accessibilityIdentifier("codex-remote-desktop-error")
-            } else {
-                Label("No desktop snapshot", systemImage: "rectangle.slash")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

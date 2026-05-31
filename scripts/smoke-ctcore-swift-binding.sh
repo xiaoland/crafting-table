@@ -10,6 +10,8 @@ SMOKE_BIN="${BUILD_DIR}/ctcore-swift-smoke"
 
 mkdir -p "${BUILD_DIR}"
 
+"${ROOT_DIR}/scripts/build-ctcore-apple.sh"
+
 cargo build \
   --manifest-path "${CTCORE_DIR}/Cargo.toml" \
   --features swift-bindings

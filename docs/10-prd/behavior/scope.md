@@ -7,7 +7,7 @@
 - work session basics for create, resume, active/paused/done state, and continuity
 - global quick capture with deferred classification
 - Remote Control with saved host profiles, terminal-first access, file transfer, and session linkage
-- Codex Remote as a standalone Codex thread surface for reachable Mac and Windows hosts through a Companion
+- Codex Remote as a standalone Codex thread surface for reachable Mac and Windows hosts through a Codex Remote Server
 - Local LLM as a standalone foreground model server for trusted LAN use, with local model management and a minimal local chat surface
 
 ## Out of scope

@@ -45,7 +45,7 @@ It is part of the crafting table, not a disconnected utility.
 
 ### `Codex Remote`
 
-A standalone product surface for interacting with Codex threads running on a reachable Mac or Windows host through a host-side Companion.
+A standalone product surface for interacting with Codex threads running on a reachable Mac or Windows host through a host-side Codex Remote Server.
 
 Its first product meaning is semantic Codex thread work from iPad: choose a host, browse projects and threads, create or resume a thread, send messages, and watch live progress.
 

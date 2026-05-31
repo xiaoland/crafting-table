@@ -56,7 +56,7 @@ struct CodexRemoteThreadPage: View {
                 ContentUnavailableView(
                     "Select a Codex thread",
                     systemImage: "text.bubble",
-                    description: Text("Connect a Companion and choose a thread from the sidebar.")
+                    description: Text("Connect a Codex Remote Server and choose a thread from the sidebar.")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }

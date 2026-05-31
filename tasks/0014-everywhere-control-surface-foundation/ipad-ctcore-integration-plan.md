@@ -20,7 +20,7 @@ The first `HostConfigStore` slice is implemented.
 
 - CTCore exposes a `swift-bindings` feature through UniFFI.
 - `HostConfigStore` calls CTCore for portable config decode, encode, and validation.
-- Xcode builds and links `CTCore.xcframework` through `scripts/build-ctcore-ios.sh`.
+- Xcode builds and links `CTCore.xcframework` through `scripts/build-ctcore-apple.sh`.
 - Generated Swift binding source is checked in under `clients/apple/iPad/Generated/CTCore/`.
 - Static libraries are generated locally and ignored by git.
 - `scripts/smoke-ctcore-swift-binding.sh` verifies the generated Swift binding can call CTCore validation and JSON round-trip functions.
@@ -67,7 +67,7 @@ Later feature sets:
 
 Implementation detail:
 
-- The XCFramework is built by `scripts/build-ctcore-ios.sh` and linked by the Xcode target.
+- The XCFramework is built by `scripts/build-ctcore-apple.sh` and linked by the Xcode target.
 - The script phase intentionally runs every build. Declaring the XCFramework as both a script output and same-target framework input creates an Xcode dependency cycle.
 
 ### First domain slice

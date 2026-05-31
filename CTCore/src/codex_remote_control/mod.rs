@@ -5,3 +5,6 @@ pub mod client;
 
 #[cfg(feature = "codex-remote-control-server")]
 pub mod host_runtime;
+
+#[cfg(feature = "codex-remote-control-server")]
+pub mod server;

@@ -31,6 +31,6 @@
   observability signal: the iPad can deliberately host a ready open-source model for trusted LAN clients while keeping runtime limits visible
 
 - product claim: `Codex Remote` is a standalone Codex thread surface.
-  realizing unit(s): Codex Remote, Codex Remote Companion, Shell
+  realizing unit(s): Codex Remote, CTCore Codex Remote Server, Shell
   key tests: host selection, project-grouped thread list, thread create/read, model control submission, permission-mode submission, active-turn stream rendering, and transient stream recovery
   observability signal: real Codex thread work can continue from iPad while host, thread, and stream state remain visible

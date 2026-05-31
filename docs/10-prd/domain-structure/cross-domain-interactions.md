@@ -20,6 +20,6 @@
   semantic contract: Remote Control uses workspace-scoped host profiles instead of copying connection definitions into each session.
   shared language: host profile, saved host, connect, reuse
 
-- interaction pair: `Codex Remote` <-> `Companion`
-  semantic contract: Codex Remote speaks a small CraftingTable-owned host contract; Companion adapts that contract to Codex app-server, Desktop Scout, and host-specific process details.
-  shared language: host, Companion, project, thread, turn, stream event, permission mode
+- interaction pair: `Codex Remote` <-> `Codex Remote Server`
+  semantic contract: Codex Remote speaks a small CraftingTable-owned host contract; CTCore Codex Remote Server adapts that contract to codex-app server and host-specific process details.
+  shared language: host, server, project, thread, turn, stream event, permission mode

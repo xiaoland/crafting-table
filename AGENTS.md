@@ -11,7 +11,7 @@ Keep changes small, reversible, and honest. Do not invent product certainty, arc
 - `clients/apple/CraftingTable.xcodeproj/` - Apple Xcode project
 - `clients/android/` - future Kotlin/Compose Codex Remote control client
 - `clients/windows/` - future Rust + Tauri Codex Remote desktop client
-- `Companion/` - legacy Codex Host Runtime source and development harness
+- `CTCore/` - feature-gated Rust backend library, including Codex Remote Server implementation
 - `scripts/` - local launch and smoke helpers
 - `docs/00-meta/` - typed input routes, mode SOPs, growth rules, and framework concepts
 - `docs/10-prd/` - durable product truth and business glossary

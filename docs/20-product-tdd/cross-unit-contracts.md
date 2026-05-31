@@ -32,14 +32,14 @@
 
 - producer: Codex Remote
   consumer: Work Session, Goal Forest, Remote Control
-  contract schema: Codex Remote keeps its host/thread runtime and Companion contract in a separate Codex-specific boundary.
+  contract schema: Codex Remote keeps its host/thread runtime and server contract in a separate Codex-specific boundary.
   compatibility policy: future linkage with Work Session, Goal Forest, or Remote Control requires an explicit PRD/TDD update.
   constraining limit or tradeoff: Codex-specific thread continuation is protected over broad remote-control scope.
 
-- producer: Codex Remote Companion
+- producer: CTCore Codex Remote Server
   consumer: Codex Remote
-  contract schema: Companion exposes host health, project-grouped threads, thread detail, thread creation, model list, turn submission, desktop snapshots, and active-turn stream events through CraftingTable-owned routes.
-  compatibility policy: Codex app-server protocol churn stays behind Companion.
+  contract schema: CTCore exposes host health, project-grouped threads, thread detail, thread creation, model list, turn submission, and active-turn stream events through CraftingTable-owned routes.
+  compatibility policy: codex-app server protocol churn stays behind CTCore Codex Remote Server.
   constraining limit or tradeoff: stable iPad behavior outranks direct app-server exposure.
 
 - producer: Shell

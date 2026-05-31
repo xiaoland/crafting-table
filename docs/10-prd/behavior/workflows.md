@@ -54,4 +54,4 @@
 - trigger: useful Codex work is available on a reachable Mac or Windows host
 - normal flow: open Codex Remote -> choose a host -> inspect projects and threads -> create or select a thread -> choose model controls -> send a message -> watch streamed assistant and tool progress
 - exception flow: if a host is unreachable or thread state is unavailable, keep the host/thread error visible and let the user switch host or refresh
-- observable outcome: Codex thread work continues from iPad through a Companion while the Codex-specific boundary stays clear
+- observable outcome: Codex thread work continues from iPad through a Codex Remote Server while the Codex-specific boundary stays clear

@@ -1,5 +1,52 @@
 import Foundation
 
+enum MacHostRuntimeBindMode: String, CaseIterable, Identifiable {
+    case localOnly
+    case localNetwork
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .localOnly:
+            "This Mac"
+        case .localNetwork:
+            "Local Network"
+        }
+    }
+
+    var bindHost: String {
+        switch self {
+        case .localOnly:
+            "127.0.0.1"
+        case .localNetwork:
+            "0.0.0.0"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .localOnly:
+            "Only clients on this Mac can connect."
+        case .localNetwork:
+            "Trusted devices on the same network can connect."
+        }
+    }
+
+    func bindAddress(port: Int) -> String {
+        "\(bindHost):\(port)"
+    }
+
+    func endpointHint(port: Int) -> String {
+        switch self {
+        case .localOnly:
+            "http://127.0.0.1:\(port)"
+        case .localNetwork:
+            "http://<mac-lan-ip>:\(port)"
+        }
+    }
+}
+
 enum MacHostRuntimeState: String, CaseIterable, Identifiable {
     case stopped
     case starting

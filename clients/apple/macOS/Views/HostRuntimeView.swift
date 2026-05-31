@@ -44,6 +44,14 @@ struct HostRuntimeView: View {
 private struct HostRuntimeHeader: View {
     @ObservedObject var store: MacHostRuntimeStore
 
+    private var bindMode: Binding<MacHostRuntimeBindMode> {
+        Binding {
+            store.bindMode
+        } set: { mode in
+            store.setBindMode(mode)
+        }
+    }
+
     var body: some View {
         Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 18, verticalSpacing: 10) {
             GridRow {
@@ -53,9 +61,33 @@ private struct HostRuntimeHeader: View {
                     .fontWeight(.semibold)
             }
             GridRow {
+                Text("Listen")
+                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 5) {
+                    Picker("Listen", selection: bindMode) {
+                        ForEach(MacHostRuntimeBindMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 240)
+                    .disabled(store.isRunning)
+
+                    Text(store.bindMode.detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            GridRow {
                 Text("Bind")
                     .foregroundStyle(.secondary)
                 Text(store.bindAddress)
+                    .textSelection(.enabled)
+            }
+            GridRow {
+                Text("Endpoint")
+                    .foregroundStyle(.secondary)
+                Text(store.endpointHint)
                     .textSelection(.enabled)
             }
             GridRow {

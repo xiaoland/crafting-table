@@ -33,8 +33,8 @@
   write path: Codex Remote host, sidebar, Thread Page, and composer actions
 
 - state object: Codex thread execution and host-local app-server lifecycle
-  authority owner: Codex Remote Companion
-  write path: Companion routes adapt CraftingTable requests to Codex app-server, Desktop Scout, and host-local process state
+  authority owner: CTCore Codex Remote Server
+  write path: CTCore Codex Remote Server routes adapt CraftingTable requests to codex-app server and host-local process state
 
 ## 0.1.0 local persistence boundary
 

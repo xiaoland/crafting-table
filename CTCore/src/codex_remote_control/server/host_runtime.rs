@@ -1,6 +1,6 @@
-use ct_core::codex_remote_control::contract::{HostRuntimeState, HostRuntimeStatusResponse};
+use crate::codex_remote_control::contract::{HostRuntimeState, HostRuntimeStatusResponse};
 
-use crate::config::Config;
+use super::config::Config;
 
 pub fn current_status(config: &Config) -> HostRuntimeStatusResponse {
     HostRuntimeStatusResponse {

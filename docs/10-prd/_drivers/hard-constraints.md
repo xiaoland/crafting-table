@@ -16,4 +16,4 @@
 
 - compliance or legal: none.
   budget or staffing: Codex Remote must reach a stable MVP before broad integration work.
-  platform or dependency limit: Codex Remote is semantic Codex thread interaction through Companion; generic remote control and GUI mirroring stay outside this first contract.
+  platform or dependency limit: Codex Remote is semantic Codex thread interaction through Codex Remote Server; generic remote control and GUI mirroring stay outside this first contract.

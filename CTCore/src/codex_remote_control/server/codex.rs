@@ -6,7 +6,7 @@ use std::{
 
 use tokio::{process::Command, time::timeout};
 
-use crate::{config::Config, models::CodexHealth};
+use super::{config::Config, models::CodexHealth};
 
 pub async fn probe(config: &Config) -> CodexHealth {
     let cli_path = resolve_codex_bin(config);

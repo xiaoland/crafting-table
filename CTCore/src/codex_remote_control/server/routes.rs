@@ -12,13 +12,13 @@ use axum::{
     Json, Router,
 };
 
-use crate::{
+use super::{
     app_server, codex,
     config::Config,
-    desktop_scout, host_runtime,
+    host_runtime,
     models::{
-        ApiError, HealthResponse, PlatformInfo, ScoutHealth, ScoutStatus, ThreadCreateRequest,
-        ThreadListQuery, TurnSubmitRequest,
+        ApiError, HealthResponse, PlatformInfo, ThreadCreateRequest, ThreadListQuery,
+        TurnSubmitRequest,
     },
     thread_store,
     turn_events::{TurnEventBroker, TurnStreamEvent},
@@ -29,7 +29,7 @@ const TURN_STREAM_HEARTBEAT_INTERVAL: Duration = Duration::from_secs(15);
 #[derive(Clone)]
 pub struct AppState {
     pub config: Config,
-    pub codex: crate::models::CodexHealth,
+    pub codex: super::models::CodexHealth,
     pub turn_events: TurnEventBroker,
 }
 
@@ -56,30 +56,19 @@ pub fn router(state: Arc<AppState>) -> Router {
             get(turn_events),
         )
         .route("/models", get(list_models))
-        .route("/desktop/snapshot", get(desktop_snapshot))
         .route("/host/runtime", get(host_runtime_status))
         .with_state(state)
 }
 
 async fn health(State(state): State<Arc<AppState>>) -> Json<HealthResponse> {
     Json(HealthResponse {
-        service: "codex-remote-companion",
+        service: "ct-codex-remote-server",
         version: env!("CARGO_PKG_VERSION"),
         platform: PlatformInfo {
             os: std::env::consts::OS,
             arch: std::env::consts::ARCH,
         },
         codex: state.codex.clone(),
-        scouts: ScoutHealth {
-            macos: ScoutStatus {
-                configured: cfg!(target_os = "macos"),
-                probe: "pending".to_string(),
-            },
-            windows: ScoutStatus {
-                configured: cfg!(target_os = "windows"),
-                probe: "pending".to_string(),
-            },
-        },
     })
 }
 
@@ -187,7 +176,7 @@ async fn list_models(State(state): State<Arc<AppState>>) -> impl IntoResponse {
 
 async fn host_runtime_status(
     State(state): State<Arc<AppState>>,
-) -> Json<ct_core::codex_remote_control::contract::HostRuntimeStatusResponse> {
+) -> Json<crate::codex_remote_control::contract::HostRuntimeStatusResponse> {
     Json(host_runtime::current_status(&state.config))
 }
 
@@ -313,13 +302,6 @@ async fn send_turn_event(socket: &mut WebSocket, event: &TurnStreamEvent) -> any
         .send(WebSocketMessage::Text(payload))
         .await
         .context("failed to send turn stream event")
-}
-
-async fn desktop_snapshot() -> impl IntoResponse {
-    match desktop_scout::snapshot().await {
-        Ok(response) => (StatusCode::OK, Json(response)).into_response(),
-        Err(error) => api_error(StatusCode::SERVICE_UNAVAILABLE, error),
-    }
 }
 
 fn api_error(status: StatusCode, error: anyhow::Error) -> axum::response::Response {

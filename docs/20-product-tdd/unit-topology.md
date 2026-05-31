@@ -24,9 +24,9 @@
   boundaries: host selection, project-grouped Codex thread list, Thread Page, composer controls, active turn streaming, and permission-mode selection
   ownership: host-scoped Codex thread interaction state inside the app
 
-- units: Codex Remote Companion
-  boundaries: CraftingTable-owned HTTP/WebSocket contract, Codex app-server adaptation, Desktop Scout snapshots, and host-local Codex process details
-  ownership: host-side Codex interaction adapter state
+- units: Codex Remote Server
+  boundaries: CraftingTable-owned HTTP/WebSocket contract, codex-app server adaptation, and host-local Codex process details
+  ownership: Codex Remote host-side server state owned by CTCore
 
 - units: Host Profiles
   boundaries: reusable saved connection definitions

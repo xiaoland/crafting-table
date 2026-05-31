@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 #[derive(Debug, Serialize)]
 pub struct ApiError {
@@ -12,7 +11,6 @@ pub struct HealthResponse {
     pub version: &'static str,
     pub platform: PlatformInfo,
     pub codex: CodexHealth,
-    pub scouts: ScoutHealth,
 }
 
 #[derive(Debug, Serialize)]
@@ -28,18 +26,6 @@ pub struct CodexHealth {
     pub app_server_available: bool,
     pub app_server_probe: String,
     pub codex_home: String,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ScoutHealth {
-    pub macos: ScoutStatus,
-    pub windows: ScoutStatus,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ScoutStatus {
-    pub configured: bool,
-    pub probe: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -180,16 +166,4 @@ pub struct CodexModelSummary {
 pub struct CodexReasoningEffortSummary {
     pub reasoning_effort: String,
     pub description: String,
-}
-
-#[derive(Debug, Serialize)]
-pub struct DesktopSnapshotResponse {
-    pub platform: String,
-    pub source: String,
-    pub target_app_name: Option<String>,
-    pub confidence: String,
-    pub window_count: usize,
-    pub active_window_title: Option<String>,
-    pub errors: Vec<String>,
-    pub raw: Value,
 }

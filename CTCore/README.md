@@ -45,12 +45,12 @@ cargo test --manifest-path CTCore/Cargo.toml --features local-llm-core
 cargo test --manifest-path CTCore/Cargo.toml --features swift-bindings
 ```
 
-## iOS Binding
+## Apple Binding
 
 ```sh
-scripts/build-ctcore-ios.sh
+scripts/build-ctcore-apple.sh
 scripts/smoke-ctcore-swift-binding.sh
 ```
 
-The script regenerates UniFFI Swift bindings and builds the local `CTCore.xcframework` used by the iPad target.
+The script regenerates UniFFI Swift bindings and builds the local `CTCore.xcframework` used by Apple targets.
 The smoke script compiles the generated Swift binding against CTCore and verifies portable config validation plus JSON round-trip behavior.

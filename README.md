@@ -30,9 +30,6 @@ clients/apple/CraftingTable.xcodeproj/
 clients/android/            Future Kotlin/Compose Codex Remote control client
 clients/windows/            Future Rust + Tauri Codex Remote desktop client
 CTCore/                     Feature-gated Rust backend library for portable CT capabilities
-Companion/                  Legacy Codex Host Runtime source and development harness
-Companion/scouts/macos/     macOS Desktop Scout helper
-Companion/scouts/windows/   Windows Scout prototype
 ThirdParty/                 Local Swift package wrappers, including llama.cpp binary package
 scripts/                    Local launch, smoke, and logo-generation helpers
 docs/                       Sparse product and technical truth
@@ -134,7 +131,7 @@ clients/apple/iPad/Assets.xcassets/AppIcon.appiconset/AppIcon.png
 
 ## Codex Host Runtime
 
-`Codex Remote` talks to a host-side Host Runtime. The product direction is in-process embedding inside desktop clients; the standalone script remains a development harness while the runtime code moves into CTCore.
+`Codex Remote` talks to a host-side Host Runtime implemented by CTCore. The macOS client starts the CTCore server in-process.
 
 Build and launch the first macOS client:
 
@@ -148,41 +145,13 @@ Default endpoint:
 http://127.0.0.1:3765
 ```
 
-Run the development Host Runtime harness in the background:
-
-```sh
-./scripts/codex-host-runtime.sh start
-./scripts/codex-host-runtime.sh status
-./scripts/codex-host-runtime.sh stop
-```
-
-For iPad LAN testing:
-
-```sh
-CODEX_HOST_RUNTIME_BIND=0.0.0.0:3765 ./scripts/codex-host-runtime.sh start
-```
-
-Use a LAN URL such as:
+For iPad LAN testing, set the macOS client `Listen` control to `Local Network`, start the runtime, then use a LAN URL such as:
 
 ```text
 http://<mac-lan-ip>:3765
 ```
 
-Use that endpoint in the app's `Codex Remote` screen.
-
-Smoke a running development Host Runtime:
-
-```sh
-./scripts/codex-host-runtime.sh smoke
-```
-
-Run one macOS Desktop Scout snapshot:
-
-```sh
-./scripts/codex-remote-companion.sh scout
-```
-
-The legacy runtime source also has its own README at `Companion/README.md`.
+Use that endpoint in the iPad app's `Codex Remote` screen.
 
 ## Local LLM
 
@@ -204,16 +173,16 @@ Build the iOS app:
 xcodebuild -project clients/apple/CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' -derivedDataPath .build/DerivedData build
 ```
 
-Run the interim Host Runtime service directly:
+Run the CTCore server development binary directly:
 
 ```sh
-cargo run --manifest-path Companion/Cargo.toml
+cargo run --manifest-path CTCore/Cargo.toml --features codex-remote-control-server --bin ct-codex-remote-server
 ```
 
-Test Companion:
+Test CTCore Codex Remote Server:
 
 ```sh
-cargo test --manifest-path Companion/Cargo.toml
+cargo test --manifest-path CTCore/Cargo.toml --features codex-remote-control-server
 ```
 
 Test CTCore portable config:
@@ -222,10 +191,10 @@ Test CTCore portable config:
 cargo test --manifest-path CTCore/Cargo.toml --features portable-config
 ```
 
-Format Companion:
+Format CTCore:
 
 ```sh
-cargo fmt --manifest-path Companion/Cargo.toml
+cargo fmt --manifest-path CTCore/Cargo.toml
 ```
 
 Codex App local environment actions are declared in:

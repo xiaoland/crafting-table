@@ -42,7 +42,7 @@ fn turn_stream_event_decodes_current_wire_shape() {
 fn current_health_and_permission_shapes_decode() {
     let health: HealthResponse = serde_json::from_str(
         r#"{
-            "service": "codex-companion",
+            "service": "ct-codex-remote-server",
             "version": "0.1.0",
             "platform": {
                 "os": "macos",
@@ -54,23 +54,12 @@ fn current_health_and_permission_shapes_decode() {
                 "app_server_available": true,
                 "app_server_probe": "ok",
                 "codex_home": "/Users/xiaoland/.codex"
-            },
-            "scouts": {
-                "macos": {
-                    "configured": true,
-                    "probe": "ok"
-                },
-                "windows": {
-                    "configured": false,
-                    "probe": "pending"
-                }
             }
         }"#,
     )
     .expect("health response decodes");
 
     assert_eq!(health.codex.app_server_available, true);
-    assert_eq!(health.scouts.macos.configured, true);
 
     let mode: TurnPermissionMode =
         serde_json::from_str(r#""auto_review""#).expect("permission mode decodes");

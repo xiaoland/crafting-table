@@ -9,20 +9,43 @@ crate-type = ["rlib", "staticlib", "cdylib"]
 [features]
 default = []
 portable-config = ["dep:serde", "dep:serde_json", "dep:url"]
-codex-remote-control-server = ["dep:serde", "dep:serde_json", "dep:tokio"]
+codex-remote-control-server = [
+    "dep:anyhow",
+    "dep:axum",
+    "dep:futures-util",
+    "dep:serde",
+    "dep:serde_json",
+    "dep:tokio",
+    "dep:tokio-tungstenite",
+    "dep:tracing",
+]
 codex-remote-control-client = ["dep:serde", "dep:serde_json"]
 inkcre-graph = ["dep:serde", "dep:serde_json"]
 local-llm-core = ["dep:serde", "dep:serde_json"]
 swift-bindings = ["portable-config", "dep:uniffi"]
 
 [dependencies]
+anyhow = { version = "1.0", optional = true }
+axum = { version = "0.7", features = ["ws"], optional = true }
+futures-util = { version = "0.3", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }
 uniffi = { version = "0.31.1", features = ["cli"], optional = true }
-tokio = { version = "1.45", features = ["rt", "sync"], optional = true }
+tokio = { version = "1.48", features = ["macros", "net", "process", "rt-multi-thread", "signal", "sync", "time"], optional = true }
+tokio-tungstenite = { version = "0.27", optional = true }
+tracing = { version = "0.1", optional = true }
 url = { version = "2.5", optional = true }
+
+[dev-dependencies]
+tempfile = "3.23"
+tower = { version = "0.5", features = ["util"] }
 
 [[bin]]
 name = "uniffi-bindgen"
 path = "uniffi-bindgen.rs"
 required-features = ["swift-bindings"]
+
+[[bin]]
+name = "ct-codex-remote-server"
+path = "src/bin/ct-codex-remote-server.rs"
+required-features = ["codex-remote-control-server"]

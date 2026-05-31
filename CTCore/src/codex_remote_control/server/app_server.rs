@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use tokio::{net::TcpStream, process::Child, time::timeout};
 use tokio_tungstenite::{tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
-use crate::{
+use super::{
     codex,
     config::Config,
     models::{
@@ -423,8 +423,8 @@ impl CodexAppServerClient {
             "initialize",
             json!({
                 "clientInfo": {
-                    "name": "codex-remote-companion",
-                    "title": "Codex Remote Companion",
+                    "name": "ct-codex-remote-server",
+                    "title": "Crafting Table Codex Remote Server",
                     "version": env!("CARGO_PKG_VERSION"),
                 },
                 "capabilities": {
@@ -1014,7 +1014,7 @@ fn completion_matches(params: &Value, thread_id: &str, turn_id: &str) -> bool {
 mod tests {
     use serde_json::json;
 
-    use crate::models::TurnPermissionMode;
+    use crate::codex_remote_control::server::models::TurnPermissionMode;
 
     use super::{
         build_thread_name_set_params, build_thread_start_params, build_turn_start_params,

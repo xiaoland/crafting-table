@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 pub const WIRE_CONTRACT_VERSION: u16 = 1;
 
@@ -16,7 +15,6 @@ pub struct HealthResponse {
     pub version: String,
     pub platform: PlatformInfo,
     pub codex: CodexHealth,
-    pub scouts: ScoutHealth,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -34,20 +32,6 @@ pub struct CodexHealth {
     pub app_server_available: bool,
     pub app_server_probe: String,
     pub codex_home: String,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub struct ScoutHealth {
-    pub macos: ScoutStatus,
-    pub windows: ScoutStatus,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub struct ScoutStatus {
-    pub configured: bool,
-    pub probe: String,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -197,19 +181,6 @@ pub struct CodexModelSummary {
 pub struct CodexReasoningEffortSummary {
     pub reasoning_effort: String,
     pub description: String,
-}
-
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub struct DesktopSnapshotResponse {
-    pub platform: String,
-    pub source: String,
-    pub target_app_name: Option<String>,
-    pub confidence: String,
-    pub window_count: usize,
-    pub active_window_title: Option<String>,
-    pub errors: Vec<String>,
-    pub raw: Value,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]

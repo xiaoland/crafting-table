@@ -2,7 +2,7 @@ use std::{fs, path::Path};
 
 use serde::Deserialize;
 
-use crate::models::{ThreadListResponse, ThreadSummary};
+use super::models::{ThreadListResponse, ThreadSummary};
 
 const DEFAULT_THREAD_LIMIT: usize = 20;
 const MAX_THREAD_LIMIT: usize = 100;

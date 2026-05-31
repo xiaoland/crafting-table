@@ -2,11 +2,9 @@
 
 ## Current repo fact
 
-Crafting Table does not currently have a desktop app target.
+Crafting Table now has an Apple project with iPad and macOS targets.
 
-`clients/apple/CraftingTable.xcodeproj` has one app target, `CraftingTable`, configured for `iphoneos iphonesimulator` with `TARGETED_DEVICE_FAMILY = 2`.
-
-That means Phase 3 cannot honestly implement an in-app macOS host runtime UI yet. The first reversible slice is to turn the existing Companion into a host runtime unit that can be supervised by a future desktop app or by macOS launchd during development.
+The Codex Remote Server implementation has moved into `CTCore/src/codex_remote_control/server/`. The old host-side service crate has been removed rather than retained as a thin development entry point.
 
 ## Unit boundary
 
@@ -15,8 +13,7 @@ Codex Host Runtime is the controlled-endpoint unit for Codex Remote Control.
 It owns:
 
 - the HTTP/WebSocket server process
-- Codex app-server adaptation
-- Desktop Scout invocation
+- codex-app server adaptation
 - host-local Codex configuration
 - runtime status reporting
 - the server-owned wire contract exposed to control clients
@@ -33,7 +30,7 @@ It does not own:
 
 ## First process shape
 
-The current process shape can be either an embedded library runtime or an app-supervised sidecar.
+The product process shape is CTCore embedded in-process by a platform client.
 
 The library API exposes:
 
@@ -42,16 +39,9 @@ The library API exposes:
 - `serve(config)`
 - `serve_with_shutdown(config, shutdown)`
 
-Desktop clients can use the library directly for an in-process runtime or wrap the binary as a supervised sidecar. Mobile clients should consume the server-owned contract through their own networking adapters.
+Desktop clients should use the CTCore library surface directly for an in-process runtime. Mobile clients should consume the server-owned contract through their own networking adapters.
 
-During development, `scripts/codex-host-runtime.sh` is a convenience sidecar boundary:
-
-- `run`: foreground runtime process
-- `start`: background runtime for local development
-- `stop`: intentional stop of the dev sidecar
-- `status`: process and `/host/runtime` status
-
-This gives future desktop clients a concrete command boundary to replace or wrap while preserving the same runtime contract. It also removes the need for a user-managed terminal in development.
+The old development Host Runtime script has been removed. The macOS client is the first executable embedding path for starting CTCore Codex Remote Server in-process.
 
 Login launch, window-close residency, OS service registration, and equivalent lifecycle controls are client adapter responsibilities, not Host Runtime business responsibilities.
 
@@ -67,11 +57,10 @@ It currently reports:
 - `codex_home`
 - `launch_context`
 
-The route uses `CTCore` contract types under `codex-remote-control-server`, so the server-owned wire contract starts moving out of ad hoc Companion-only models.
+The route uses `CTCore` contract types under `codex-remote-control-server`.
 
 ## Known limits
 
-- No desktop CT app target exists yet.
 - No packaged helper binary is produced yet.
 - Windows service/task registration is not implemented.
 - Pairing and authorization are still placeholders at the architecture level.

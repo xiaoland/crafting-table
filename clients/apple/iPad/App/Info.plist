@@ -8,6 +8,6 @@
 		<true/>
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Connect to a trusted desktop Companion for Codex Remote.</string>
+	<string>Connect to a trusted desktop Codex Remote Server.</string>
 </dict>
 </plist>

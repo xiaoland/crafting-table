@@ -47,7 +47,7 @@ struct SidebarView: View {
 
                         SidebarRow(
                             title: "Codex Remote",
-                            subtitle: "Companion, threads, handoff",
+                            subtitle: "Server, threads, handoff",
                             systemImage: "rectangle.connected.to.line.below",
                             isSelected: route == .codexRemote,
                             accessibilityIdentifier: "sidebar-codex-remote",

@@ -3,19 +3,60 @@ import Foundation
 
 @MainActor
 final class MacHostRuntimeStore: ObservableObject {
+    private enum DefaultsKey {
+        static let bindMode = "macHostRuntime.bindMode"
+    }
+
+    private let defaults: UserDefaults
+    private let runtime: CTCoreHostRuntimeService
+    private let port = 3765
+
     @Published private(set) var state: MacHostRuntimeState = .stopped
-    @Published private(set) var bindAddress = "127.0.0.1:3765"
+    @Published private(set) var bindMode: MacHostRuntimeBindMode
     @Published private(set) var codexHome = FileManager.default.homeDirectoryForCurrentUser
         .appending(path: ".codex")
         .path
-    @Published private(set) var events: [MacHostRuntimeEvent] = [
-        MacHostRuntimeEvent(kind: .status, message: "Host Runtime is stopped.")
-    ]
+    @Published private(set) var events: [MacHostRuntimeEvent]
 
-    private var heartbeatTask: Task<Void, Never>?
+    private var lifecycleTask: Task<Void, Never>?
+
+    init(defaults: UserDefaults = .standard, runtime: CTCoreHostRuntimeService = CTCoreHostRuntimeService()) {
+        self.defaults = defaults
+        self.runtime = runtime
+
+        let storedBindMode = defaults.string(forKey: DefaultsKey.bindMode)
+            .flatMap(MacHostRuntimeBindMode.init(rawValue:))
+        bindMode = storedBindMode ?? .localOnly
+        events = [
+            MacHostRuntimeEvent(kind: .status, message: "Host Runtime is stopped.")
+        ]
+    }
+
+    var bindAddress: String {
+        bindMode.bindAddress(port: port)
+    }
+
+    var endpointHint: String {
+        bindMode.endpointHint(port: port)
+    }
 
     var isRunning: Bool {
-        state == .running || state == .starting
+        state == .running || state == .starting || state == .stopping
+    }
+
+    func setBindMode(_ mode: MacHostRuntimeBindMode) {
+        guard mode != bindMode else {
+            return
+        }
+
+        guard isRunning == false else {
+            append(.status, "Stop Host Runtime before changing the bind address.")
+            return
+        }
+
+        bindMode = mode
+        defaults.set(mode.rawValue, forKey: DefaultsKey.bindMode)
+        append(.status, "Bind set to \(bindAddress).")
     }
 
     func toggle() {
@@ -30,27 +71,26 @@ final class MacHostRuntimeStore: ObservableObject {
         state = .starting
         append(.status, "Host Runtime is starting.")
 
-        heartbeatTask?.cancel()
-        heartbeatTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(300))
-            guard let self, Task.isCancelled == false else {
-                return
-            }
-
-            await MainActor.run {
-                self.state = .running
-                self.append(.server, "Listening on \(self.bindAddress).")
-                self.append(.log, "Embedded runtime event stream is active.")
-            }
-
-            while Task.isCancelled == false {
-                try? await Task.sleep(for: .seconds(10))
+        lifecycleTask?.cancel()
+        let bindAddress = bindAddress
+        let codexHome = codexHome
+        lifecycleTask = Task { [weak self, runtime] in
+            do {
+                try await runtime.start(bindAddress: bindAddress, codexHome: codexHome)
                 guard Task.isCancelled == false else {
+                    await runtime.stop()
                     return
                 }
 
                 await MainActor.run {
-                    self.append(.log, "Runtime heartbeat.")
+                    self?.state = .running
+                    self?.append(.server, "Listening on \(bindAddress).")
+                    self?.append(.log, "CTCore in-process server is active.")
+                }
+            } catch {
+                await MainActor.run {
+                    self?.state = .failed
+                    self?.append(.error, error.localizedDescription)
                 }
             }
         }
@@ -63,11 +103,15 @@ final class MacHostRuntimeStore: ObservableObject {
 
         state = .stopping
         append(.status, "Host Runtime is stopping.")
-        heartbeatTask?.cancel()
-        heartbeatTask = nil
+        lifecycleTask?.cancel()
+        lifecycleTask = Task { [weak self, runtime] in
+            await runtime.stop()
 
-        state = .stopped
-        append(.status, "Host Runtime stopped.")
+            await MainActor.run {
+                self?.state = .stopped
+                self?.append(.status, "Host Runtime stopped.")
+            }
+        }
     }
 
     func clearEvents() {

@@ -26,7 +26,7 @@
   linked claim(s): Claim 5.
 
 - rule or invariant: Codex Remote has its own product boundary from Remote Control, Goal Forest, and Work Session.
-  rationale: the MVP centers on semantic Codex thread continuation through Companion; general remote machine operation and session continuity belong to separate product boundaries.
+  rationale: the MVP centers on semantic Codex thread continuation through Codex Remote Server; general remote machine operation and session continuity belong to separate product boundaries.
   violation impact: the Codex Remote slice inherits unrelated workflow obligations and becomes harder to stabilize.
   linked claim(s): Claim 1, Claim 7.
 

@@ -48,7 +48,7 @@ The backend library should own business capabilities and be compiled with only t
 Candidate backend-library features:
 
 - `portable-config`: non-secret config schemas, validation, and diagnostics.
-- `codex-remote-control-server`: authoritative Codex Remote Control wire contract, host runtime state, Codex app-server adaptation contract, desktop scout projection schema, and turn event normalization.
+- `codex-remote-control-server`: authoritative Codex Remote Control wire contract, host runtime state, codex-app server adaptation contract, and turn event normalization.
 - `codex-remote-control-client`: control-client state projection and request helpers that consume the server-owned contract.
 - `inkcre-graph`: Goal Forest, Capture, and Work Session mapping to InKCre blocks and relations.
 - `local-llm-core`: manifest schema, readiness rules, and OpenAI-compatible request/response contracts.
@@ -59,9 +59,9 @@ Codex Remote Control Server is the desktop-controlled endpoint for Codex Remote 
 
 It should be an app-embedded in-process library surface, not a user-managed standalone daemon or bundled sidecar.
 
-Current `Companion` has two useful separations to preserve while the runtime code moves into CTCore:
+The pre-migration host-side service code had two useful separations that now belong to CTCore:
 
-- host adapter: Codex app-server / Codex CLI / local Codex store / Desktop Scout integration
+- host adapter: codex-app server / Codex CLI / local Codex store integration
 - server-owned wire contract: stable routes and event schemas consumed by iPadOS / Android control clients
 
 The "wire contract" means the cross-device contract whose authority belongs to the Codex Remote Control Server feature in the backend library. Today that includes:
@@ -70,13 +70,12 @@ The "wire contract" means the cross-device contract whose authority belongs to t
 - thread list/detail/create/resume routes
 - model list route
 - turn submission route
-- desktop snapshot route
 - active turn WebSocket event route
 - JSON response and event payload schemas owned by the Codex Remote Control Server feature
 
-It is broader than `codex app-server events -> companion events`.
+It is broader than `codex app-server events -> server events`.
 
-The host runtime adapts Codex app-server JSON-RPC methods and app-server event stream into CT-owned HTTP/WebSocket resources whose schema authority sits in the Codex Remote Control Server feature. Events are one important part of the contract, but the contract also covers health, discovery, thread creation, model metadata, permissions, desktop handoff, errors, and reconnect semantics.
+The host runtime adapts codex-app server JSON-RPC methods and event stream into CT-owned HTTP/WebSocket resources whose schema authority sits in the Codex Remote Control Server feature. Events are one important part of the contract, but the contract also covers health, discovery, thread creation, model metadata, permissions, errors, and reconnect semantics.
 
 ## Phase 0 - Boundary Decisions
 
@@ -89,7 +88,7 @@ Outputs:
 - decide how strongly the backend library owns networking/filesystem versus adapter injection
 - decide compile-time feature names and dependency boundaries
 - decide whether Work Session is included in the first InKCre mapping
-- decide how current Rust Companion should be hosted by macOS/Windows apps in the first desktop slice
+- decide how CTCore Codex Remote Server should be hosted by macOS/Windows apps in the first desktop slice
 
 Recommended first decision:
 
@@ -152,18 +151,18 @@ Scope:
 
 Verification:
 
-- decode current Companion responses through backend-library models
+- decode current Codex Remote Server responses through backend-library models
 - replay saved or fixture turn events into normalized state
 - ensure SwiftUI state remains a projection, not the owner of contract semantics
 
 Implementation evidence:
 
 - `CTCore` now exposes `codex_remote_control::contract` when either `codex-remote-control-server` or `codex-remote-control-client` is enabled.
-- The contract module mirrors current Companion JSON response/event shapes for health, threads, models, turn submit, desktop snapshot, API errors, permission modes, and active turn stream events.
+- The contract module mirrors Codex Remote Server JSON response/event shapes for health, threads, models, turn submit, API errors, permission modes, and active turn stream events.
 - Turn stream events now have a typed `TurnStreamEventType` while preserving the current wire key `"type"` and snake_case payload names.
 - `codex-remote-control-client` adds `TurnStreamProjection`, a UI-independent client projection that accumulates assistant deltas and terminal/error state.
 - Host runtime state, control-client connection state, and pairing state are represented as portable enums only; no lifecycle implementation or security mechanism has been added yet.
-- Existing Companion and SwiftUI code paths have not been rewired in this phase.
+- Existing server and SwiftUI code paths have not been rewired in this phase.
 
 Verification policy:
 
@@ -177,7 +176,7 @@ Goal: make Codex Remote Control embeddable into desktop clients as an in-process
 Scope:
 
 - choose first desktop target: macOS or Windows
-- move existing Rust Companion runtime code toward CTCore instead of treating the binary as the product runtime
+- move the Rust Codex Remote runtime code into CTCore instead of treating a standalone binary as the product runtime
 - expose an in-process Host Runtime API for desktop CT clients
 - support login launch / background resident mode
 - expose user-visible status, stop/start, logs, and diagnostics
@@ -191,7 +190,7 @@ Clarification:
 Updated implementation direction:
 
 - in-process library mode is the product embedding model.
-- standalone binary/sidecar mode may remain as a development harness and diagnostic tool only.
+- standalone binary mode may remain as a development harness and diagnostic tool only.
 
 Verification:
 
@@ -206,17 +205,16 @@ Implementation evidence:
 - Current `clients/apple/CraftingTable.xcodeproj` still has only an iPad target: `SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"` and `TARGETED_DEVICE_FAMILY = 2`.
 - Because there is no desktop CT app target yet, this phase first proved router/runtime construction without launching the binary; the product target is still in-process CTCore embedding.
 - `CTCore` now includes server-owned host runtime status contract types: `HostRuntimeState`, `HostRuntimeLaunchContext`, and `HostRuntimeStatusResponse`.
-- `Companion` depends on `CTCore` with `codex-remote-control-server` enabled for the new host runtime status route.
+- `CTCore` owns the `codex-remote-control-server` implementation and host runtime status route.
 - `GET /host/runtime` reports process state, PID, bind address, Codex home, and launch context.
-- `Companion` is now both a library crate and a thin binary. The library exposes `Config`, `build_router`, `serve`, `serve_with_shutdown`, and `shutdown_signal`.
-- `Companion/tests/runtime_embedding.rs` proves a client can build the Codex Remote router in-process without launching the binary.
-- `scripts/codex-host-runtime.sh` provides development-only foreground `run`, background `start`/`stop`/`restart`, `status`, and `logs` commands.
-- The development sidecar `start` command builds and launches the actual runtime binary instead of backgrounding `cargo run`, so the recorded PID belongs to the served process.
-- `.codex/environments/environment.toml` has Codex app actions for starting, stopping, and checking the Codex Host Runtime.
+- `CTCore` exposes `Config`, `build_router`, `serve`, `serve_with_shutdown`, and `shutdown_signal` from `codex_remote_control::server`.
+- `CTCore/tests/codex_remote_server.rs` proves a client can build the Codex Remote router in-process without launching the binary.
+- The old development Host Runtime script has been removed; the macOS client is the first executable embedding path.
+- `.codex/environments/environment.toml` keeps the macOS client action, without standalone Host Runtime lifecycle or scout actions.
 
 Current limit:
 
-- This now supports an embedded runtime shape and a development sidecar shape. Pairing/auth, in-app macOS controls, Windows background packaging, moving host runtime code fully into CTCore, and mobile client adapter integration are not implemented yet.
+- This now supports an embedded runtime shape. Pairing/auth, Windows background packaging, and mobile client adapter integration are not implemented yet.
 
 ## Phase 8 - Platform Client Architecture Decisions
 
@@ -249,11 +247,21 @@ Implementation evidence:
 - Apple project structure has moved to `clients/apple/`.
 - Existing iPad source now lives under `clients/apple/iPad/`.
 - `CraftingTableMac` now exists as a macOS app target under `clients/apple/macOS/`.
+- The macOS client exposes a bind-scope setting for the CTCore-backed Codex Remote Server start path:
+  - `127.0.0.1:3765` for this Mac only
+  - `0.0.0.0:3765` for trusted local-network clients
+- The bind-mode choice is persisted in app defaults and cannot be changed while the runtime state is running.
+- Backend runtime integration now has a real socket startup test:
+  - bind `0.0.0.0:0`
+  - request `/host/runtime` through `127.0.0.1:<actual-port>`
+  - assert the server reports `0.0.0.0:<actual-port>`
+- The macOS client now calls CTCore through a narrow C ABI service and starts the Codex Remote Server in-process with the configured `127.0.0.1:3765` or `0.0.0.0:3765` bind address.
+- App-level verification launched `CraftingTableMac`, triggered the Host Runtime command, and confirmed `/host/runtime` returned `launch_context: in_process` with the app process PID. `lsof` showed `CraftingT ... TCP *:3765 (LISTEN)` for the local-network bind case, then the same app command stopped the listener.
 - `.codex/environments/environment.toml` now has a `Run MacOS client` action that calls `scripts/run-macos-client.sh`.
-- Direct `Start Codex Remote Companion` environment actions have been removed. Development lifecycle actions now use `scripts/codex-host-runtime.sh` and are explicitly named `Dev Codex Host Runtime`.
-- `scripts/codex-remote-companion.sh` no longer launches the runtime process directly; it keeps the macOS Scout helper and a legacy `smoke` alias while pointing lifecycle commands to `scripts/codex-host-runtime.sh`.
+- Old direct host-side service environment actions have been removed.
+- The old host-side service run script has been deleted.
 - `clients/android/` and `clients/windows/` now exist as target client roots without introducing Gradle or Tauri build files prematurely.
-- `scripts/build-ctcore-ios.sh`, `scripts/smoke-ctcore-swift-binding.sh`, and iPad launch scripts use the migrated Apple paths.
+- `scripts/build-ctcore-apple.sh`, `scripts/smoke-ctcore-swift-binding.sh`, and Apple launch scripts use the migrated Apple paths.
 - `CTCore` now exposes `codex_remote_control::host_runtime` under `codex-remote-control-server`.
 - The first Host Runtime API shape is async-event oriented:
   - `HostRuntimeHandle`
@@ -267,19 +275,26 @@ Verified:
 - `xcodebuild -project clients/apple/CraftingTable.xcodeproj -scheme CraftingTableMac -configuration Debug -destination 'platform=macOS' -derivedDataPath .build/DerivedData CODE_SIGNING_ALLOWED=NO build`
 - `scripts/run-macos-client.sh --build-only`
 - `scripts/run-macos-client.sh --verify`
-- `scripts/build-ctcore-ios.sh`
+- `scripts/run-macos-client.sh --build-only` after adding macOS bind-mode controls
+- `scripts/run-macos-client.sh --verify` after wiring CTCore in-process startup
+- macOS app command smoke:
+  - Start Host Runtime from `CraftingTableMac`
+  - `curl -fsS http://127.0.0.1:3765/host/runtime`
+  - `lsof -nP -iTCP:3765 -sTCP:LISTEN`
+  - Stop Host Runtime from `CraftingTableMac`
+- `cargo test --manifest-path CTCore/Cargo.toml --features codex-remote-control-server`
+- `scripts/build-ctcore-apple.sh`
 - `scripts/smoke-ctcore-swift-binding.sh`
 - `xcodebuild -list -project clients/apple/CraftingTable.xcodeproj` confirmed the current Xcode project has `CraftingTable` and `CraftingTableMac` app targets.
 - `cargo fmt --manifest-path CTCore/Cargo.toml -- --check`
-- `cargo fmt --manifest-path Companion/Cargo.toml -- --check`
-- `bash -n scripts/codex-host-runtime.sh`
+- `cargo fmt --manifest-path CTCore/Cargo.toml -- --check`
+- `bash -n scripts/build-ctcore-apple.sh scripts/smoke-ctcore-swift-binding.sh scripts/run-macos-client.sh`
 - `cargo test --manifest-path CTCore/Cargo.toml --no-default-features`
 - `cargo test --manifest-path CTCore/Cargo.toml --features portable-config`
 - `cargo test --manifest-path CTCore/Cargo.toml --features codex-remote-control-server`
 - `cargo test --manifest-path CTCore/Cargo.toml --features codex-remote-control-client`
 - `cargo test --manifest-path CTCore/Cargo.toml --all-features`
-- `cargo test --manifest-path Companion/Cargo.toml`
-- `cargo test --manifest-path Companion/Cargo.toml --test runtime_embedding`
+- `cargo test --manifest-path CTCore/Cargo.toml --features codex-remote-control-server`
 - foreground runtime smoke on `127.0.0.1:3787` returned `/host/runtime` with `state: running` and `launch_context: app_supervised`
 - development sidecar smoke on `127.0.0.1:3789` completed `start -> status -> stop`, with `/host/runtime` reachable during status
 
@@ -457,10 +472,10 @@ Implementation evidence:
 - `CTCore` now has a `swift-bindings` feature.
 - `CTCore/src/swift_bindings.rs` exposes a UniFFI facade for portable config decode, encode, validate, diagnostics, and default document construction.
 - Generated Swift binding files live under `clients/apple/iPad/Generated/CTCore/`.
-- `scripts/build-ctcore-ios.sh` regenerates UniFFI Swift bindings, builds local iOS device/simulator static libraries, and packages them into `CTCore.xcframework`.
+- `scripts/build-ctcore-apple.sh` regenerates UniFFI Swift bindings, builds local iOS device/simulator and macOS static libraries, and packages them into `CTCore.xcframework`.
 - `scripts/smoke-ctcore-swift-binding.sh` compiles the generated Swift binding against CTCore and verifies validation + JSON round-trip through the Rust facade.
-- The Xcode target has a `Build CTCore iOS Artifact` phase before Swift compilation.
-- The iPad target links `CTCore.xcframework` from `clients/apple/iPad/Generated/CTCore/`.
+- The Apple Xcode targets have a `Build CTCore Apple Artifact` phase before Swift compilation.
+- The iPad and macOS targets link `CTCore.xcframework` from `clients/apple/iPad/Generated/CTCore/`.
 - The CTCore build script phase is configured to run every build. Declaring the generated XCFramework as a same-target script output creates an Xcode dependency cycle with the Frameworks phase.
 - `HostConfigStore` now loads/saves portable config JSON through CTCore binding functions:
   - `portableConfigDecodeJson`
@@ -505,4 +520,4 @@ This is small, reversible, and exercises the cross-platform shape without forcin
 - Whether backend networking is built in or adapter-injected.
 - First desktop target for Host Runtime packaging.
 - Whether Work Session joins InKCre mapping in the first graph slice.
-- Whether current Rust Companion remains a sidecar/helper for the first desktop app slice.
+- How soon the macOS app should replace preview runtime state with real CTCore server startup.

@@ -1,7 +1,7 @@
 use std::{env, net::SocketAddr, path::PathBuf};
 
+use crate::codex_remote_control::contract::HostRuntimeLaunchContext;
 use anyhow::{anyhow, Context};
-use ct_core::codex_remote_control::contract::HostRuntimeLaunchContext;
 
 const LAUNCH_CONTEXT_ENV: &str = "CODEX_HOST_RUNTIME_LAUNCH_CONTEXT";
 
@@ -72,7 +72,7 @@ fn default_codex_home() -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use ct_core::codex_remote_control::contract::HostRuntimeLaunchContext;
+    use crate::codex_remote_control::contract::HostRuntimeLaunchContext;
 
     use super::parse_launch_context;
 

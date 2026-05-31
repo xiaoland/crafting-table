@@ -177,19 +177,21 @@ Open point:
 Evidence:
 
 - `CodexRemoteScreen` stores feature-local host profiles in `@AppStorage`.
-- `CodexRemoteClient` talks to a Companion endpoint through HTTP and WebSocket.
-- `Companion/src/main.rs` currently starts an independent Rust axum server.
-- `Companion/src/routes.rs` exposes health, thread, model, desktop snapshot, turn submission, and turn event routes.
+- Pre-migration, `CodexRemoteClient` talked to a standalone host-side endpoint through HTTP and WebSocket.
+- Pre-migration, the old host-side crate started an independent Rust axum server.
+- Pre-migration, the old host-side route module exposed health, thread, model, UI-derived desktop snapshot, turn submission, and turn event routes.
+- Current implementation has moved that server implementation into `CTCore/src/codex_remote_control/server/` and removed the old host-side crate.
+- UI-derived desktop snapshot parsing has been removed from the current CTCore/iPad path because codex-app server is the authority for Codex Remote thread/project state.
 
 Current coupling:
 
 - iPad UI is a control client for a host-side service.
-- Companion is currently a standalone process, but its contract is the important boundary.
+- CTCore Codex Remote Server owns the host-side service implementation and wire contract.
 - Host profile state is duplicated conceptually: Remote Control has `HostProfile` in `HostConfigStore`; Codex Remote has private `CodexRemoteHostProfile` in `@AppStorage`.
 
 User direction:
 
-- macOS and Windows should be controlled endpoints running Codex Companion Server / Host Runtime.
+- macOS and Windows should be controlled endpoints running Codex Remote Server / Host Runtime.
 - iPadOS and Android should be control endpoints.
 - Codex Host Runtime should be closer to an app-embedded service/helper than a user-managed standalone daemon.
 
@@ -197,12 +199,12 @@ Backend-lib implication:
 
 - Candidate shared business capability: Codex Remote Control Server owns the cross-device protocol schema, request/response normalization, turn stream interpretation, host profile/config schema, and pairing state.
 - Codex Remote Control Client consumes that protocol and projects it into control-client state. It should not own the protocol authority.
-- Host desktop adapter responsibility: login launch, background residency, desktop scout permissions, Codex app-server process adaptation, local HTTP/WebSocket listener or equivalent wire transport.
+- Host desktop adapter responsibility: login launch, background residency, codex-app server process adaptation, local HTTP/WebSocket listener or equivalent wire transport.
 - Control client adapter responsibility: UI, network reachability, local notifications, platform-specific storage for non-secret config.
 
-Open point:
+Resolved direction:
 
-- Whether the Rust Companion becomes an app-supervised sidecar, a helper service, or a library boundary remains unresolved.
+- The old host-side crate should not remain as a thin entry point. CTCore owns the server implementation; platform clients own embedding and lifecycle.
 
 ## Local LLM coupling
 
@@ -266,7 +268,7 @@ Backend-lib implication:
 | RemoteContinuityRecord | `RemoteContinuityStore` | split | Durable session link may be relation; runtime recency may be local/config. |
 | CodexRemoteHostProfile | `@AppStorage` | portable config file | Should converge with host config story. |
 | Codex live stream state | SwiftUI runtime state | host/control runtime | Not portable config. |
-| Companion app-server adapter | standalone Rust process | desktop app-embedded service/helper | Wire contract authority belongs to Codex Remote Control Server. |
+| Codex Remote app-server adapter | CTCore server module | desktop app-embedded CTCore runtime | Wire contract authority belongs to Codex Remote Control Server. |
 | Local LLM manifest | app support JSON | device-local backend state | No cross-device sync required. |
 | Local LLM model cache | app support files | device-local cache | Potentially large; should not sync. |
 | Local LLM bearer token | Keychain | platform credential store | Device-local secret. |

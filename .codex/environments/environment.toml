@@ -18,28 +18,3 @@ command = "./scripts/launch-ipad-device.sh"
 name = "Run MacOS client"
 icon = "play"
 command = "./scripts/run-macos-client.sh"
-
-[[actions]]
-name = "Run Codex macOS Scout Snapshot"
-icon = "play"
-command = "./scripts/codex-remote-companion.sh scout"
-
-[[actions]]
-name = "Smoke Dev Codex Host Runtime"
-icon = "play"
-command = "./scripts/codex-host-runtime.sh smoke"
-
-[[actions]]
-name = "Start Dev Codex Host Runtime"
-icon = "play"
-command = "./scripts/codex-host-runtime.sh start"
-
-[[actions]]
-name = "Stop Dev Codex Host Runtime"
-icon = "stop"
-command = "./scripts/codex-host-runtime.sh stop"
-
-[[actions]]
-name = "Status Dev Codex Host Runtime"
-icon = "terminal"
-command = "./scripts/codex-host-runtime.sh status"
