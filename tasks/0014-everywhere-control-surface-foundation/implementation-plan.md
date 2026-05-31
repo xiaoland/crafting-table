@@ -499,6 +499,54 @@ Completion:
 - The completed slice proves the app can embed CTCore and call a feature-gated backend API from Swift.
 - Remaining domain-store migrations belong to later phases; they should be sequenced by domain rather than hidden behind a new workspace aggregate.
 
+## Phase 9 - Windows Codex Remote Client
+
+Goal: add the first Windows client with only Codex Remote capability, matching the current macOS scope.
+
+Direction:
+
+- Windows uses Rust + Tauri.
+- The product embedding model is in-process CTCore, not a bundled sidecar.
+- The Windows app is a controlled-endpoint client for Codex Remote Server, not a general CT surface.
+- CTCore remains the owner of Codex Remote Server protocol, codex-app server adaptation, runtime state, and event semantics.
+- The Windows adapter owns tray/background/autostart, installer shape, user-facing settings, and any Windows firewall or local-network UX.
+
+First implementation slices:
+
+1. scaffold `clients/windows/` as a Tauri app with a deliberately thin UI
+2. consume CTCore as a local Rust crate with `codex-remote-control-server`
+3. add a Windows runtime state store around CTCore `HostRuntimeHandle`
+4. expose Tauri commands for status/start/stop and bind-scope settings
+5. show only Codex Remote Server status, bind mode, port, Codex home, and recent runtime events
+6. add a tray/background shape after foreground start/stop works
+7. add autostart only after tray behavior is stable
+
+Out of scope for the first Windows slice:
+
+- Goal Forest, Capture, Work Session, Local LLM, and broader CT navigation
+- Desktop UI parsing or Desktop Scout revival
+- custom Codex Remote protocol ownership in TypeScript
+- installer/update polish before runtime embedding works
+
+Verification:
+
+- `cargo test --manifest-path CTCore/Cargo.toml --features codex-remote-control-server`
+- Windows Tauri dev build compiles with CTCore as a local crate
+- app command starts CTCore in-process on `127.0.0.1:3765`
+- optional trusted-LAN mode starts on `0.0.0.0:3765`
+- `GET /host/runtime` reports `launch_context: in_process`
+- stopping from the app releases the listener
+- no Companion/scout route or script reappears
+
+Implementation evidence:
+
+- `clients/windows/` now contains a Tauri v2 app skeleton.
+- The frontend is vanilla TypeScript/CSS and exposes only Codex Remote Server status, bind mode, start/stop, Codex home, and recent runtime events.
+- `clients/windows/src-tauri/` consumes `CTCore` as a local Rust crate with `codex-remote-control-server`.
+- The Tauri backend starts CTCore in-process through `serve_listener_with_shutdown` and records `launch_context: in_process`.
+- `scripts/run-windows-client.sh --check` installs frontend dependencies, builds the TypeScript/Vite frontend, checks Rust formatting, and runs `cargo check` for the Tauri backend.
+- `scripts/run-windows-client.ps1 check` is the Windows-native equivalent for PowerShell.
+
 ## Recommended first implementation slice
 
 Do not begin with repo-wide restructuring.

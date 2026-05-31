@@ -18,3 +18,9 @@ command = "./scripts/launch-ipad-device.sh"
 name = "Run MacOS client"
 icon = "play"
 command = "./scripts/run-macos-client.sh"
+
+[[actions]]
+name = "Run Windows Client"
+icon = "play"
+platforms = ["windows"]
+command = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-windows-client.ps1 dev"

@@ -183,9 +183,11 @@ scripts/
 Near-term structure:
 
 - Apple project structure has moved to `clients/apple/`, with the existing iPad source under `clients/apple/iPad/`.
-- Android and Windows client roots exist as placeholders with no Gradle/Tauri build system yet.
+- Android client root exists as a placeholder with no Gradle build system yet.
+- Windows now has a first Tauri v2 app skeleton under `clients/windows/`.
 - `CraftingTableMac` now exists under `clients/apple/macOS/`
-- next macOS work should connect the UI to the CTCore Host Runtime API instead of a local preview store
+- macOS now starts the CTCore Codex Remote Server in-process through a narrow C ABI.
+- the first Windows Tauri surface is intentionally limited to Codex Remote Server status and controls.
 - the old host-side service crate has been removed; Codex Remote Server implementation lives in CTCore
 - keep direct server process launchers out of product client flows; development scripts may present CTCore smoke commands as Dev Codex Host Runtime
 - add only the client folders needed by the first executable platform slice

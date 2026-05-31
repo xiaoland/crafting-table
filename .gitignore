@@ -1,5 +1,6 @@
 # macOS
 .DS_Store
+._*
 
 # Xcode user data
 xcuserdata/
@@ -30,6 +31,12 @@ DerivedData/
 
 # Rust build products
 target/
+
+# Node/Tauri build products
+node_modules/
+clients/windows/dist/*
+!clients/windows/dist/.gitkeep
+clients/windows/src-tauri/gen/schemas/
 
 # Swift Package Manager
 Packages/

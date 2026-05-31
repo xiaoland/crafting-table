@@ -1,0 +1,18 @@
+[package]
+name = "crafting-table-windows"
+version = "0.1.0"
+description = "Crafting Table Windows client"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+ct-core = { path = "../../../CTCore", features = ["codex-remote-control-server"] }
+serde = { version = "1", features = ["derive"] }
+tauri = { version = "2", features = [] }
+tokio = { version = "1.48", features = ["sync"] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
