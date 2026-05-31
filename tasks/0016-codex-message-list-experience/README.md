@@ -156,6 +156,7 @@ Plan:
 - Do not group user or assistant messages.
 - Default collapsed state should show kind, count, latest status, and timestamp; expanded state shows each item with details.
 - Implemented in `CodexRemoteTranscriptRows` as a local UI projection plus group row/popover components, leaving CTCore transcript entries unchanged.
+- Streaming tool-call rows remain as a fallback after `turn_completed` until persisted thread detail covers every streaming item id, so command execution rows do not disappear if the first post-turn detail refresh is incomplete.
 
 Verification:
 

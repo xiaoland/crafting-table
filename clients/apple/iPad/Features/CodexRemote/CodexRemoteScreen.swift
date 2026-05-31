@@ -952,6 +952,14 @@ struct CodexRemoteScreen: View {
             return
         }
 
+        guard persistedDetailCoversStreamingMessages(
+            for: streamingTurnID,
+            response: response,
+            state: state
+        ) else {
+            return
+        }
+
         state.turnStreamTask?.cancel()
         state.turnStreamTask = nil
         state.streamingThreadID = nil
@@ -962,6 +970,32 @@ struct CodexRemoteScreen: View {
         state.streamingEventCount = 0
         state.streamErrorMessage = nil
         state.streamingDidComplete = false
+    }
+
+    private func persistedDetailCoversStreamingMessages(
+        for turnID: String,
+        response: CodexRemoteThreadDetailResponse,
+        state: CodexRemoteHostRuntime
+    ) -> Bool {
+        let streamingMessageIDs = Set(
+            state.streamingMessages
+                .filter { $0.turnId == turnID }
+                .map(\.id)
+                .filter { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }
+        )
+
+        guard streamingMessageIDs.isEmpty == false else {
+            return true
+        }
+
+        let persistedMessageIDs = Set(
+            response.transcriptEntries
+                .filter { $0.turnId == turnID }
+                .map(\.id)
+                .filter { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }
+        )
+
+        return streamingMessageIDs.isSubset(of: persistedMessageIDs)
     }
 
     private func isTerminalTurnStatus(_ status: String?) -> Bool {
