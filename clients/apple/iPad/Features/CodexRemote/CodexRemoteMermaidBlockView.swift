@@ -4,29 +4,51 @@ import WebKit
 struct CodexRemoteMermaidBlockView: View {
     let source: String
     @State private var renderState = CodexRemoteMermaidRenderState.rendering
+    @State private var isPreviewPresented = false
 
     var body: some View {
         switch renderState {
         case .rendering:
-            CodexRemoteMermaidWebView(source: source, renderState: $renderState)
-                .frame(minHeight: 220)
-                .background(Color.white, in: RoundedRectangle(cornerRadius: 8))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color(uiColor: .separator), lineWidth: 0.5)
-                }
-                .accessibilityIdentifier("codex-remote-mermaid-block")
+            mermaidContainer(minHeight: 220)
         case .rendered(let height):
-            CodexRemoteMermaidWebView(source: source, renderState: $renderState)
-                .frame(height: max(160, min(height, 620)))
-                .background(Color.white, in: RoundedRectangle(cornerRadius: 8))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color(uiColor: .separator), lineWidth: 0.5)
-                }
-                .accessibilityIdentifier("codex-remote-mermaid-block")
+            mermaidContainer(height: max(160, min(height, 620)))
         case .failed:
             CodexRemoteCodeBlockView(language: "mermaid", code: source)
+        }
+    }
+
+    @ViewBuilder
+    private func mermaidContainer(height: CGFloat? = nil, minHeight: CGFloat? = nil) -> some View {
+        ZStack(alignment: .topTrailing) {
+            CodexRemoteMermaidWebView(source: source, renderState: $renderState)
+                .frame(height: height)
+                .frame(minHeight: minHeight)
+
+            Button {
+                isPreviewPresented = true
+            } label: {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.caption.weight(.semibold))
+                    .frame(width: 30, height: 30)
+                    .background(.ultraThinMaterial, in: Circle())
+                    .overlay {
+                        Circle()
+                            .stroke(Color(uiColor: .separator), lineWidth: 0.5)
+                    }
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.primary)
+            .padding(8)
+            .accessibilityLabel("Preview diagram")
+        }
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 8))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color(uiColor: .separator), lineWidth: 0.5)
+        }
+        .accessibilityIdentifier("codex-remote-mermaid-block")
+        .fullScreenCover(isPresented: $isPreviewPresented) {
+            CodexRemoteMermaidPreview(source: source)
         }
     }
 }
@@ -66,17 +88,130 @@ private struct CodexRemoteMermaidWebView: UIViewRepresentable {
 
         context.coordinator.lastSource = source
         renderState = .rendering
-        webView.loadHTMLString(html(source: source), baseURL: Bundle.main.resourceURL)
+        webView.loadHTMLString(
+            CodexRemoteMermaidHTML.page(
+                source: source,
+                messageName: Coordinator.messageName,
+                isPreview: false
+            ),
+            baseURL: Bundle.main.resourceURL
+        )
+    }
+}
+
+private struct CodexRemoteMermaidPreview: View {
+    let source: String
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            CodexRemoteMermaidPreviewWebView(source: source)
+                .background(Color.white)
+                .ignoresSafeArea(.container, edges: .bottom)
+                .navigationTitle("Diagram")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title3)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("Close")
+                    }
+                }
+        }
+    }
+}
+
+private struct CodexRemoteMermaidPreviewWebView: UIViewRepresentable {
+    let source: String
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
     }
 
-    private func html(source: String) -> String {
-        let sourceLiteral = Self.javascriptStringLiteral(source)
+    func makeUIView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.isOpaque = false
+        webView.backgroundColor = .white
+        webView.scrollView.backgroundColor = .white
+        webView.scrollView.isScrollEnabled = true
+        webView.scrollView.bouncesZoom = true
+        webView.scrollView.minimumZoomScale = 1
+        webView.scrollView.maximumZoomScale = 6
+        webView.scrollView.delegate = context.coordinator
+        webView.navigationDelegate = context.coordinator
+        return webView
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        guard context.coordinator.lastSource != source else {
+            return
+        }
+
+        context.coordinator.lastSource = source
+        webView.loadHTMLString(
+            CodexRemoteMermaidHTML.page(
+                source: source,
+                messageName: nil,
+                isPreview: true
+            ),
+            baseURL: Bundle.main.resourceURL
+        )
+    }
+
+    final class Coordinator: NSObject, WKNavigationDelegate, UIScrollViewDelegate {
+        var lastSource: String?
+
+        func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+            scrollView.subviews.first
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationAction: WKNavigationAction,
+            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        ) {
+            switch navigationAction.navigationType {
+            case .other:
+                decisionHandler(.allow)
+            default:
+                decisionHandler(.cancel)
+            }
+        }
+    }
+}
+
+private enum CodexRemoteMermaidHTML {
+    static func page(source: String, messageName: String?, isPreview: Bool) -> String {
+        let sourceLiteral = javascriptStringLiteral(source)
+        let postScript: String
+
+        if let messageName {
+            postScript = "const post = (payload) => window.webkit.messageHandlers.\(messageName).postMessage(payload);"
+        } else {
+            postScript = "const post = (_payload) => {};"
+        }
+
+        let viewport = isPreview
+            ? "width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=6.0, user-scalable=yes"
+            : "width=device-width, initial-scale=1.0"
+        let bodyOverflow = isPreview ? "auto" : "hidden"
+        let containerMinHeight = isPreview ? "min-height: 100vh;" : ""
+        let svgSizing = "max-width: 100%; height: auto; margin: 0 auto;"
 
         return """
         <!doctype html>
         <html>
         <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <meta name="viewport" content="\(viewport)">
           <script src="mermaid.min.js"></script>
           <style>
             html, body {
@@ -84,21 +219,20 @@ private struct CodexRemoteMermaidWebView: UIViewRepresentable {
               color: #111111;
               margin: 0;
               padding: 0;
-              overflow: hidden;
+              overflow: \(bodyOverflow);
               font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
             }
 
             #container {
               box-sizing: border-box;
-              padding: 14px;
+              padding: \(isPreview ? 24 : 14)px;
               width: 100%;
+              \(containerMinHeight)
             }
 
             svg {
               display: block;
-              max-width: 100%;
-              height: auto;
-              margin: 0 auto;
+              \(svgSizing)
             }
 
             .node rect,
@@ -143,7 +277,7 @@ private struct CodexRemoteMermaidWebView: UIViewRepresentable {
           <div id="container"></div>
           <script>
             const source = \(sourceLiteral);
-            const post = (payload) => window.webkit.messageHandlers.\(Coordinator.messageName).postMessage(payload);
+            \(postScript)
 
             window.onerror = function(message) {
               post({ type: "error", message: String(message) });
@@ -209,7 +343,9 @@ private struct CodexRemoteMermaidWebView: UIViewRepresentable {
 
         return encoded.replacingOccurrences(of: "</", with: "<\\/")
     }
+}
 
+private extension CodexRemoteMermaidWebView {
     final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
         static let messageName = "codexRemoteMermaid"
         var lastSource: String?

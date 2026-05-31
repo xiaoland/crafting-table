@@ -78,12 +78,14 @@ Implemented first pass:
 - Incomplete trailing fences are treated as code while streaming instead of eagerly rendering Mermaid.
 - Replaced assistant, streaming assistant, and user conversation message bodies with the rich renderer.
 - Added explicit ordered and unordered list blocks so list markers are rendered by SwiftUI instead of leaking literal markdown syntax.
+- Replaced the hand-rendered list path with MarkdownUI for default `.markdown` blocks, preserving nested list and broader GFM rendering without breaking the custom code/Mermaid block boundary.
+- Added a Mermaid preview action that opens the diagram full screen with pan and pinch zoom while reusing the bundled local Mermaid renderer.
 
 Current deliberate constraints:
 
-- Prose rendering still uses SwiftUI `AttributedString(markdown:)` with inline-preserving behavior.
+- Default markdown rendering now uses MarkdownUI `2.4.1`; top-level code and Mermaid blocks are still extracted into custom renderers.
 - Syntax highlighting is intentionally modest and local; it is not a full grammar engine.
-- List rendering currently targets flat list readability. Nested list content is preserved in the item body but is not yet recursively rendered as nested SwiftUI list blocks.
+- MarkdownUI brings `NetworkImage` as a transitive dependency; remote image behavior has not been product-shaped yet.
 - Mermaid JavaScript is local, but the current visual verification is limited to successful iPad target build.
 
 ## Verification
@@ -104,6 +106,8 @@ Verified:
 
 - `xcodebuild -resolvePackageDependencies -project clients/apple/CraftingTable.xcodeproj -scheme CraftingTable`
 - `xcodebuild -project clients/apple/CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' build`
+- `xcodebuild -resolvePackageDependencies -project clients/apple/CraftingTable.xcodeproj -scheme CraftingTable` after adding MarkdownUI
+- `xcodebuild -project clients/apple/CraftingTable.xcodeproj -scheme CraftingTable -destination 'generic/platform=iOS Simulator' build` after switching default markdown rendering to MarkdownUI
 
 ## Promotion Candidates
 

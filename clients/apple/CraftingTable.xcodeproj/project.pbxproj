@@ -36,7 +36,9 @@
 		E15000010000000000000001 /* CodexRemoteRichMessageText.swift in Sources */ = {isa = PBXBuildFile; fileRef = E15000110000000000000001 /* CodexRemoteRichMessageText.swift */; };
 		E15000010000000000000002 /* CodexRemoteMermaidBlockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E15000110000000000000002 /* CodexRemoteMermaidBlockView.swift */; };
 		E15000010000000000000003 /* mermaid.min.js in Resources */ = {isa = PBXBuildFile; fileRef = E15000110000000000000003 /* mermaid.min.js */; };
+		E15000010000000000000004 /* CodexRemoteMarkdownBlockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E15000110000000000000004 /* CodexRemoteMarkdownBlockView.swift */; };
 		E15000020000000000000001 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = E15001020000000000000001 /* Markdown */; };
+		E15000020000000000000002 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = E15001020000000000000002 /* MarkdownUI */; };
 		B14000010000000000000001 /* AboutScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B14000110000000000000001 /* AboutScreen.swift */; };
 		C17000010000000000000001 /* ct_core.swift in Sources */ = {isa = PBXBuildFile; fileRef = C17000110000000000000001 /* ct_core.swift */; };
 		C18000020000000000000001 /* CTCore.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C18000110000000000000001 /* CTCore.xcframework */; };
@@ -78,6 +80,7 @@
 		E15000110000000000000001 /* CodexRemoteRichMessageText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexRemoteRichMessageText.swift; sourceTree = "<group>"; };
 		E15000110000000000000002 /* CodexRemoteMermaidBlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexRemoteMermaidBlockView.swift; sourceTree = "<group>"; };
 		E15000110000000000000003 /* mermaid.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = mermaid.min.js; sourceTree = "<group>"; };
+		E15000110000000000000004 /* CodexRemoteMarkdownBlockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexRemoteMarkdownBlockView.swift; sourceTree = "<group>"; };
 		B14000110000000000000001 /* AboutScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutScreen.swift; sourceTree = "<group>"; };
 		C17000110000000000000001 /* ct_core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ct_core.swift; sourceTree = "<group>"; };
 		C17000110000000000000002 /* ct_coreFFI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ct_coreFFI.h; sourceTree = "<group>"; };
@@ -95,6 +98,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E15000020000000000000002 /* MarkdownUI in Frameworks */,
 				E15000020000000000000001 /* Markdown in Frameworks */,
 				B13000020000000000000001 /* LlamaFramework in Frameworks */,
 				C18000020000000000000001 /* CTCore.xcframework in Frameworks */,
@@ -294,6 +298,7 @@
 				A1000011000000000000000E /* CodexRemoteScreen.swift */,
 				A10000110000000000000011 /* CodexRemoteThreadPage.swift */,
 				E15000110000000000000001 /* CodexRemoteRichMessageText.swift */,
+				E15000110000000000000004 /* CodexRemoteMarkdownBlockView.swift */,
 				E15000110000000000000002 /* CodexRemoteMermaidBlockView.swift */,
 				A10000110000000000000010 /* CodexRemoteClient.swift */,
 				E15000310000000000000001 /* Resources */,
@@ -347,6 +352,7 @@
 			packageProductDependencies = (
 				B13001020000000000000001 /* LlamaFramework */,
 				E15001020000000000000001 /* Markdown */,
+				E15001020000000000000002 /* MarkdownUI */,
 			);
 			productName = CraftingTable;
 			productReference = A10000110000000000000005 /* CraftingTable.app */;
@@ -401,6 +407,7 @@
 			packageReferences = (
 				B13001010000000000000001 /* XCLocalSwiftPackageReference "ThirdParty/LlamaFrameworkPackage" */,
 				E15001010000000000000001 /* XCRemoteSwiftPackageReference "swift-markdown" */,
+				E15001010000000000000002 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
 			);
 			productRefGroup = A10000310000000000000006 /* Products */;
 			projectDirPath = "";
@@ -509,6 +516,7 @@
 				A1000001000000000000000E /* CodexRemoteScreen.swift in Sources */,
 				A10000010000000000000011 /* CodexRemoteThreadPage.swift in Sources */,
 				E15000010000000000000001 /* CodexRemoteRichMessageText.swift in Sources */,
+				E15000010000000000000004 /* CodexRemoteMarkdownBlockView.swift in Sources */,
 				E15000010000000000000002 /* CodexRemoteMermaidBlockView.swift in Sources */,
 				A1000001000000000000000F /* CodexRemoteClient.swift in Sources */,
 				A1000001000000000000000C /* CaptureSheets.swift in Sources */,
@@ -743,6 +751,14 @@
 				minimumVersion = 0.8.0;
 			};
 		};
+		E15001010000000000000002 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -755,6 +771,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E15001010000000000000001 /* XCRemoteSwiftPackageReference "swift-markdown" */;
 			productName = Markdown;
+		};
+		E15001020000000000000002 /* MarkdownUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E15001010000000000000002 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
+			productName = MarkdownUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 

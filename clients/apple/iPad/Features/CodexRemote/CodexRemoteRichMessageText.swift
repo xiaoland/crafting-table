@@ -14,28 +14,12 @@ struct CodexRemoteRichMessageText: View {
             ForEach(blocks) { block in
                 switch block.kind {
                 case .markdown(let markdown):
-                    CodexRemoteInlineMarkdownText(text: markdown)
-                        .font(.body)
-                        .foregroundStyle(isUserMessage ? .white : .primary)
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
+                    CodexRemoteMarkdownBlockView(text: markdown, isUserMessage: isUserMessage)
                         .frame(maxWidth: .infinity, alignment: isUserMessage ? .trailing : .leading)
                 case let .code(language, code):
                     CodexRemoteCodeBlockView(language: language, code: code)
                 case let .mermaid(source):
                     CodexRemoteMermaidBlockView(source: source)
-                case let .orderedList(startIndex, items):
-                    CodexRemoteListBlockView(
-                        kind: .ordered(startIndex: startIndex),
-                        items: items,
-                        isUserMessage: isUserMessage
-                    )
-                case let .unorderedList(items):
-                    CodexRemoteListBlockView(
-                        kind: .unordered,
-                        items: items,
-                        isUserMessage: isUserMessage
-                    )
                 }
             }
         }
@@ -48,17 +32,10 @@ private struct CodexRemoteMessageContentBlock: Identifiable {
         case markdown(String)
         case code(language: String?, code: String)
         case mermaid(String)
-        case orderedList(startIndex: Int, items: [CodexRemoteMessageListItem])
-        case unorderedList(items: [CodexRemoteMessageListItem])
     }
 
     let id: String
     let kind: Kind
-}
-
-private struct CodexRemoteMessageListItem: Identifiable {
-    let id: String
-    let markdown: String
 }
 
 private enum CodexRemoteMessageContentParser {
@@ -104,26 +81,6 @@ private enum CodexRemoteMessageContentParser {
                     CodexRemoteMessageContentBlock(
                         id: "\(blocks.count)-code-\(language ?? "plain")-\(codeBlock.code.hashValue)",
                         kind: kind
-                    )
-                )
-            } else if let orderedList = child as? OrderedList {
-                flushMarkdown()
-
-                let items = listItems(from: orderedList)
-                blocks.append(
-                    CodexRemoteMessageContentBlock(
-                        id: "\(blocks.count)-ordered-list-\(orderedList.startIndex)-\(items.map(\.markdown).joined().hashValue)",
-                        kind: .orderedList(startIndex: Int(orderedList.startIndex), items: items)
-                    )
-                )
-            } else if let unorderedList = child as? UnorderedList {
-                flushMarkdown()
-
-                let items = listItems(from: unorderedList)
-                blocks.append(
-                    CodexRemoteMessageContentBlock(
-                        id: "\(blocks.count)-unordered-list-\(items.map(\.markdown).joined().hashValue)",
-                        kind: .unorderedList(items: items)
                     )
                 )
             } else {
@@ -188,98 +145,6 @@ private enum CodexRemoteMessageContentParser {
         }
 
         return openFence != nil
-    }
-
-    private static func listItems(from list: Markup) -> [CodexRemoteMessageListItem] {
-        list.children
-            .compactMap { $0 as? ListItem }
-            .enumerated()
-            .map { index, item in
-                let markdown = item.children
-                    .map { child in
-                        if let paragraph = child as? Paragraph {
-                            return paragraph.format().trimmingCharacters(in: .whitespacesAndNewlines)
-                        }
-
-                        return child.format().trimmingCharacters(in: .whitespacesAndNewlines)
-                    }
-                    .filter { $0.isEmpty == false }
-                    .joined(separator: "\n")
-
-                let itemText = markdown.isEmpty ? " " : markdown
-
-                return CodexRemoteMessageListItem(
-                    id: "\(index)-\(itemText.hashValue)",
-                    markdown: itemText
-                )
-            }
-    }
-}
-
-private struct CodexRemoteInlineMarkdownText: View {
-    let text: String
-
-    var body: some View {
-        Text(renderedText)
-    }
-
-    private var renderedText: AttributedString {
-        let options = AttributedString.MarkdownParsingOptions(
-            interpretedSyntax: .inlineOnlyPreservingWhitespace
-        )
-
-        return (try? AttributedString(markdown: text, options: options)) ?? AttributedString(text)
-    }
-}
-
-private struct CodexRemoteListBlockView: View {
-    enum Kind {
-        case ordered(startIndex: Int)
-        case unordered
-    }
-
-    let kind: Kind
-    let items: [CodexRemoteMessageListItem]
-    let isUserMessage: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            ForEach(Array(items.enumerated()), id: \.element.id) { offset, item in
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(marker(for: offset))
-                        .font(.body)
-                        .foregroundStyle(isUserMessage ? .white.opacity(0.78) : .secondary)
-                        .frame(width: markerWidth, alignment: .trailing)
-
-                    CodexRemoteInlineMarkdownText(text: item.markdown)
-                        .font(.body)
-                        .foregroundStyle(isUserMessage ? .white : .primary)
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityIdentifier("codex-remote-list-block")
-    }
-
-    private var markerWidth: CGFloat {
-        switch kind {
-        case .ordered:
-            return 30
-        case .unordered:
-            return 16
-        }
-    }
-
-    private func marker(for offset: Int) -> String {
-        switch kind {
-        case .ordered(let startIndex):
-            return "\(startIndex + offset)."
-        case .unordered:
-            return "•"
-        }
     }
 }
 
