@@ -4,7 +4,7 @@ Target stack: Kotlin + Jetpack Compose.
 
 First scope: Codex Remote control client only.
 
-CTCore Kotlin bindings should be generated with UniFFI and checked into the Android client tree during the first integration slice. Revisit generated-source policy after Android CI can build CTCore artifacts reliably.
+CTCore Kotlin bindings are generated with UniFFI and kept out of git alongside native Android `.so` artifacts. Generate them locally before building the Android client.
 
 Current app scope:
 
@@ -13,7 +13,7 @@ Current app scope:
 - thread list
 - thread detail transcript
 - turn submission through the existing HTTP route with `wait_for_completion=true`
-- CTCore-backed response decoding and turn stream projection helpers through checked-in UniFFI Kotlin bindings
+- CTCore-backed response decoding and turn stream projection helpers through generated UniFFI Kotlin bindings
 
 Out of scope for the first Android slice:
 
@@ -30,6 +30,6 @@ scripts/run-android-client.sh --build
 scripts/run-android-client.sh --debug
 ```
 
-`scripts/build-ctcore-android.sh` requires `ANDROID_NDK_HOME` or `ANDROID_HOME` with an installed NDK. It regenerates the checked-in UniFFI Kotlin binding and writes local native libraries under `ctcore-bindings/src/main/jniLibs/`; those native libraries are ignored by git.
+`scripts/build-ctcore-android.sh` requires `ANDROID_NDK_HOME` or `ANDROID_HOME` with an installed NDK. It regenerates local UniFFI Kotlin bindings under `ctcore-bindings/src/main/java/uniffi/` and native libraries under `ctcore-bindings/src/main/jniLibs/`; both generated outputs are ignored by git.
 
 `scripts/run-android-client.sh --debug` assembles, installs, and launches the app on the first authorized USB debugging device visible to `adb`.
