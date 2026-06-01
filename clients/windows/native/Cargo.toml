@@ -1,0 +1,14 @@
+[package]
+name = "crafting-table-windows-native"
+version = "0.1.0"
+edition = "2021"
+description = "Crafting Table Windows native client"
+
+[dependencies]
+ct-core = { path = "../../../CTCore", features = ["codex-remote-control-server"] }
+gpui = { version = "=0.2.2", optional = true }
+tokio = { version = "1.48", features = ["net", "rt-multi-thread", "sync"] }
+
+[features]
+default = ["ui"]
+ui = ["dep:gpui"]

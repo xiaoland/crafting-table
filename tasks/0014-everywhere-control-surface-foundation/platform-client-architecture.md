@@ -91,35 +91,38 @@ Open decisions:
 
 ## Windows client
 
-Selected stack: Rust + Tauri.
+Selected stack: Rust native GUI, with GPUI as the first candidate.
+
+This supersedes the earlier Rust + Tauri direction. The product scope is unchanged: Windows remains a Codex Remote desktop client with in-process Codex Host Runtime.
 
 Why:
 
-- CTCore and Codex Host Runtime are Rust-first, so the host runtime can stay native and in-process.
-- Tauri keeps the backend and packaging model closer to Rust than a Python UI bridge.
-- Tray, autostart, local commands, filesystem, and bundled desktop packaging are normal Tauri concerns.
-- The UI can stay thin while Rust owns protocol semantics, runtime state machines, and codex-app server adaptation.
+- CTCore and Codex Host Runtime are Rust-first, so the host runtime can stay native and in-process without a C ABI or P/Invoke layer.
+- The first Windows surface only needs a small utility window: host status, bind mode, endpoint hints, Codex home, start/stop/refresh, and logs.
+- Avoiding a WebView shell better matches the native-client direction while keeping implementation small.
+- The current Tauri backend already proves the direct Rust CTCore integration shape.
 
 Risks:
 
-- Tauri introduces a web UI layer, so visual/system integration will differ from SwiftUI and Kotlin clients.
-- Frontend state must not become the owner of Codex Remote semantics.
-- Windows-specific background behavior still needs native adapter work.
+- GPUI is pre-1.0 and its Windows maturity must be proven by a spike.
+- GPUI is a native Rust/GPU UI, not WinUI system controls.
+- Windows-specific background behavior, accessibility, packaging, tray, and launch-at-login still need native adapter work after the first slice.
 
 First target shape:
 
-- a thin Tauri shell for host status, pairing, logs, start/stop, and settings
-- Rust commands that own the in-process CTCore host runtime handle
-- Windows startup/tray/background behavior owned by the Windows adapter
+- a GPUI utility shell for Host Runtime status, logs, start/stop, refresh, and bind mode
+- a Rust `HostRuntimeService` that owns the in-process CTCore server task
+- Windows startup/tray/background behavior deferred until Host Runtime parity is proven
 
 Rejected for now:
 
-- PySide as the first Windows direction. It is viable for a thin UI, but packaging Python/Qt/Rust adds more moving pieces than Tauri for this product slice.
-- WinUI/.NET as the first direction. It is more native, but adds another binding surface before the host runtime API is stable.
+- Tauri as the product direction. It remains in-tree only as a migration fallback until GPUI parity is verified.
+- PySide as the first Windows direction. It is viable for a thin UI, but packaging Python/Qt/Rust adds more moving pieces than the selected Rust-native path.
+- WinUI/.NET as the first direction. It remains the fallback if GPUI fails the Windows feasibility spike.
 
 Open decisions:
 
-- frontend stack inside Tauri: plain TypeScript, React, Svelte, or another lightweight layer
+- whether GPUI remains acceptable after the Windows feasibility spike
 - packaging target and update path
 - whether Windows needs any host-local Codex adapter beyond codex-app server process management
 
@@ -171,13 +174,13 @@ clients/
     app/
     ctcore-bindings/
   windows/
+    native/
     src-tauri/
-    app/
 
 scripts/
   build-ctcore-apple.sh
   build-ctcore-android.sh
-  build-ctcore-tauri.sh
+  run-windows-client.sh
 ```
 
 Near-term structure:
@@ -187,10 +190,10 @@ Near-term structure:
 - Android currently implements manual Codex Remote host URL entry, health check, thread list/detail, and turn submission.
 - Android routes Codex Remote response decoding through CTCore UniFFI helpers, keeping the UI off the server-owned wire JSON details.
 - Android generated UniFFI Kotlin binding source is checked in; generated Android native libraries are ignored local build artifacts.
-- Windows now has a first Tauri v2 app skeleton under `clients/windows/`.
+- Windows now has a Rust native GPUI skeleton under `clients/windows/native/`, while the earlier Tauri v2 app remains temporarily under `clients/windows/src-tauri/` as migration fallback.
 - `CraftingTableMac` now exists under `clients/apple/macOS/`
 - macOS now starts the CTCore Codex Remote Server in-process through a narrow C ABI.
-- the first Windows Tauri surface is intentionally limited to Codex Remote Server status and controls.
+- the first Windows native surface is intentionally limited to Codex Remote Server status and controls.
 - the old host-side service crate has been removed; Codex Remote Server implementation lives in CTCore
 - keep direct server process launchers out of product client flows; development scripts may present CTCore smoke commands as Dev Codex Host Runtime
 - add only the client folders needed by the first executable platform slice
@@ -221,9 +224,9 @@ Icon assets:
 
 Windows:
 
-- Tauri builds the Windows shell and Rust backend together.
-- CTCore is consumed as a Rust crate from the Tauri backend.
-- A smoke command verifies the Tauri backend can start the in-process host runtime and serve the Codex Remote contract.
+- Cargo builds the Rust native Windows shell and CTCore in one dependency graph.
+- CTCore is consumed as a Rust crate from the native Windows client.
+- A service check verifies the Rust Host Runtime service can compile without building GPUI; a full Windows check must prove GPUI window viability before Tauri retirement.
 
 ## Android binding generation options
 
@@ -238,7 +241,7 @@ Decision: check generated Kotlin in for the first Android slice, matching the cu
 ## Decisions to make before implementation
 
 1. Apple migration shape before adding macOS target.
-2. Tauri frontend stack for Windows.
+2. GPUI viability and packaging path for Windows.
 3. Android Gradle module layout for checked-in generated Kotlin bindings.
 4. Exact async event stream API shape for Codex Host Runtime.
 5. Pairing/auth first slice: manual token entry, QR pairing, local network discovery, or deferred placeholder.
