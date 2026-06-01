@@ -28,6 +28,7 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.compose.ui)
     implementation(libs.coroutines.android)
+    implementation(libs.navigation.compose)
     implementation(libs.okhttp)
 
     debugImplementation(libs.compose.ui.tooling)

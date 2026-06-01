@@ -49,20 +49,48 @@ linker_env_name() {
   printf 'CARGO_TARGET_%s_LINKER' "$(printf '%s' "${target}" | tr '[:lower:]-' '[:upper:]_')"
 }
 
+cc_env_name() {
+  local target="$1"
+  printf 'CC_%s' "$(printf '%s' "${target}" | tr '-' '_')"
+}
+
+cxx_env_name() {
+  local target="$1"
+  printf 'CXX_%s' "$(printf '%s' "${target}" | tr '-' '_')"
+}
+
+ar_env_name() {
+  local target="$1"
+  printf 'AR_%s' "$(printf '%s' "${target}" | tr '-' '_')"
+}
+
 build_target() {
   local target="$1"
   local abi="$2"
   local clang_prefix="$3"
   local toolchain_bin="$4"
   local linker="${toolchain_bin}/${clang_prefix}${API_LEVEL}-clang"
+  local cxx="${toolchain_bin}/${clang_prefix}${API_LEVEL}-clang++"
+  local ar="${toolchain_bin}/llvm-ar"
 
   if [[ ! -x "${linker}" ]]; then
     echo "Missing Android linker: ${linker}" >&2
     exit 1
   fi
+  if [[ ! -x "${cxx}" ]]; then
+    echo "Missing Android C++ compiler: ${cxx}" >&2
+    exit 1
+  fi
+  if [[ ! -x "${ar}" ]]; then
+    echo "Missing Android archiver: ${ar}" >&2
+    exit 1
+  fi
 
   rustup target add "${target}" >/dev/null
   export "$(linker_env_name "${target}")=${linker}"
+  export "$(cc_env_name "${target}")=${linker}"
+  export "$(cxx_env_name "${target}")=${cxx}"
+  export "$(ar_env_name "${target}")=${ar}"
 
   cargo build \
     --manifest-path "${CTCORE_DIR}/Cargo.toml" \

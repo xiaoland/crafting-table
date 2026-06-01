@@ -30,6 +30,7 @@ import java.nio.CharBuffer
 import java.nio.charset.CodingErrorAction
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 // This is a helper for safely working with byte buffers returned from the Rust code.
 // A rust-owned buffer is represented by its capacity, its current length, and a
@@ -306,7 +307,7 @@ internal inline fun<T, reified E: Throwable> uniffiTraitInterfaceCallWithError(
         }
     }
 }
-// Initial value and increment amount for handles.
+// Initial value and increment amount for handles. 
 // These ensure that Kotlin-generated handles always have the lowest bit set
 private const val UNIFFI_HANDLEMAP_INITIAL = 1.toLong()
 private const val UNIFFI_HANDLEMAP_DELTA = 2.toLong()
@@ -316,7 +317,7 @@ private const val UNIFFI_HANDLEMAP_DELTA = 2.toLong()
 // This is used pass an opaque 64-bit handle representing a foreign object to the Rust code.
 internal class UniffiHandleMap<T: Any> {
     private val map = ConcurrentHashMap<Long, T>()
-    // Start
+    // Start 
     private val counter = java.util.concurrent.atomic.AtomicLong(UNIFFI_HANDLEMAP_INITIAL)
 
     val size: Int
@@ -612,6 +613,40 @@ internal open class UniffiForeignFutureResultVoid(
 internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
     fun callback(`callbackData`: Long,`result`: UniffiForeignFutureResultVoid.UniffiByValue,)
 }
+internal interface UniffiCallbackInterfaceFfiCodexRemoteTurnObserverMethod0 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`status`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceFfiCodexRemoteTurnObserverMethod1 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`event`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+internal interface UniffiCallbackInterfaceFfiCodexRemoteTurnObserverMethod2 : com.sun.jna.Callback {
+    fun callback(`uniffiHandle`: Long,`response`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
+}
+@Structure.FieldOrder("uniffiFree", "uniffiClone", "onStatus", "onEvent", "onThreadDetail")
+internal open class UniffiVTableCallbackInterfaceFfiCodexRemoteTurnObserver(
+    @JvmField internal var `uniffiFree`: UniffiCallbackInterfaceFree? = null,
+    @JvmField internal var `uniffiClone`: UniffiCallbackInterfaceClone? = null,
+    @JvmField internal var `onStatus`: UniffiCallbackInterfaceFfiCodexRemoteTurnObserverMethod0? = null,
+    @JvmField internal var `onEvent`: UniffiCallbackInterfaceFfiCodexRemoteTurnObserverMethod1? = null,
+    @JvmField internal var `onThreadDetail`: UniffiCallbackInterfaceFfiCodexRemoteTurnObserverMethod2? = null,
+) : Structure() {
+    class UniffiByValue(
+        `uniffiFree`: UniffiCallbackInterfaceFree? = null,
+        `uniffiClone`: UniffiCallbackInterfaceClone? = null,
+        `onStatus`: UniffiCallbackInterfaceFfiCodexRemoteTurnObserverMethod0? = null,
+        `onEvent`: UniffiCallbackInterfaceFfiCodexRemoteTurnObserverMethod1? = null,
+        `onThreadDetail`: UniffiCallbackInterfaceFfiCodexRemoteTurnObserverMethod2? = null,
+    ): UniffiVTableCallbackInterfaceFfiCodexRemoteTurnObserver(`uniffiFree`,`uniffiClone`,`onStatus`,`onEvent`,`onThreadDetail`,), Structure.ByValue
+
+   internal fun uniffiSetValue(other: UniffiVTableCallbackInterfaceFfiCodexRemoteTurnObserver) {
+        `uniffiFree` = other.`uniffiFree`
+        `uniffiClone` = other.`uniffiClone`
+        `onStatus` = other.`onStatus`
+        `onEvent` = other.`onEvent`
+        `onThreadDetail` = other.`onThreadDetail`
+    }
+
+}
 
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
@@ -657,48 +692,104 @@ internal object IntegrityCheckingUniffiLib {
     ): Short
     external fun uniffi_ct_core_checksum_func_portable_config_validate(
     ): Short
+    external fun uniffi_ct_core_checksum_method_fficodexremoteclient_create_thread(
+    ): Short
+    external fun uniffi_ct_core_checksum_method_fficodexremoteclient_follow_turn(
+    ): Short
+    external fun uniffi_ct_core_checksum_method_fficodexremoteclient_load_snapshot(
+    ): Short
+    external fun uniffi_ct_core_checksum_method_fficodexremoteclient_load_thread_detail(
+    ): Short
+    external fun uniffi_ct_core_checksum_method_fficodexremoteclient_recover_active_turn(
+    ): Short
+    external fun uniffi_ct_core_checksum_method_fficodexremoteclient_submit_turn(
+    ): Short
+    external fun uniffi_ct_core_checksum_method_fficodexremoteturnobserver_on_status(
+    ): Short
+    external fun uniffi_ct_core_checksum_method_fficodexremoteturnobserver_on_event(
+    ): Short
+    external fun uniffi_ct_core_checksum_method_fficodexremoteturnobserver_on_thread_detail(
+    ): Short
+    external fun uniffi_ct_core_checksum_constructor_fficodexremoteclient_new(
+    ): Short
     external fun ffi_ct_core_uniffi_contract_version(
     ): Int
 
-
+        
 }
 
 internal object UniffiLib {
-
+    
+    // The Cleaner for the whole library
+    internal val CLEANER: UniffiCleaner by lazy {
+        UniffiCleaner.create()
+    }
+    
 
     init {
         Native.register(UniffiLib::class.java, findLibraryName(componentName = "ct_core"))
-
+        uniffiCallbackInterfaceFfiCodexRemoteTurnObserver.register(this)
+        
     }
-    external fun uniffi_ct_core_fn_func_codex_remote_decode_health_json(`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    external fun uniffi_ct_core_fn_func_codex_remote_decode_thread_detail_json(`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    external fun uniffi_ct_core_fn_func_codex_remote_decode_thread_list_json(`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    external fun uniffi_ct_core_fn_func_codex_remote_decode_turn_submit_json(`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    external fun uniffi_ct_core_fn_func_codex_remote_turn_stream_apply_event_json(`projection`: RustBuffer.ByValue,`eventJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    external fun uniffi_ct_core_fn_func_codex_remote_turn_stream_empty_projection(uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    external fun uniffi_ct_core_fn_func_codex_remote_wire_contract_version(uniffi_out_err: UniffiRustCallStatus,
-    ): Int
-    external fun uniffi_ct_core_fn_func_portable_config_decode_json(`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    external fun uniffi_ct_core_fn_func_portable_config_empty_document(uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    external fun uniffi_ct_core_fn_func_portable_config_encode_json(`document`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    external fun uniffi_ct_core_fn_func_portable_config_validate(`document`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    external fun ffi_ct_core_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    external fun ffi_ct_core_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus,
-    ): RustBuffer.ByValue
-    external fun ffi_ct_core_rustbuffer_free(`buf`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus,
+    external fun uniffi_ct_core_fn_clone_fficodexremoteclient(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Long
+    external fun uniffi_ct_core_fn_free_fficodexremoteclient(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
-    external fun ffi_ct_core_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Long,uniffi_out_err: UniffiRustCallStatus,
+    external fun uniffi_ct_core_fn_constructor_fficodexremoteclient_new(uniffi_out_err: UniffiRustCallStatus, 
+    ): Long
+    external fun uniffi_ct_core_fn_method_fficodexremoteclient_create_thread(`ptr`: Long,`endpoint`: RustBuffer.ByValue,`cwd`: RustBuffer.ByValue,`model`: RustBuffer.ByValue,`serviceTier`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_ct_core_fn_method_fficodexremoteclient_follow_turn(`ptr`: Long,`endpoint`: RustBuffer.ByValue,`threadId`: RustBuffer.ByValue,`turnId`: RustBuffer.ByValue,`observer`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_ct_core_fn_method_fficodexremoteclient_load_snapshot(`ptr`: Long,`endpoint`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_ct_core_fn_method_fficodexremoteclient_load_thread_detail(`ptr`: Long,`endpoint`: RustBuffer.ByValue,`threadId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_ct_core_fn_method_fficodexremoteclient_recover_active_turn(`ptr`: Long,`endpoint`: RustBuffer.ByValue,`threadId`: RustBuffer.ByValue,`observer`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_ct_core_fn_method_fficodexremoteclient_submit_turn(`ptr`: Long,`endpoint`: RustBuffer.ByValue,`threadId`: RustBuffer.ByValue,`input`: RustBuffer.ByValue,`cwd`: RustBuffer.ByValue,`model`: RustBuffer.ByValue,`reasoningEffort`: RustBuffer.ByValue,`serviceTier`: RustBuffer.ByValue,`permissionMode`: RustBuffer.ByValue,`waitForCompletion`: Byte,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_ct_core_fn_clone_fficodexremoteturnobserver(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Long
+    external fun uniffi_ct_core_fn_free_fficodexremoteturnobserver(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_ct_core_fn_init_callback_vtable_fficodexremoteturnobserver(`vtable`: UniffiVTableCallbackInterfaceFfiCodexRemoteTurnObserver,
+    ): Unit
+    external fun uniffi_ct_core_fn_method_fficodexremoteturnobserver_on_status(`ptr`: Long,`status`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_ct_core_fn_method_fficodexremoteturnobserver_on_event(`ptr`: Long,`event`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_ct_core_fn_method_fficodexremoteturnobserver_on_thread_detail(`ptr`: Long,`response`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun uniffi_ct_core_fn_func_codex_remote_decode_health_json(`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_ct_core_fn_func_codex_remote_decode_thread_detail_json(`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_ct_core_fn_func_codex_remote_decode_thread_list_json(`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_ct_core_fn_func_codex_remote_decode_turn_submit_json(`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_ct_core_fn_func_codex_remote_turn_stream_apply_event_json(`projection`: RustBuffer.ByValue,`eventJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_ct_core_fn_func_codex_remote_turn_stream_empty_projection(uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_ct_core_fn_func_codex_remote_wire_contract_version(uniffi_out_err: UniffiRustCallStatus, 
+    ): Int
+    external fun uniffi_ct_core_fn_func_portable_config_decode_json(`input`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_ct_core_fn_func_portable_config_empty_document(uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_ct_core_fn_func_portable_config_encode_json(`document`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun uniffi_ct_core_fn_func_portable_config_validate(`document`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun ffi_ct_core_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun ffi_ct_core_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): RustBuffer.ByValue
+    external fun ffi_ct_core_rustbuffer_free(`buf`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    ): Unit
+    external fun ffi_ct_core_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun ffi_ct_core_rust_future_poll_u8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -706,7 +797,7 @@ internal object UniffiLib {
     ): Unit
     external fun ffi_ct_core_rust_future_free_u8(`handle`: Long,
     ): Unit
-    external fun ffi_ct_core_rust_future_complete_u8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    external fun ffi_ct_core_rust_future_complete_u8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Byte
     external fun ffi_ct_core_rust_future_poll_i8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -714,7 +805,7 @@ internal object UniffiLib {
     ): Unit
     external fun ffi_ct_core_rust_future_free_i8(`handle`: Long,
     ): Unit
-    external fun ffi_ct_core_rust_future_complete_i8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    external fun ffi_ct_core_rust_future_complete_i8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Byte
     external fun ffi_ct_core_rust_future_poll_u16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -722,7 +813,7 @@ internal object UniffiLib {
     ): Unit
     external fun ffi_ct_core_rust_future_free_u16(`handle`: Long,
     ): Unit
-    external fun ffi_ct_core_rust_future_complete_u16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    external fun ffi_ct_core_rust_future_complete_u16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Short
     external fun ffi_ct_core_rust_future_poll_i16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -730,7 +821,7 @@ internal object UniffiLib {
     ): Unit
     external fun ffi_ct_core_rust_future_free_i16(`handle`: Long,
     ): Unit
-    external fun ffi_ct_core_rust_future_complete_i16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    external fun ffi_ct_core_rust_future_complete_i16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Short
     external fun ffi_ct_core_rust_future_poll_u32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -738,7 +829,7 @@ internal object UniffiLib {
     ): Unit
     external fun ffi_ct_core_rust_future_free_u32(`handle`: Long,
     ): Unit
-    external fun ffi_ct_core_rust_future_complete_u32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    external fun ffi_ct_core_rust_future_complete_u32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Int
     external fun ffi_ct_core_rust_future_poll_i32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -746,7 +837,7 @@ internal object UniffiLib {
     ): Unit
     external fun ffi_ct_core_rust_future_free_i32(`handle`: Long,
     ): Unit
-    external fun ffi_ct_core_rust_future_complete_i32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    external fun ffi_ct_core_rust_future_complete_i32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Int
     external fun ffi_ct_core_rust_future_poll_u64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -754,7 +845,7 @@ internal object UniffiLib {
     ): Unit
     external fun ffi_ct_core_rust_future_free_u64(`handle`: Long,
     ): Unit
-    external fun ffi_ct_core_rust_future_complete_u64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    external fun ffi_ct_core_rust_future_complete_u64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
     external fun ffi_ct_core_rust_future_poll_i64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -762,7 +853,7 @@ internal object UniffiLib {
     ): Unit
     external fun ffi_ct_core_rust_future_free_i64(`handle`: Long,
     ): Unit
-    external fun ffi_ct_core_rust_future_complete_i64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    external fun ffi_ct_core_rust_future_complete_i64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
     external fun ffi_ct_core_rust_future_poll_f32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -770,7 +861,7 @@ internal object UniffiLib {
     ): Unit
     external fun ffi_ct_core_rust_future_free_f32(`handle`: Long,
     ): Unit
-    external fun ffi_ct_core_rust_future_complete_f32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    external fun ffi_ct_core_rust_future_complete_f32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Float
     external fun ffi_ct_core_rust_future_poll_f64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -778,7 +869,7 @@ internal object UniffiLib {
     ): Unit
     external fun ffi_ct_core_rust_future_free_f64(`handle`: Long,
     ): Unit
-    external fun ffi_ct_core_rust_future_complete_f64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    external fun ffi_ct_core_rust_future_complete_f64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Double
     external fun ffi_ct_core_rust_future_poll_rust_buffer(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -786,7 +877,7 @@ internal object UniffiLib {
     ): Unit
     external fun ffi_ct_core_rust_future_free_rust_buffer(`handle`: Long,
     ): Unit
-    external fun ffi_ct_core_rust_future_complete_rust_buffer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    external fun ffi_ct_core_rust_future_complete_rust_buffer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): RustBuffer.ByValue
     external fun ffi_ct_core_rust_future_poll_void(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
     ): Unit
@@ -794,10 +885,10 @@ internal object UniffiLib {
     ): Unit
     external fun ffi_ct_core_rust_future_free_void(`handle`: Long,
     ): Unit
-    external fun ffi_ct_core_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus,
+    external fun ffi_ct_core_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Unit
 
-
+        
 }
 
 private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
@@ -842,6 +933,36 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_ct_core_checksum_func_portable_config_validate() != 34450.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_ct_core_checksum_method_fficodexremoteclient_create_thread() != 21690.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_ct_core_checksum_method_fficodexremoteclient_follow_turn() != 51937.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_ct_core_checksum_method_fficodexremoteclient_load_snapshot() != 42686.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_ct_core_checksum_method_fficodexremoteclient_load_thread_detail() != 41703.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_ct_core_checksum_method_fficodexremoteclient_recover_active_turn() != 3763.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_ct_core_checksum_method_fficodexremoteclient_submit_turn() != 19263.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_ct_core_checksum_method_fficodexremoteturnobserver_on_status() != 23896.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_ct_core_checksum_method_fficodexremoteturnobserver_on_event() != 7444.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_ct_core_checksum_method_fficodexremoteturnobserver_on_thread_detail() != 19219.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_ct_core_checksum_constructor_fficodexremoteclient_new() != 140.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -919,7 +1040,7 @@ inline fun <T : Disposable?, R> T.use(block: (T) -> R) =
         }
     }
 
-/**
+/** 
  * Placeholder object used to signal that we're constructing an interface with a FFI handle.
  *
  * This is the first argument for interface constructors that input a raw handle. It exists is that
@@ -930,12 +1051,107 @@ inline fun <T : Disposable?, R> T.use(block: (T) -> R) =
  * */
 object UniffiWithHandle
 
-/**
+/** 
  * Used to instantiate an interface without an actual pointer, for fakes in tests, mostly.
  *
  * @suppress
  * */
-object NoHandle
+object NoHandle// Magic number for the Rust proxy to call using the same mechanism as every other method,
+// to free the callback once it's dropped by Rust.
+internal const val IDX_CALLBACK_FREE = 0
+// Callback return codes
+internal const val UNIFFI_CALLBACK_SUCCESS = 0
+internal const val UNIFFI_CALLBACK_ERROR = 1
+internal const val UNIFFI_CALLBACK_UNEXPECTED_ERROR = 2
+
+/**
+ * @suppress
+ */
+public abstract class FfiConverterCallbackInterface<CallbackInterface: Any>: FfiConverter<CallbackInterface, Long> {
+    internal val handleMap = UniffiHandleMap<CallbackInterface>()
+
+    internal fun drop(handle: Long) {
+        handleMap.remove(handle)
+    }
+
+    override fun lift(value: Long): CallbackInterface {
+        return handleMap.get(value)
+    }
+
+    override fun read(buf: ByteBuffer) = lift(buf.getLong())
+
+    override fun lower(value: CallbackInterface) = handleMap.insert(value)
+
+    override fun allocationSize(value: CallbackInterface) = 8UL
+
+    override fun write(value: CallbackInterface, buf: ByteBuffer) {
+        buf.putLong(lower(value))
+    }
+}
+/**
+ * The cleaner interface for Object finalization code to run.
+ * This is the entry point to any implementation that we're using.
+ *
+ * The cleaner registers objects and returns cleanables, so now we are
+ * defining a `UniffiCleaner` with a `UniffiClenaer.Cleanable` to abstract the
+ * different implmentations available at compile time.
+ *
+ * @suppress
+ */
+interface UniffiCleaner {
+    interface Cleanable {
+        fun clean()
+    }
+
+    fun register(value: Any, cleanUpTask: Runnable): UniffiCleaner.Cleanable
+
+    companion object
+}
+
+// The fallback Jna cleaner, which is available for both Android, and the JVM.
+private class UniffiJnaCleaner : UniffiCleaner {
+    private val cleaner = com.sun.jna.internal.Cleaner.getCleaner()
+
+    override fun register(value: Any, cleanUpTask: Runnable): UniffiCleaner.Cleanable =
+        UniffiJnaCleanable(cleaner.register(value, cleanUpTask))
+}
+
+private class UniffiJnaCleanable(
+    private val cleanable: com.sun.jna.internal.Cleaner.Cleanable,
+) : UniffiCleaner.Cleanable {
+    override fun clean() = cleanable.clean()
+}
+
+
+// We decide at uniffi binding generation time whether we were
+// using Android or not.
+// There are further runtime checks to chose the correct implementation
+// of the cleaner.
+private fun UniffiCleaner.Companion.create(): UniffiCleaner =
+    try {
+        // For safety's sake: if the library hasn't been run in android_cleaner = true
+        // mode, but is being run on Android, then we still need to think about
+        // Android API versions.
+        // So we check if java.lang.ref.Cleaner is there, and use that…
+        java.lang.Class.forName("java.lang.ref.Cleaner")
+        JavaLangRefCleaner()
+    } catch (e: ClassNotFoundException) {
+        // … otherwise, fallback to the JNA cleaner.
+        UniffiJnaCleaner()
+    }
+
+private class JavaLangRefCleaner : UniffiCleaner {
+    val cleaner = java.lang.ref.Cleaner.create()
+
+    override fun register(value: Any, cleanUpTask: Runnable): UniffiCleaner.Cleanable =
+        JavaLangRefCleanable(cleaner.register(value, cleanUpTask))
+}
+
+private class JavaLangRefCleanable(
+    val cleanable: java.lang.ref.Cleaner.Cleanable
+) : UniffiCleaner.Cleanable {
+    override fun clean() = cleanable.clean()
+}
 
 /**
  * @suppress
@@ -980,6 +1196,29 @@ public object FfiConverterULong: FfiConverter<ULong, Long> {
 
     override fun write(value: ULong, buf: ByteBuffer) {
         buf.putLong(value.toLong())
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterLong: FfiConverter<Long, Long> {
+    override fun lift(value: Long): Long {
+        return value
+    }
+
+    override fun read(buf: ByteBuffer): Long {
+        return buf.getLong()
+    }
+
+    override fun lower(value: Long): Long {
+        return value
+    }
+
+    override fun allocationSize(value: Long) = 8UL
+
+    override fun write(value: Long, buf: ByteBuffer) {
+        buf.putLong(value)
     }
 }
 
@@ -1064,18 +1303,748 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
 }
 
 
+// This template implements a class for working with a Rust struct via a handle
+// to the live Rust struct on the other side of the FFI.
+//
+// There's some subtlety here, because we have to be careful not to operate on a Rust
+// struct after it has been dropped, and because we must expose a public API for freeing
+// theq Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
+//
+//   * Each instance holds an opaque handle to the underlying Rust struct.
+//     Method calls need to read this handle from the object's state and pass it in to
+//     the Rust FFI.
+//
+//   * When an instance is no longer needed, its handle should be passed to a
+//     special destructor function provided by the Rust FFI, which will drop the
+//     underlying Rust struct.
+//
+//   * Given an instance, calling code is expected to call the special
+//     `destroy` method in order to free it after use, either by calling it explicitly
+//     or by using a higher-level helper like the `use` method. Failing to do so risks
+//     leaking the underlying Rust struct.
+//
+//   * We can't assume that calling code will do the right thing, and must be prepared
+//     to handle Kotlin method calls executing concurrently with or even after a call to
+//     `destroy`, and to handle multiple (possibly concurrent!) calls to `destroy`.
+//
+//   * We must never allow Rust code to operate on the underlying Rust struct after
+//     the destructor has been called, and must never call the destructor more than once.
+//     Doing so may trigger memory unsafety.
+//
+//   * To mitigate many of the risks of leaking memory and use-after-free unsafety, a `Cleaner`
+//     is implemented to call the destructor when the Kotlin object becomes unreachable.
+//     This is done in a background thread. This is not a panacea, and client code should be aware that
+//      1. the thread may starve if some there are objects that have poorly performing
+//     `drop` methods or do significant work in their `drop` methods.
+//      2. the thread is shared across the whole library. This can be tuned by using `android_cleaner = true`,
+//         or `android = true` in the [`kotlin` section of the `uniffi.toml` file](https://mozilla.github.io/uniffi-rs/kotlin/configuration.html).
+//
+// If we try to implement this with mutual exclusion on access to the handle, there is the
+// possibility of a race between a method call and a concurrent call to `destroy`:
+//
+//    * Thread A starts a method call, reads the value of the handle, but is interrupted
+//      before it can pass the handle over the FFI to Rust.
+//    * Thread B calls `destroy` and frees the underlying Rust struct.
+//    * Thread A resumes, passing the already-read handle value to Rust and triggering
+//      a use-after-free.
+//
+// One possible solution would be to use a `ReadWriteLock`, with each method call taking
+// a read lock (and thus allowed to run concurrently) and the special `destroy` method
+// taking a write lock (and thus blocking on live method calls). However, we aim not to
+// generate methods with any hidden blocking semantics, and a `destroy` method that might
+// block if called incorrectly seems to meet that bar.
+//
+// So, we achieve our goals by giving each instance an associated `AtomicLong` counter to track
+// the number of in-flight method calls, and an `AtomicBoolean` flag to indicate whether `destroy`
+// has been called. These are updated according to the following rules:
+//
+//    * The initial value of the counter is 1, indicating a live object with no in-flight calls.
+//      The initial value for the flag is false.
+//
+//    * At the start of each method call, we atomically check the counter.
+//      If it is 0 then the underlying Rust struct has already been destroyed and the call is aborted.
+//      If it is nonzero them we atomically increment it by 1 and proceed with the method call.
+//
+//    * At the end of each method call, we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+//    * When `destroy` is called, we atomically flip the flag from false to true.
+//      If the flag was already true we silently fail.
+//      Otherwise we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+// Astute readers may observe that this all sounds very similar to the way that Rust's `Arc<T>` works,
+// and indeed it is, with the addition of a flag to guard against multiple calls to `destroy`.
+//
+// The overall effect is that the underlying Rust struct is destroyed only when `destroy` has been
+// called *and* all in-flight method calls have completed, avoiding violating any of the expectations
+// of the underlying Rust code.
+//
+// This makes a cleaner a better alternative to _not_ calling `destroy()` as
+// and when the object is finished with, but the abstraction is not perfect: if the Rust object's `drop`
+// method is slow, and/or there are many objects to cleanup, and it's on a low end Android device, then the cleaner
+// thread may be starved, and the app will leak memory.
+//
+// In this case, `destroy`ing manually may be a better solution.
+//
+// The cleaner can live side by side with the manual calling of `destroy`. In the order of responsiveness, uniffi objects
+// with Rust peers are reclaimed:
+//
+// 1. By calling the `destroy` method of the object, which calls `rustObject.free()`. If that doesn't happen:
+// 2. When the object becomes unreachable, AND the Cleaner thread gets to call `rustObject.free()`. If the thread is starved then:
+// 3. The memory is reclaimed when the process terminates.
+//
+// [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
+//
+
+
+public interface FfiCodexRemoteClientInterface {
+    
+    fun `createThread`(`endpoint`: kotlin.String, `cwd`: kotlin.String, `model`: kotlin.String?, `serviceTier`: kotlin.String?): FfiCodexRemoteThreadCreateResponseResult
+    
+    fun `followTurn`(`endpoint`: kotlin.String, `threadId`: kotlin.String, `turnId`: kotlin.String, `observer`: FfiCodexRemoteTurnObserver): FfiCodexRemoteFollowTurnResult
+    
+    fun `loadSnapshot`(`endpoint`: kotlin.String): FfiCodexRemoteSnapshotResult
+    
+    fun `loadThreadDetail`(`endpoint`: kotlin.String, `threadId`: kotlin.String): FfiCodexRemoteThreadDetailResponseResult
+    
+    fun `recoverActiveTurn`(`endpoint`: kotlin.String, `threadId`: kotlin.String, `observer`: FfiCodexRemoteTurnObserver): FfiCodexRemoteFollowTurnResult
+    
+    fun `submitTurn`(`endpoint`: kotlin.String, `threadId`: kotlin.String, `input`: kotlin.String, `cwd`: kotlin.String?, `model`: kotlin.String?, `reasoningEffort`: kotlin.String?, `serviceTier`: kotlin.String?, `permissionMode`: kotlin.String?, `waitForCompletion`: kotlin.Boolean): FfiCodexRemoteTurnSubmitDecodeResult
+    
+    companion object
+}
+
+open class FfiCodexRemoteClient: Disposable, AutoCloseable, FfiCodexRemoteClientInterface
+{
+
+    @Suppress("UNUSED_PARAMETER")
+    /**
+     * @suppress
+     */
+    constructor(withHandle: UniffiWithHandle, handle: Long) {
+        this.handle = handle
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(handle))
+    }
+
+    /**
+     * @suppress
+     *
+     * This constructor can be used to instantiate a fake object. Only used for tests. Any
+     * attempt to actually use an object constructed this way will fail as there is no
+     * connected Rust object.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    constructor(noHandle: NoHandle) {
+        this.handle = 0
+        this.cleanable = null
+    }
+    constructor() :
+        this(UniffiWithHandle, 
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_ct_core_fn_constructor_fficodexremoteclient_new(
+    
+        _status)
+}
+    )
+
+    protected val handle: Long
+    protected val cleanable: UniffiCleaner.Cleanable?
+
+    private val wasDestroyed = AtomicBoolean(false)
+    private val callCounter = AtomicLong(1)
+
+    override fun destroy() {
+        // Only allow a single call to this method.
+        // TODO: maybe we should log a warning if called more than once?
+        if (this.wasDestroyed.compareAndSet(false, true)) {
+            // This decrement always matches the initial count of 1 given at creation time.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable?.clean()
+            }
+        }
+    }
+
+    @Synchronized
+    override fun close() {
+        this.destroy()
+    }
+
+    internal inline fun <R> callWithHandle(block: (handle: Long) -> R): R {
+        // Check and increment the call counter, to keep the object alive.
+        // This needs a compare-and-set retry loop in case of concurrent updates.
+        do {
+            val c = this.callCounter.get()
+            if (c == 0L) {
+                throw IllegalStateException("${this.javaClass.simpleName} object has already been destroyed")
+            }
+            if (c == Long.MAX_VALUE) {
+                throw IllegalStateException("${this.javaClass.simpleName} call counter would overflow")
+            }
+        } while (! this.callCounter.compareAndSet(c, c + 1L))
+        // Now we can safely do the method call without the handle being freed concurrently.
+        try {
+            return block(this.uniffiCloneHandle())
+        } finally {
+            // This decrement always matches the increment we performed above.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable?.clean()
+            }
+        }
+    }
+
+    // Use a static inner class instead of a closure so as not to accidentally
+    // capture `this` as part of the cleanable's action.
+    private class UniffiCleanAction(private val handle: Long) : Runnable {
+        override fun run() {
+            if (handle == 0.toLong()) {
+                // Fake object created with `NoHandle`, don't try to free.
+                return;
+            }
+            uniffiRustCall { status ->
+                UniffiLib.uniffi_ct_core_fn_free_fficodexremoteclient(handle, status)
+            }
+        }
+    }
+
+    /**
+     * @suppress
+     */
+    fun uniffiCloneHandle(): Long {
+        if (handle == 0.toLong()) {
+            throw InternalException("uniffiCloneHandle() called on NoHandle object");
+        }
+        return uniffiRustCall() { status ->
+            UniffiLib.uniffi_ct_core_fn_clone_fficodexremoteclient(handle, status)
+        }
+    }
+
+    override fun `createThread`(`endpoint`: kotlin.String, `cwd`: kotlin.String, `model`: kotlin.String?, `serviceTier`: kotlin.String?): FfiCodexRemoteThreadCreateResponseResult {
+            return FfiConverterTypeFfiCodexRemoteThreadCreateResponseResult.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_ct_core_fn_method_fficodexremoteclient_create_thread(
+        it,
+        FfiConverterString.lower(`endpoint`),FfiConverterString.lower(`cwd`),FfiConverterOptionalString.lower(`model`),FfiConverterOptionalString.lower(`serviceTier`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `followTurn`(`endpoint`: kotlin.String, `threadId`: kotlin.String, `turnId`: kotlin.String, `observer`: FfiCodexRemoteTurnObserver): FfiCodexRemoteFollowTurnResult {
+            return FfiConverterTypeFfiCodexRemoteFollowTurnResult.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_ct_core_fn_method_fficodexremoteclient_follow_turn(
+        it,
+        FfiConverterString.lower(`endpoint`),FfiConverterString.lower(`threadId`),FfiConverterString.lower(`turnId`),FfiConverterTypeFfiCodexRemoteTurnObserver.lower(`observer`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `loadSnapshot`(`endpoint`: kotlin.String): FfiCodexRemoteSnapshotResult {
+            return FfiConverterTypeFfiCodexRemoteSnapshotResult.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_ct_core_fn_method_fficodexremoteclient_load_snapshot(
+        it,
+        FfiConverterString.lower(`endpoint`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `loadThreadDetail`(`endpoint`: kotlin.String, `threadId`: kotlin.String): FfiCodexRemoteThreadDetailResponseResult {
+            return FfiConverterTypeFfiCodexRemoteThreadDetailResponseResult.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_ct_core_fn_method_fficodexremoteclient_load_thread_detail(
+        it,
+        FfiConverterString.lower(`endpoint`),FfiConverterString.lower(`threadId`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `recoverActiveTurn`(`endpoint`: kotlin.String, `threadId`: kotlin.String, `observer`: FfiCodexRemoteTurnObserver): FfiCodexRemoteFollowTurnResult {
+            return FfiConverterTypeFfiCodexRemoteFollowTurnResult.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_ct_core_fn_method_fficodexremoteclient_recover_active_turn(
+        it,
+        FfiConverterString.lower(`endpoint`),FfiConverterString.lower(`threadId`),FfiConverterTypeFfiCodexRemoteTurnObserver.lower(`observer`),_status)
+}
+    }
+    )
+    }
+    
+
+    override fun `submitTurn`(`endpoint`: kotlin.String, `threadId`: kotlin.String, `input`: kotlin.String, `cwd`: kotlin.String?, `model`: kotlin.String?, `reasoningEffort`: kotlin.String?, `serviceTier`: kotlin.String?, `permissionMode`: kotlin.String?, `waitForCompletion`: kotlin.Boolean): FfiCodexRemoteTurnSubmitDecodeResult {
+            return FfiConverterTypeFfiCodexRemoteTurnSubmitDecodeResult.lift(
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_ct_core_fn_method_fficodexremoteclient_submit_turn(
+        it,
+        FfiConverterString.lower(`endpoint`),FfiConverterString.lower(`threadId`),FfiConverterString.lower(`input`),FfiConverterOptionalString.lower(`cwd`),FfiConverterOptionalString.lower(`model`),FfiConverterOptionalString.lower(`reasoningEffort`),FfiConverterOptionalString.lower(`serviceTier`),FfiConverterOptionalString.lower(`permissionMode`),FfiConverterBoolean.lower(`waitForCompletion`),_status)
+}
+    }
+    )
+    }
+    
+
+    
+
+    
+
+
+    
+    
+    /**
+     * @suppress
+     */
+    companion object
+    
+}
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteClient: FfiConverter<FfiCodexRemoteClient, Long> {
+    override fun lower(value: FfiCodexRemoteClient): Long {
+        return value.uniffiCloneHandle()
+    }
+
+    override fun lift(value: Long): FfiCodexRemoteClient {
+        return FfiCodexRemoteClient(UniffiWithHandle, value)
+    }
+
+    override fun read(buf: ByteBuffer): FfiCodexRemoteClient {
+        return lift(buf.getLong())
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteClient) = 8UL
+
+    override fun write(value: FfiCodexRemoteClient, buf: ByteBuffer) {
+        buf.putLong(lower(value))
+    }
+}
+
+
+// This template implements a class for working with a Rust struct via a handle
+// to the live Rust struct on the other side of the FFI.
+//
+// There's some subtlety here, because we have to be careful not to operate on a Rust
+// struct after it has been dropped, and because we must expose a public API for freeing
+// theq Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
+//
+//   * Each instance holds an opaque handle to the underlying Rust struct.
+//     Method calls need to read this handle from the object's state and pass it in to
+//     the Rust FFI.
+//
+//   * When an instance is no longer needed, its handle should be passed to a
+//     special destructor function provided by the Rust FFI, which will drop the
+//     underlying Rust struct.
+//
+//   * Given an instance, calling code is expected to call the special
+//     `destroy` method in order to free it after use, either by calling it explicitly
+//     or by using a higher-level helper like the `use` method. Failing to do so risks
+//     leaking the underlying Rust struct.
+//
+//   * We can't assume that calling code will do the right thing, and must be prepared
+//     to handle Kotlin method calls executing concurrently with or even after a call to
+//     `destroy`, and to handle multiple (possibly concurrent!) calls to `destroy`.
+//
+//   * We must never allow Rust code to operate on the underlying Rust struct after
+//     the destructor has been called, and must never call the destructor more than once.
+//     Doing so may trigger memory unsafety.
+//
+//   * To mitigate many of the risks of leaking memory and use-after-free unsafety, a `Cleaner`
+//     is implemented to call the destructor when the Kotlin object becomes unreachable.
+//     This is done in a background thread. This is not a panacea, and client code should be aware that
+//      1. the thread may starve if some there are objects that have poorly performing
+//     `drop` methods or do significant work in their `drop` methods.
+//      2. the thread is shared across the whole library. This can be tuned by using `android_cleaner = true`,
+//         or `android = true` in the [`kotlin` section of the `uniffi.toml` file](https://mozilla.github.io/uniffi-rs/kotlin/configuration.html).
+//
+// If we try to implement this with mutual exclusion on access to the handle, there is the
+// possibility of a race between a method call and a concurrent call to `destroy`:
+//
+//    * Thread A starts a method call, reads the value of the handle, but is interrupted
+//      before it can pass the handle over the FFI to Rust.
+//    * Thread B calls `destroy` and frees the underlying Rust struct.
+//    * Thread A resumes, passing the already-read handle value to Rust and triggering
+//      a use-after-free.
+//
+// One possible solution would be to use a `ReadWriteLock`, with each method call taking
+// a read lock (and thus allowed to run concurrently) and the special `destroy` method
+// taking a write lock (and thus blocking on live method calls). However, we aim not to
+// generate methods with any hidden blocking semantics, and a `destroy` method that might
+// block if called incorrectly seems to meet that bar.
+//
+// So, we achieve our goals by giving each instance an associated `AtomicLong` counter to track
+// the number of in-flight method calls, and an `AtomicBoolean` flag to indicate whether `destroy`
+// has been called. These are updated according to the following rules:
+//
+//    * The initial value of the counter is 1, indicating a live object with no in-flight calls.
+//      The initial value for the flag is false.
+//
+//    * At the start of each method call, we atomically check the counter.
+//      If it is 0 then the underlying Rust struct has already been destroyed and the call is aborted.
+//      If it is nonzero them we atomically increment it by 1 and proceed with the method call.
+//
+//    * At the end of each method call, we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+//    * When `destroy` is called, we atomically flip the flag from false to true.
+//      If the flag was already true we silently fail.
+//      Otherwise we atomically decrement and check the counter.
+//      If it has reached zero then we destroy the underlying Rust struct.
+//
+// Astute readers may observe that this all sounds very similar to the way that Rust's `Arc<T>` works,
+// and indeed it is, with the addition of a flag to guard against multiple calls to `destroy`.
+//
+// The overall effect is that the underlying Rust struct is destroyed only when `destroy` has been
+// called *and* all in-flight method calls have completed, avoiding violating any of the expectations
+// of the underlying Rust code.
+//
+// This makes a cleaner a better alternative to _not_ calling `destroy()` as
+// and when the object is finished with, but the abstraction is not perfect: if the Rust object's `drop`
+// method is slow, and/or there are many objects to cleanup, and it's on a low end Android device, then the cleaner
+// thread may be starved, and the app will leak memory.
+//
+// In this case, `destroy`ing manually may be a better solution.
+//
+// The cleaner can live side by side with the manual calling of `destroy`. In the order of responsiveness, uniffi objects
+// with Rust peers are reclaimed:
+//
+// 1. By calling the `destroy` method of the object, which calls `rustObject.free()`. If that doesn't happen:
+// 2. When the object becomes unreachable, AND the Cleaner thread gets to call `rustObject.free()`. If the thread is starved then:
+// 3. The memory is reclaimed when the process terminates.
+//
+// [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
+//
+
+
+public interface FfiCodexRemoteTurnObserver {
+    
+    fun `onStatus`(`status`: FfiCodexRemoteStreamStatus)
+    
+    fun `onEvent`(`event`: FfiCodexRemoteTurnStreamEvent)
+    
+    fun `onThreadDetail`(`response`: FfiCodexRemoteThreadDetailResponse)
+    
+    companion object
+}
+
+open class FfiCodexRemoteTurnObserverImpl: Disposable, AutoCloseable, FfiCodexRemoteTurnObserver
+{
+
+    @Suppress("UNUSED_PARAMETER")
+    /**
+     * @suppress
+     */
+    constructor(withHandle: UniffiWithHandle, handle: Long) {
+        this.handle = handle
+        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(handle))
+    }
+
+    /**
+     * @suppress
+     *
+     * This constructor can be used to instantiate a fake object. Only used for tests. Any
+     * attempt to actually use an object constructed this way will fail as there is no
+     * connected Rust object.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    constructor(noHandle: NoHandle) {
+        this.handle = 0
+        this.cleanable = null
+    }
+
+    protected val handle: Long
+    protected val cleanable: UniffiCleaner.Cleanable?
+
+    private val wasDestroyed = AtomicBoolean(false)
+    private val callCounter = AtomicLong(1)
+
+    override fun destroy() {
+        // Only allow a single call to this method.
+        // TODO: maybe we should log a warning if called more than once?
+        if (this.wasDestroyed.compareAndSet(false, true)) {
+            // This decrement always matches the initial count of 1 given at creation time.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable?.clean()
+            }
+        }
+    }
+
+    @Synchronized
+    override fun close() {
+        this.destroy()
+    }
+
+    internal inline fun <R> callWithHandle(block: (handle: Long) -> R): R {
+        // Check and increment the call counter, to keep the object alive.
+        // This needs a compare-and-set retry loop in case of concurrent updates.
+        do {
+            val c = this.callCounter.get()
+            if (c == 0L) {
+                throw IllegalStateException("${this.javaClass.simpleName} object has already been destroyed")
+            }
+            if (c == Long.MAX_VALUE) {
+                throw IllegalStateException("${this.javaClass.simpleName} call counter would overflow")
+            }
+        } while (! this.callCounter.compareAndSet(c, c + 1L))
+        // Now we can safely do the method call without the handle being freed concurrently.
+        try {
+            return block(this.uniffiCloneHandle())
+        } finally {
+            // This decrement always matches the increment we performed above.
+            if (this.callCounter.decrementAndGet() == 0L) {
+                cleanable?.clean()
+            }
+        }
+    }
+
+    // Use a static inner class instead of a closure so as not to accidentally
+    // capture `this` as part of the cleanable's action.
+    private class UniffiCleanAction(private val handle: Long) : Runnable {
+        override fun run() {
+            if (handle == 0.toLong()) {
+                // Fake object created with `NoHandle`, don't try to free.
+                return;
+            }
+            uniffiRustCall { status ->
+                UniffiLib.uniffi_ct_core_fn_free_fficodexremoteturnobserver(handle, status)
+            }
+        }
+    }
+
+    /**
+     * @suppress
+     */
+    fun uniffiCloneHandle(): Long {
+        if (handle == 0.toLong()) {
+            throw InternalException("uniffiCloneHandle() called on NoHandle object");
+        }
+        return uniffiRustCall() { status ->
+            UniffiLib.uniffi_ct_core_fn_clone_fficodexremoteturnobserver(handle, status)
+        }
+    }
+
+    override fun `onStatus`(`status`: FfiCodexRemoteStreamStatus)
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_ct_core_fn_method_fficodexremoteturnobserver_on_status(
+        it,
+        FfiConverterTypeFfiCodexRemoteStreamStatus.lower(`status`),_status)
+}
+    }
+    
+    
+
+    override fun `onEvent`(`event`: FfiCodexRemoteTurnStreamEvent)
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_ct_core_fn_method_fficodexremoteturnobserver_on_event(
+        it,
+        FfiConverterTypeFfiCodexRemoteTurnStreamEvent.lower(`event`),_status)
+}
+    }
+    
+    
+
+    override fun `onThreadDetail`(`response`: FfiCodexRemoteThreadDetailResponse)
+        = 
+    callWithHandle {
+    uniffiRustCall() { _status ->
+    UniffiLib.uniffi_ct_core_fn_method_fficodexremoteturnobserver_on_thread_detail(
+        it,
+        FfiConverterTypeFfiCodexRemoteThreadDetailResponse.lower(`response`),_status)
+}
+    }
+    
+    
+
+    
+
+    
+
+
+    
+    
+    /**
+     * @suppress
+     */
+    companion object
+    
+}
+
+
+
+// Put the implementation in an object so we don't pollute the top-level namespace
+internal object uniffiCallbackInterfaceFfiCodexRemoteTurnObserver {
+    internal object `onStatus`: UniffiCallbackInterfaceFfiCodexRemoteTurnObserverMethod0 {
+        override fun callback(`uniffiHandle`: Long,`status`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeFfiCodexRemoteTurnObserver.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`onStatus`(
+                    FfiConverterTypeFfiCodexRemoteStreamStatus.lift(`status`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `onEvent`: UniffiCallbackInterfaceFfiCodexRemoteTurnObserverMethod1 {
+        override fun callback(`uniffiHandle`: Long,`event`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeFfiCodexRemoteTurnObserver.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`onEvent`(
+                    FfiConverterTypeFfiCodexRemoteTurnStreamEvent.lift(`event`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+    internal object `onThreadDetail`: UniffiCallbackInterfaceFfiCodexRemoteTurnObserverMethod2 {
+        override fun callback(`uniffiHandle`: Long,`response`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
+            val uniffiObj = FfiConverterTypeFfiCodexRemoteTurnObserver.handleMap.get(uniffiHandle)
+            val makeCall = { ->
+                uniffiObj.`onThreadDetail`(
+                    FfiConverterTypeFfiCodexRemoteThreadDetailResponse.lift(`response`),
+                )
+            }
+            val writeReturn = { _: Unit -> Unit }
+            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
+        }
+    }
+
+    internal object uniffiFree: UniffiCallbackInterfaceFree {
+        override fun callback(handle: Long) {
+            FfiConverterTypeFfiCodexRemoteTurnObserver.handleMap.remove(handle)
+        }
+    }
+
+    internal object uniffiClone: UniffiCallbackInterfaceClone {
+        override fun callback(handle: Long): Long {
+            return FfiConverterTypeFfiCodexRemoteTurnObserver.handleMap.clone(handle)
+        }
+    }
+
+    internal var vtable = UniffiVTableCallbackInterfaceFfiCodexRemoteTurnObserver.UniffiByValue(
+        uniffiFree,
+        uniffiClone,
+        `onStatus`,
+        `onEvent`,
+        `onThreadDetail`,
+    )
+
+    // Registers the foreign callback with the Rust side.
+    // This method is generated for each callback interface.
+    internal fun register(lib: UniffiLib) {
+        lib.uniffi_ct_core_fn_init_callback_vtable_fficodexremoteturnobserver(vtable)
+    }
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteTurnObserver: FfiConverter<FfiCodexRemoteTurnObserver, Long> {
+    internal val handleMap = UniffiHandleMap<FfiCodexRemoteTurnObserver>()
+
+    override fun lower(value: FfiCodexRemoteTurnObserver): Long {
+        if (value is FfiCodexRemoteTurnObserverImpl) {
+             // Rust-implemented object.  Clone the handle and return it
+            return value.uniffiCloneHandle()
+         } else {
+            // Kotlin object, generate a new vtable handle and return that.
+            return handleMap.insert(value)
+         }
+    }
+
+    override fun lift(value: Long): FfiCodexRemoteTurnObserver {
+        if ((value and 1.toLong()) == 0.toLong()) {
+            // Rust-generated handle, construct a new class that uses the handle to implement the
+            // interface
+            return FfiCodexRemoteTurnObserverImpl(UniffiWithHandle, value)
+        } else {
+            // Kotlin-generated handle, get the object from the handle map
+            return handleMap.remove(value)
+        }
+    }
+
+    override fun read(buf: ByteBuffer): FfiCodexRemoteTurnObserver {
+        return lift(buf.getLong())
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteTurnObserver) = 8UL
+
+    override fun write(value: FfiCodexRemoteTurnObserver, buf: ByteBuffer) {
+        buf.putLong(lower(value))
+    }
+}
+
+
+
+data class FfiCodexRemoteActiveTurn (
+    var `turnId`: kotlin.String
+    , 
+    var `status`: kotlin.String
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteActiveTurn: FfiConverterRustBuffer<FfiCodexRemoteActiveTurn> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteActiveTurn {
+        return FfiCodexRemoteActiveTurn(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteActiveTurn) = (
+            FfiConverterString.allocationSize(value.`turnId`) +
+            FfiConverterString.allocationSize(value.`status`)
+    )
+
+    override fun write(value: FfiCodexRemoteActiveTurn, buf: ByteBuffer) {
+            FfiConverterString.write(value.`turnId`, buf)
+            FfiConverterString.write(value.`status`, buf)
+    }
+}
+
+
 
 data class FfiCodexRemoteControlEndpoint (
     var `baseUrl`: kotlin.String
-    ,
+    , 
     var `credentialRef`: kotlin.String?
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1103,27 +2072,60 @@ public object FfiConverterTypeFfiCodexRemoteControlEndpoint: FfiConverterRustBuf
 
 
 
+data class FfiCodexRemoteFollowTurnResult (
+    var `errorMessage`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteFollowTurnResult: FfiConverterRustBuffer<FfiCodexRemoteFollowTurnResult> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteFollowTurnResult {
+        return FfiCodexRemoteFollowTurnResult(
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteFollowTurnResult) = (
+            FfiConverterOptionalString.allocationSize(value.`errorMessage`)
+    )
+
+    override fun write(value: FfiCodexRemoteFollowTurnResult, buf: ByteBuffer) {
+            FfiConverterOptionalString.write(value.`errorMessage`, buf)
+    }
+}
+
+
+
 data class FfiCodexRemoteHealth (
     var `service`: kotlin.String
-    ,
+    , 
     var `version`: kotlin.String
-    ,
+    , 
     var `os`: kotlin.String
-    ,
+    , 
     var `arch`: kotlin.String
-    ,
+    , 
     var `appServerAvailable`: kotlin.Boolean
-    ,
+    , 
     var `appServerProbe`: kotlin.String
-    ,
+    , 
     var `codexHome`: kotlin.String
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1168,15 +2170,15 @@ public object FfiConverterTypeFfiCodexRemoteHealth: FfiConverterRustBuffer<FfiCo
 
 data class FfiCodexRemoteHealthDecodeResult (
     var `health`: FfiCodexRemoteHealth?
-    ,
+    , 
     var `errorMessage`: kotlin.String?
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1204,25 +2206,452 @@ public object FfiConverterTypeFfiCodexRemoteHealthDecodeResult: FfiConverterRust
 
 
 
+data class FfiCodexRemoteModelList (
+    var `source`: kotlin.String
+    , 
+    var `models`: List<FfiCodexRemoteModelOption>
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteModelList: FfiConverterRustBuffer<FfiCodexRemoteModelList> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteModelList {
+        return FfiCodexRemoteModelList(
+            FfiConverterString.read(buf),
+            FfiConverterSequenceTypeFfiCodexRemoteModelOption.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteModelList) = (
+            FfiConverterString.allocationSize(value.`source`) +
+            FfiConverterSequenceTypeFfiCodexRemoteModelOption.allocationSize(value.`models`)
+    )
+
+    override fun write(value: FfiCodexRemoteModelList, buf: ByteBuffer) {
+            FfiConverterString.write(value.`source`, buf)
+            FfiConverterSequenceTypeFfiCodexRemoteModelOption.write(value.`models`, buf)
+    }
+}
+
+
+
+data class FfiCodexRemoteModelOption (
+    var `id`: kotlin.String
+    , 
+    var `model`: kotlin.String
+    , 
+    var `displayName`: kotlin.String
+    , 
+    var `description`: kotlin.String
+    , 
+    var `isDefault`: kotlin.Boolean
+    , 
+    var `defaultReasoningEffort`: kotlin.String?
+    , 
+    var `supportedReasoningEfforts`: List<FfiCodexRemoteReasoningEffortOption>
+    , 
+    var `additionalSpeedTiers`: List<kotlin.String>
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteModelOption: FfiConverterRustBuffer<FfiCodexRemoteModelOption> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteModelOption {
+        return FfiCodexRemoteModelOption(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterSequenceTypeFfiCodexRemoteReasoningEffortOption.read(buf),
+            FfiConverterSequenceString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteModelOption) = (
+            FfiConverterString.allocationSize(value.`id`) +
+            FfiConverterString.allocationSize(value.`model`) +
+            FfiConverterString.allocationSize(value.`displayName`) +
+            FfiConverterString.allocationSize(value.`description`) +
+            FfiConverterBoolean.allocationSize(value.`isDefault`) +
+            FfiConverterOptionalString.allocationSize(value.`defaultReasoningEffort`) +
+            FfiConverterSequenceTypeFfiCodexRemoteReasoningEffortOption.allocationSize(value.`supportedReasoningEfforts`) +
+            FfiConverterSequenceString.allocationSize(value.`additionalSpeedTiers`)
+    )
+
+    override fun write(value: FfiCodexRemoteModelOption, buf: ByteBuffer) {
+            FfiConverterString.write(value.`id`, buf)
+            FfiConverterString.write(value.`model`, buf)
+            FfiConverterString.write(value.`displayName`, buf)
+            FfiConverterString.write(value.`description`, buf)
+            FfiConverterBoolean.write(value.`isDefault`, buf)
+            FfiConverterOptionalString.write(value.`defaultReasoningEffort`, buf)
+            FfiConverterSequenceTypeFfiCodexRemoteReasoningEffortOption.write(value.`supportedReasoningEfforts`, buf)
+            FfiConverterSequenceString.write(value.`additionalSpeedTiers`, buf)
+    }
+}
+
+
+
+data class FfiCodexRemoteReasoningEffortOption (
+    var `reasoningEffort`: kotlin.String
+    , 
+    var `description`: kotlin.String
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteReasoningEffortOption: FfiConverterRustBuffer<FfiCodexRemoteReasoningEffortOption> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteReasoningEffortOption {
+        return FfiCodexRemoteReasoningEffortOption(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteReasoningEffortOption) = (
+            FfiConverterString.allocationSize(value.`reasoningEffort`) +
+            FfiConverterString.allocationSize(value.`description`)
+    )
+
+    override fun write(value: FfiCodexRemoteReasoningEffortOption, buf: ByteBuffer) {
+            FfiConverterString.write(value.`reasoningEffort`, buf)
+            FfiConverterString.write(value.`description`, buf)
+    }
+}
+
+
+
+data class FfiCodexRemoteSemanticThread (
+    var `id`: kotlin.String
+    , 
+    var `title`: kotlin.String
+    , 
+    var `preview`: kotlin.String
+    , 
+    var `cwd`: kotlin.String?
+    , 
+    var `status`: kotlin.String
+    , 
+    var `activeTurn`: FfiCodexRemoteActiveTurn?
+    , 
+    var `updatedAt`: kotlin.String
+    , 
+    var `source`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteSemanticThread: FfiConverterRustBuffer<FfiCodexRemoteSemanticThread> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteSemanticThread {
+        return FfiCodexRemoteSemanticThread(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalTypeFfiCodexRemoteActiveTurn.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteSemanticThread) = (
+            FfiConverterString.allocationSize(value.`id`) +
+            FfiConverterString.allocationSize(value.`title`) +
+            FfiConverterString.allocationSize(value.`preview`) +
+            FfiConverterOptionalString.allocationSize(value.`cwd`) +
+            FfiConverterString.allocationSize(value.`status`) +
+            FfiConverterOptionalTypeFfiCodexRemoteActiveTurn.allocationSize(value.`activeTurn`) +
+            FfiConverterString.allocationSize(value.`updatedAt`) +
+            FfiConverterOptionalString.allocationSize(value.`source`)
+    )
+
+    override fun write(value: FfiCodexRemoteSemanticThread, buf: ByteBuffer) {
+            FfiConverterString.write(value.`id`, buf)
+            FfiConverterString.write(value.`title`, buf)
+            FfiConverterString.write(value.`preview`, buf)
+            FfiConverterOptionalString.write(value.`cwd`, buf)
+            FfiConverterString.write(value.`status`, buf)
+            FfiConverterOptionalTypeFfiCodexRemoteActiveTurn.write(value.`activeTurn`, buf)
+            FfiConverterString.write(value.`updatedAt`, buf)
+            FfiConverterOptionalString.write(value.`source`, buf)
+    }
+}
+
+
+
+data class FfiCodexRemoteSnapshot (
+    var `health`: FfiCodexRemoteHealth
+    , 
+    var `threadList`: FfiCodexRemoteThreadList
+    , 
+    var `modelList`: FfiCodexRemoteModelList
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteSnapshot: FfiConverterRustBuffer<FfiCodexRemoteSnapshot> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteSnapshot {
+        return FfiCodexRemoteSnapshot(
+            FfiConverterTypeFfiCodexRemoteHealth.read(buf),
+            FfiConverterTypeFfiCodexRemoteThreadList.read(buf),
+            FfiConverterTypeFfiCodexRemoteModelList.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteSnapshot) = (
+            FfiConverterTypeFfiCodexRemoteHealth.allocationSize(value.`health`) +
+            FfiConverterTypeFfiCodexRemoteThreadList.allocationSize(value.`threadList`) +
+            FfiConverterTypeFfiCodexRemoteModelList.allocationSize(value.`modelList`)
+    )
+
+    override fun write(value: FfiCodexRemoteSnapshot, buf: ByteBuffer) {
+            FfiConverterTypeFfiCodexRemoteHealth.write(value.`health`, buf)
+            FfiConverterTypeFfiCodexRemoteThreadList.write(value.`threadList`, buf)
+            FfiConverterTypeFfiCodexRemoteModelList.write(value.`modelList`, buf)
+    }
+}
+
+
+
+data class FfiCodexRemoteSnapshotResult (
+    var `snapshot`: FfiCodexRemoteSnapshot?
+    , 
+    var `errorMessage`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteSnapshotResult: FfiConverterRustBuffer<FfiCodexRemoteSnapshotResult> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteSnapshotResult {
+        return FfiCodexRemoteSnapshotResult(
+            FfiConverterOptionalTypeFfiCodexRemoteSnapshot.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteSnapshotResult) = (
+            FfiConverterOptionalTypeFfiCodexRemoteSnapshot.allocationSize(value.`snapshot`) +
+            FfiConverterOptionalString.allocationSize(value.`errorMessage`)
+    )
+
+    override fun write(value: FfiCodexRemoteSnapshotResult, buf: ByteBuffer) {
+            FfiConverterOptionalTypeFfiCodexRemoteSnapshot.write(value.`snapshot`, buf)
+            FfiConverterOptionalString.write(value.`errorMessage`, buf)
+    }
+}
+
+
+
+data class FfiCodexRemoteStreamStatus (
+    var `status`: kotlin.String
+    , 
+    var `message`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteStreamStatus: FfiConverterRustBuffer<FfiCodexRemoteStreamStatus> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteStreamStatus {
+        return FfiCodexRemoteStreamStatus(
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteStreamStatus) = (
+            FfiConverterString.allocationSize(value.`status`) +
+            FfiConverterOptionalString.allocationSize(value.`message`)
+    )
+
+    override fun write(value: FfiCodexRemoteStreamStatus, buf: ByteBuffer) {
+            FfiConverterString.write(value.`status`, buf)
+            FfiConverterOptionalString.write(value.`message`, buf)
+    }
+}
+
+
+
+data class FfiCodexRemoteThreadCreateResponse (
+    var `thread`: FfiCodexRemoteSemanticThread
+    , 
+    var `model`: kotlin.String?
+    , 
+    var `modelProvider`: kotlin.String?
+    , 
+    var `serviceTier`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteThreadCreateResponse: FfiConverterRustBuffer<FfiCodexRemoteThreadCreateResponse> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteThreadCreateResponse {
+        return FfiCodexRemoteThreadCreateResponse(
+            FfiConverterTypeFfiCodexRemoteSemanticThread.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteThreadCreateResponse) = (
+            FfiConverterTypeFfiCodexRemoteSemanticThread.allocationSize(value.`thread`) +
+            FfiConverterOptionalString.allocationSize(value.`model`) +
+            FfiConverterOptionalString.allocationSize(value.`modelProvider`) +
+            FfiConverterOptionalString.allocationSize(value.`serviceTier`)
+    )
+
+    override fun write(value: FfiCodexRemoteThreadCreateResponse, buf: ByteBuffer) {
+            FfiConverterTypeFfiCodexRemoteSemanticThread.write(value.`thread`, buf)
+            FfiConverterOptionalString.write(value.`model`, buf)
+            FfiConverterOptionalString.write(value.`modelProvider`, buf)
+            FfiConverterOptionalString.write(value.`serviceTier`, buf)
+    }
+}
+
+
+
+data class FfiCodexRemoteThreadCreateResponseResult (
+    var `response`: FfiCodexRemoteThreadCreateResponse?
+    , 
+    var `errorMessage`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteThreadCreateResponseResult: FfiConverterRustBuffer<FfiCodexRemoteThreadCreateResponseResult> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteThreadCreateResponseResult {
+        return FfiCodexRemoteThreadCreateResponseResult(
+            FfiConverterOptionalTypeFfiCodexRemoteThreadCreateResponse.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteThreadCreateResponseResult) = (
+            FfiConverterOptionalTypeFfiCodexRemoteThreadCreateResponse.allocationSize(value.`response`) +
+            FfiConverterOptionalString.allocationSize(value.`errorMessage`)
+    )
+
+    override fun write(value: FfiCodexRemoteThreadCreateResponseResult, buf: ByteBuffer) {
+            FfiConverterOptionalTypeFfiCodexRemoteThreadCreateResponse.write(value.`response`, buf)
+            FfiConverterOptionalString.write(value.`errorMessage`, buf)
+    }
+}
+
+
+
 data class FfiCodexRemoteThreadDetail (
     var `id`: kotlin.String
-    ,
+    , 
     var `title`: kotlin.String
-    ,
+    , 
+    var `preview`: kotlin.String
+    , 
     var `status`: kotlin.String
-    ,
+    , 
+    var `activeTurn`: FfiCodexRemoteActiveTurn?
+    , 
     var `updatedAt`: kotlin.String
-    ,
+    , 
     var `cwd`: kotlin.String?
-    ,
+    , 
+    var `source`: kotlin.String?
+    , 
+    var `modelProvider`: kotlin.String?
+    , 
+    var `turnCount`: kotlin.ULong
+    , 
     var `transcript`: List<FfiCodexRemoteTranscriptRow>
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1236,7 +2665,12 @@ public object FfiConverterTypeFfiCodexRemoteThreadDetail: FfiConverterRustBuffer
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
+            FfiConverterOptionalTypeFfiCodexRemoteActiveTurn.read(buf),
+            FfiConverterString.read(buf),
             FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterULong.read(buf),
             FfiConverterSequenceTypeFfiCodexRemoteTranscriptRow.read(buf),
         )
     }
@@ -1244,18 +2678,28 @@ public object FfiConverterTypeFfiCodexRemoteThreadDetail: FfiConverterRustBuffer
     override fun allocationSize(value: FfiCodexRemoteThreadDetail) = (
             FfiConverterString.allocationSize(value.`id`) +
             FfiConverterString.allocationSize(value.`title`) +
+            FfiConverterString.allocationSize(value.`preview`) +
             FfiConverterString.allocationSize(value.`status`) +
+            FfiConverterOptionalTypeFfiCodexRemoteActiveTurn.allocationSize(value.`activeTurn`) +
             FfiConverterString.allocationSize(value.`updatedAt`) +
             FfiConverterOptionalString.allocationSize(value.`cwd`) +
+            FfiConverterOptionalString.allocationSize(value.`source`) +
+            FfiConverterOptionalString.allocationSize(value.`modelProvider`) +
+            FfiConverterULong.allocationSize(value.`turnCount`) +
             FfiConverterSequenceTypeFfiCodexRemoteTranscriptRow.allocationSize(value.`transcript`)
     )
 
     override fun write(value: FfiCodexRemoteThreadDetail, buf: ByteBuffer) {
             FfiConverterString.write(value.`id`, buf)
             FfiConverterString.write(value.`title`, buf)
+            FfiConverterString.write(value.`preview`, buf)
             FfiConverterString.write(value.`status`, buf)
+            FfiConverterOptionalTypeFfiCodexRemoteActiveTurn.write(value.`activeTurn`, buf)
             FfiConverterString.write(value.`updatedAt`, buf)
             FfiConverterOptionalString.write(value.`cwd`, buf)
+            FfiConverterOptionalString.write(value.`source`, buf)
+            FfiConverterOptionalString.write(value.`modelProvider`, buf)
+            FfiConverterULong.write(value.`turnCount`, buf)
             FfiConverterSequenceTypeFfiCodexRemoteTranscriptRow.write(value.`transcript`, buf)
     }
 }
@@ -1264,15 +2708,15 @@ public object FfiConverterTypeFfiCodexRemoteThreadDetail: FfiConverterRustBuffer
 
 data class FfiCodexRemoteThreadDetailDecodeResult (
     var `thread`: FfiCodexRemoteThreadDetail?
-    ,
+    , 
     var `errorMessage`: kotlin.String?
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1300,17 +2744,146 @@ public object FfiConverterTypeFfiCodexRemoteThreadDetailDecodeResult: FfiConvert
 
 
 
+data class FfiCodexRemoteThreadDetailResponse (
+    var `source`: kotlin.String
+    , 
+    var `thread`: FfiCodexRemoteThreadDetail
+    , 
+    var `transcriptEntries`: List<FfiCodexRemoteTranscriptEntry>
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteThreadDetailResponse: FfiConverterRustBuffer<FfiCodexRemoteThreadDetailResponse> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteThreadDetailResponse {
+        return FfiCodexRemoteThreadDetailResponse(
+            FfiConverterString.read(buf),
+            FfiConverterTypeFfiCodexRemoteThreadDetail.read(buf),
+            FfiConverterSequenceTypeFfiCodexRemoteTranscriptEntry.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteThreadDetailResponse) = (
+            FfiConverterString.allocationSize(value.`source`) +
+            FfiConverterTypeFfiCodexRemoteThreadDetail.allocationSize(value.`thread`) +
+            FfiConverterSequenceTypeFfiCodexRemoteTranscriptEntry.allocationSize(value.`transcriptEntries`)
+    )
+
+    override fun write(value: FfiCodexRemoteThreadDetailResponse, buf: ByteBuffer) {
+            FfiConverterString.write(value.`source`, buf)
+            FfiConverterTypeFfiCodexRemoteThreadDetail.write(value.`thread`, buf)
+            FfiConverterSequenceTypeFfiCodexRemoteTranscriptEntry.write(value.`transcriptEntries`, buf)
+    }
+}
+
+
+
+data class FfiCodexRemoteThreadDetailResponseResult (
+    var `response`: FfiCodexRemoteThreadDetailResponse?
+    , 
+    var `errorMessage`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteThreadDetailResponseResult: FfiConverterRustBuffer<FfiCodexRemoteThreadDetailResponseResult> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteThreadDetailResponseResult {
+        return FfiCodexRemoteThreadDetailResponseResult(
+            FfiConverterOptionalTypeFfiCodexRemoteThreadDetailResponse.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteThreadDetailResponseResult) = (
+            FfiConverterOptionalTypeFfiCodexRemoteThreadDetailResponse.allocationSize(value.`response`) +
+            FfiConverterOptionalString.allocationSize(value.`errorMessage`)
+    )
+
+    override fun write(value: FfiCodexRemoteThreadDetailResponseResult, buf: ByteBuffer) {
+            FfiConverterOptionalTypeFfiCodexRemoteThreadDetailResponse.write(value.`response`, buf)
+            FfiConverterOptionalString.write(value.`errorMessage`, buf)
+    }
+}
+
+
+
+data class FfiCodexRemoteThreadList (
+    var `source`: kotlin.String
+    , 
+    var `codexHome`: kotlin.String
+    , 
+    var `skippedRecords`: kotlin.ULong
+    , 
+    var `threads`: List<FfiCodexRemoteThreadSummary>
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteThreadList: FfiConverterRustBuffer<FfiCodexRemoteThreadList> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteThreadList {
+        return FfiCodexRemoteThreadList(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterSequenceTypeFfiCodexRemoteThreadSummary.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteThreadList) = (
+            FfiConverterString.allocationSize(value.`source`) +
+            FfiConverterString.allocationSize(value.`codexHome`) +
+            FfiConverterULong.allocationSize(value.`skippedRecords`) +
+            FfiConverterSequenceTypeFfiCodexRemoteThreadSummary.allocationSize(value.`threads`)
+    )
+
+    override fun write(value: FfiCodexRemoteThreadList, buf: ByteBuffer) {
+            FfiConverterString.write(value.`source`, buf)
+            FfiConverterString.write(value.`codexHome`, buf)
+            FfiConverterULong.write(value.`skippedRecords`, buf)
+            FfiConverterSequenceTypeFfiCodexRemoteThreadSummary.write(value.`threads`, buf)
+    }
+}
+
+
+
 data class FfiCodexRemoteThreadListDecodeResult (
     var `threads`: List<FfiCodexRemoteThreadSummary>
-    ,
+    , 
     var `errorMessage`: kotlin.String?
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1340,21 +2913,27 @@ public object FfiConverterTypeFfiCodexRemoteThreadListDecodeResult: FfiConverter
 
 data class FfiCodexRemoteThreadSummary (
     var `id`: kotlin.String
-    ,
+    , 
     var `title`: kotlin.String
-    ,
+    , 
     var `updatedAt`: kotlin.String
-    ,
+    , 
     var `cwd`: kotlin.String?
-    ,
+    , 
+    var `projectKey`: kotlin.String
+    , 
     var `projectName`: kotlin.String
-
+    , 
+    var `status`: kotlin.String
+    , 
+    var `activeTurn`: FfiCodexRemoteActiveTurn?
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1369,6 +2948,9 @@ public object FfiConverterTypeFfiCodexRemoteThreadSummary: FfiConverterRustBuffe
             FfiConverterString.read(buf),
             FfiConverterOptionalString.read(buf),
             FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalTypeFfiCodexRemoteActiveTurn.read(buf),
         )
     }
 
@@ -1377,7 +2959,10 @@ public object FfiConverterTypeFfiCodexRemoteThreadSummary: FfiConverterRustBuffe
             FfiConverterString.allocationSize(value.`title`) +
             FfiConverterString.allocationSize(value.`updatedAt`) +
             FfiConverterOptionalString.allocationSize(value.`cwd`) +
-            FfiConverterString.allocationSize(value.`projectName`)
+            FfiConverterString.allocationSize(value.`projectKey`) +
+            FfiConverterString.allocationSize(value.`projectName`) +
+            FfiConverterString.allocationSize(value.`status`) +
+            FfiConverterOptionalTypeFfiCodexRemoteActiveTurn.allocationSize(value.`activeTurn`)
     )
 
     override fun write(value: FfiCodexRemoteThreadSummary, buf: ByteBuffer) {
@@ -1385,7 +2970,276 @@ public object FfiConverterTypeFfiCodexRemoteThreadSummary: FfiConverterRustBuffe
             FfiConverterString.write(value.`title`, buf)
             FfiConverterString.write(value.`updatedAt`, buf)
             FfiConverterOptionalString.write(value.`cwd`, buf)
+            FfiConverterString.write(value.`projectKey`, buf)
             FfiConverterString.write(value.`projectName`, buf)
+            FfiConverterString.write(value.`status`, buf)
+            FfiConverterOptionalTypeFfiCodexRemoteActiveTurn.write(value.`activeTurn`, buf)
+    }
+}
+
+
+
+data class FfiCodexRemoteToolCallPayload (
+    var `kind`: kotlin.String
+    , 
+    var `summary`: kotlin.String
+    , 
+    var `command`: kotlin.String?
+    , 
+    var `cwd`: kotlin.String?
+    , 
+    var `source`: kotlin.String?
+    , 
+    var `commandActionsJson`: List<kotlin.String>
+    , 
+    var `aggregatedOutput`: kotlin.String?
+    , 
+    var `exitCode`: kotlin.Long?
+    , 
+    var `durationMs`: kotlin.Long?
+    , 
+    var `changesJson`: List<kotlin.String>
+    , 
+    var `server`: kotlin.String?
+    , 
+    var `tool`: kotlin.String?
+    , 
+    var `argumentsJson`: kotlin.String?
+    , 
+    var `mcpAppResourceUri`: kotlin.String?
+    , 
+    var `pluginId`: kotlin.String?
+    , 
+    var `resultJson`: kotlin.String?
+    , 
+    var `errorJson`: kotlin.String?
+    , 
+    var `namespace`: kotlin.String?
+    , 
+    var `contentItemsJson`: kotlin.String?
+    , 
+    var `success`: kotlin.Boolean?
+    , 
+    var `senderThreadId`: kotlin.String?
+    , 
+    var `receiverThreadIds`: List<kotlin.String>
+    , 
+    var `prompt`: kotlin.String?
+    , 
+    var `model`: kotlin.String?
+    , 
+    var `reasoningEffort`: kotlin.String?
+    , 
+    var `agentsStatesJson`: kotlin.String?
+    , 
+    var `query`: kotlin.String?
+    , 
+    var `actionJson`: kotlin.String?
+    , 
+    var `path`: kotlin.String?
+    , 
+    var `revisedPrompt`: kotlin.String?
+    , 
+    var `savedPath`: kotlin.String?
+    , 
+    var `imageStatus`: kotlin.String?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteToolCallPayload: FfiConverterRustBuffer<FfiCodexRemoteToolCallPayload> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteToolCallPayload {
+        return FfiCodexRemoteToolCallPayload(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterSequenceString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterOptionalLong.read(buf),
+            FfiConverterSequenceString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalBoolean.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterSequenceString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteToolCallPayload) = (
+            FfiConverterString.allocationSize(value.`kind`) +
+            FfiConverterString.allocationSize(value.`summary`) +
+            FfiConverterOptionalString.allocationSize(value.`command`) +
+            FfiConverterOptionalString.allocationSize(value.`cwd`) +
+            FfiConverterOptionalString.allocationSize(value.`source`) +
+            FfiConverterSequenceString.allocationSize(value.`commandActionsJson`) +
+            FfiConverterOptionalString.allocationSize(value.`aggregatedOutput`) +
+            FfiConverterOptionalLong.allocationSize(value.`exitCode`) +
+            FfiConverterOptionalLong.allocationSize(value.`durationMs`) +
+            FfiConverterSequenceString.allocationSize(value.`changesJson`) +
+            FfiConverterOptionalString.allocationSize(value.`server`) +
+            FfiConverterOptionalString.allocationSize(value.`tool`) +
+            FfiConverterOptionalString.allocationSize(value.`argumentsJson`) +
+            FfiConverterOptionalString.allocationSize(value.`mcpAppResourceUri`) +
+            FfiConverterOptionalString.allocationSize(value.`pluginId`) +
+            FfiConverterOptionalString.allocationSize(value.`resultJson`) +
+            FfiConverterOptionalString.allocationSize(value.`errorJson`) +
+            FfiConverterOptionalString.allocationSize(value.`namespace`) +
+            FfiConverterOptionalString.allocationSize(value.`contentItemsJson`) +
+            FfiConverterOptionalBoolean.allocationSize(value.`success`) +
+            FfiConverterOptionalString.allocationSize(value.`senderThreadId`) +
+            FfiConverterSequenceString.allocationSize(value.`receiverThreadIds`) +
+            FfiConverterOptionalString.allocationSize(value.`prompt`) +
+            FfiConverterOptionalString.allocationSize(value.`model`) +
+            FfiConverterOptionalString.allocationSize(value.`reasoningEffort`) +
+            FfiConverterOptionalString.allocationSize(value.`agentsStatesJson`) +
+            FfiConverterOptionalString.allocationSize(value.`query`) +
+            FfiConverterOptionalString.allocationSize(value.`actionJson`) +
+            FfiConverterOptionalString.allocationSize(value.`path`) +
+            FfiConverterOptionalString.allocationSize(value.`revisedPrompt`) +
+            FfiConverterOptionalString.allocationSize(value.`savedPath`) +
+            FfiConverterOptionalString.allocationSize(value.`imageStatus`)
+    )
+
+    override fun write(value: FfiCodexRemoteToolCallPayload, buf: ByteBuffer) {
+            FfiConverterString.write(value.`kind`, buf)
+            FfiConverterString.write(value.`summary`, buf)
+            FfiConverterOptionalString.write(value.`command`, buf)
+            FfiConverterOptionalString.write(value.`cwd`, buf)
+            FfiConverterOptionalString.write(value.`source`, buf)
+            FfiConverterSequenceString.write(value.`commandActionsJson`, buf)
+            FfiConverterOptionalString.write(value.`aggregatedOutput`, buf)
+            FfiConverterOptionalLong.write(value.`exitCode`, buf)
+            FfiConverterOptionalLong.write(value.`durationMs`, buf)
+            FfiConverterSequenceString.write(value.`changesJson`, buf)
+            FfiConverterOptionalString.write(value.`server`, buf)
+            FfiConverterOptionalString.write(value.`tool`, buf)
+            FfiConverterOptionalString.write(value.`argumentsJson`, buf)
+            FfiConverterOptionalString.write(value.`mcpAppResourceUri`, buf)
+            FfiConverterOptionalString.write(value.`pluginId`, buf)
+            FfiConverterOptionalString.write(value.`resultJson`, buf)
+            FfiConverterOptionalString.write(value.`errorJson`, buf)
+            FfiConverterOptionalString.write(value.`namespace`, buf)
+            FfiConverterOptionalString.write(value.`contentItemsJson`, buf)
+            FfiConverterOptionalBoolean.write(value.`success`, buf)
+            FfiConverterOptionalString.write(value.`senderThreadId`, buf)
+            FfiConverterSequenceString.write(value.`receiverThreadIds`, buf)
+            FfiConverterOptionalString.write(value.`prompt`, buf)
+            FfiConverterOptionalString.write(value.`model`, buf)
+            FfiConverterOptionalString.write(value.`reasoningEffort`, buf)
+            FfiConverterOptionalString.write(value.`agentsStatesJson`, buf)
+            FfiConverterOptionalString.write(value.`query`, buf)
+            FfiConverterOptionalString.write(value.`actionJson`, buf)
+            FfiConverterOptionalString.write(value.`path`, buf)
+            FfiConverterOptionalString.write(value.`revisedPrompt`, buf)
+            FfiConverterOptionalString.write(value.`savedPath`, buf)
+            FfiConverterOptionalString.write(value.`imageStatus`, buf)
+    }
+}
+
+
+
+data class FfiCodexRemoteTranscriptEntry (
+    var `entryType`: kotlin.String
+    , 
+    var `id`: kotlin.String
+    , 
+    var `turnId`: kotlin.String
+    , 
+    var `status`: kotlin.String?
+    , 
+    var `phase`: kotlin.String?
+    , 
+    var `createdAt`: kotlin.String?
+    , 
+    var `kind`: kotlin.String
+    , 
+    var `role`: kotlin.String
+    , 
+    var `text`: kotlin.String
+    , 
+    var `toolCall`: FfiCodexRemoteToolCallPayload?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteTranscriptEntry: FfiConverterRustBuffer<FfiCodexRemoteTranscriptEntry> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteTranscriptEntry {
+        return FfiCodexRemoteTranscriptEntry(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalTypeFfiCodexRemoteToolCallPayload.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteTranscriptEntry) = (
+            FfiConverterString.allocationSize(value.`entryType`) +
+            FfiConverterString.allocationSize(value.`id`) +
+            FfiConverterString.allocationSize(value.`turnId`) +
+            FfiConverterOptionalString.allocationSize(value.`status`) +
+            FfiConverterOptionalString.allocationSize(value.`phase`) +
+            FfiConverterOptionalString.allocationSize(value.`createdAt`) +
+            FfiConverterString.allocationSize(value.`kind`) +
+            FfiConverterString.allocationSize(value.`role`) +
+            FfiConverterString.allocationSize(value.`text`) +
+            FfiConverterOptionalTypeFfiCodexRemoteToolCallPayload.allocationSize(value.`toolCall`)
+    )
+
+    override fun write(value: FfiCodexRemoteTranscriptEntry, buf: ByteBuffer) {
+            FfiConverterString.write(value.`entryType`, buf)
+            FfiConverterString.write(value.`id`, buf)
+            FfiConverterString.write(value.`turnId`, buf)
+            FfiConverterOptionalString.write(value.`status`, buf)
+            FfiConverterOptionalString.write(value.`phase`, buf)
+            FfiConverterOptionalString.write(value.`createdAt`, buf)
+            FfiConverterString.write(value.`kind`, buf)
+            FfiConverterString.write(value.`role`, buf)
+            FfiConverterString.write(value.`text`, buf)
+            FfiConverterOptionalTypeFfiCodexRemoteToolCallPayload.write(value.`toolCall`, buf)
     }
 }
 
@@ -1393,19 +3247,19 @@ public object FfiConverterTypeFfiCodexRemoteThreadSummary: FfiConverterRustBuffe
 
 data class FfiCodexRemoteTranscriptRow (
     var `id`: kotlin.String
-    ,
+    , 
     var `role`: kotlin.String
-    ,
+    , 
     var `text`: kotlin.String
-    ,
+    , 
     var `status`: kotlin.String?
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1439,23 +3293,106 @@ public object FfiConverterTypeFfiCodexRemoteTranscriptRow: FfiConverterRustBuffe
 
 
 
+data class FfiCodexRemoteTurnStreamEvent (
+    var `eventType`: kotlin.String
+    , 
+    var `threadId`: kotlin.String
+    , 
+    var `turnId`: kotlin.String
+    , 
+    var `sequence`: kotlin.ULong
+    , 
+    var `text`: kotlin.String?
+    , 
+    var `status`: kotlin.String?
+    , 
+    var `message`: kotlin.String?
+    , 
+    var `kind`: kotlin.String?
+    , 
+    var `itemId`: kotlin.String?
+    , 
+    var `eventCount`: kotlin.ULong?
+    , 
+    var `transcriptEntry`: FfiCodexRemoteTranscriptEntry?
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeFfiCodexRemoteTurnStreamEvent: FfiConverterRustBuffer<FfiCodexRemoteTurnStreamEvent> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteTurnStreamEvent {
+        return FfiCodexRemoteTurnStreamEvent(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalULong.read(buf),
+            FfiConverterOptionalTypeFfiCodexRemoteTranscriptEntry.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteTurnStreamEvent) = (
+            FfiConverterString.allocationSize(value.`eventType`) +
+            FfiConverterString.allocationSize(value.`threadId`) +
+            FfiConverterString.allocationSize(value.`turnId`) +
+            FfiConverterULong.allocationSize(value.`sequence`) +
+            FfiConverterOptionalString.allocationSize(value.`text`) +
+            FfiConverterOptionalString.allocationSize(value.`status`) +
+            FfiConverterOptionalString.allocationSize(value.`message`) +
+            FfiConverterOptionalString.allocationSize(value.`kind`) +
+            FfiConverterOptionalString.allocationSize(value.`itemId`) +
+            FfiConverterOptionalULong.allocationSize(value.`eventCount`) +
+            FfiConverterOptionalTypeFfiCodexRemoteTranscriptEntry.allocationSize(value.`transcriptEntry`)
+    )
+
+    override fun write(value: FfiCodexRemoteTurnStreamEvent, buf: ByteBuffer) {
+            FfiConverterString.write(value.`eventType`, buf)
+            FfiConverterString.write(value.`threadId`, buf)
+            FfiConverterString.write(value.`turnId`, buf)
+            FfiConverterULong.write(value.`sequence`, buf)
+            FfiConverterOptionalString.write(value.`text`, buf)
+            FfiConverterOptionalString.write(value.`status`, buf)
+            FfiConverterOptionalString.write(value.`message`, buf)
+            FfiConverterOptionalString.write(value.`kind`, buf)
+            FfiConverterOptionalString.write(value.`itemId`, buf)
+            FfiConverterOptionalULong.write(value.`eventCount`, buf)
+            FfiConverterOptionalTypeFfiCodexRemoteTranscriptEntry.write(value.`transcriptEntry`, buf)
+    }
+}
+
+
+
 data class FfiCodexRemoteTurnSubmit (
     var `threadId`: kotlin.String
-    ,
+    , 
     var `turnId`: kotlin.String
-    ,
+    , 
     var `status`: kotlin.String
-    ,
+    , 
     var `assistantText`: kotlin.String
-    ,
+    , 
     var `eventCount`: kotlin.ULong
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1494,15 +3431,15 @@ public object FfiConverterTypeFfiCodexRemoteTurnSubmit: FfiConverterRustBuffer<F
 
 data class FfiCodexRemoteTurnSubmitDecodeResult (
     var `turn`: FfiCodexRemoteTurnSubmit?
-    ,
+    , 
     var `errorMessage`: kotlin.String?
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1532,19 +3469,19 @@ public object FfiConverterTypeFfiCodexRemoteTurnSubmitDecodeResult: FfiConverter
 
 data class FfiConfigDiagnostic (
     var `severity`: FfiDiagnosticSeverity
-    ,
+    , 
     var `code`: kotlin.String
-    ,
+    , 
     var `path`: kotlin.String
-    ,
+    , 
     var `message`: kotlin.String
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1580,21 +3517,21 @@ public object FfiConverterTypeFfiConfigDiagnostic: FfiConverterRustBuffer<FfiCon
 
 data class FfiHostConfig (
     var `id`: kotlin.String
-    ,
+    , 
     var `label`: kotlin.String
-    ,
+    , 
     var `note`: kotlin.String?
-    ,
+    , 
     var `tags`: List<kotlin.String>
-    ,
+    , 
     var `endpoints`: FfiHostEndpoints
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1633,15 +3570,15 @@ public object FfiConverterTypeFfiHostConfig: FfiConverterRustBuffer<FfiHostConfi
 
 data class FfiHostEndpoints (
     var `ssh`: FfiSshEndpoint?
-    ,
+    , 
     var `codexRemoteControl`: FfiCodexRemoteControlEndpoint?
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1671,17 +3608,17 @@ public object FfiConverterTypeFfiHostEndpoints: FfiConverterRustBuffer<FfiHostEn
 
 data class FfiPortableConfigDecodeResult (
     var `document`: FfiPortableConfigDocument?
-    ,
+    , 
     var `diagnostics`: List<FfiConfigDiagnostic>
-    ,
+    , 
     var `errorMessage`: kotlin.String?
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1714,15 +3651,15 @@ public object FfiConverterTypeFfiPortableConfigDecodeResult: FfiConverterRustBuf
 
 data class FfiPortableConfigDocument (
     var `schemaVersion`: kotlin.UInt
-    ,
+    , 
     var `hosts`: List<FfiHostConfig>
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1752,15 +3689,15 @@ public object FfiConverterTypeFfiPortableConfigDocument: FfiConverterRustBuffer<
 
 data class FfiPortableConfigEncodeResult (
     var `json`: kotlin.String?
-    ,
+    , 
     var `errorMessage`: kotlin.String?
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1790,19 +3727,19 @@ public object FfiConverterTypeFfiPortableConfigEncodeResult: FfiConverterRustBuf
 
 data class FfiSshEndpoint (
     var `address`: kotlin.String
-    ,
+    , 
     var `port`: kotlin.UInt
-    ,
+    , 
     var `username`: kotlin.String?
-    ,
+    , 
     var `credentialRef`: kotlin.String?
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1838,25 +3775,27 @@ public object FfiConverterTypeFfiSshEndpoint: FfiConverterRustBuffer<FfiSshEndpo
 
 data class FfiTurnStreamProjection (
     var `threadId`: kotlin.String?
-    ,
+    , 
     var `turnId`: kotlin.String?
-    ,
+    , 
     var `assistantText`: kotlin.String
-    ,
+    , 
     var `status`: kotlin.String?
-    ,
+    , 
     var `errorMessage`: kotlin.String?
-    ,
+    , 
     var `eventCount`: kotlin.ULong?
-    ,
+    , 
     var `isTerminal`: kotlin.Boolean
-
+    , 
+    var `lastSequence`: kotlin.ULong
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1873,6 +3812,7 @@ public object FfiConverterTypeFfiTurnStreamProjection: FfiConverterRustBuffer<Ff
             FfiConverterOptionalString.read(buf),
             FfiConverterOptionalULong.read(buf),
             FfiConverterBoolean.read(buf),
+            FfiConverterULong.read(buf),
         )
     }
 
@@ -1883,7 +3823,8 @@ public object FfiConverterTypeFfiTurnStreamProjection: FfiConverterRustBuffer<Ff
             FfiConverterOptionalString.allocationSize(value.`status`) +
             FfiConverterOptionalString.allocationSize(value.`errorMessage`) +
             FfiConverterOptionalULong.allocationSize(value.`eventCount`) +
-            FfiConverterBoolean.allocationSize(value.`isTerminal`)
+            FfiConverterBoolean.allocationSize(value.`isTerminal`) +
+            FfiConverterULong.allocationSize(value.`lastSequence`)
     )
 
     override fun write(value: FfiTurnStreamProjection, buf: ByteBuffer) {
@@ -1894,6 +3835,7 @@ public object FfiConverterTypeFfiTurnStreamProjection: FfiConverterRustBuffer<Ff
             FfiConverterOptionalString.write(value.`errorMessage`, buf)
             FfiConverterOptionalULong.write(value.`eventCount`, buf)
             FfiConverterBoolean.write(value.`isTerminal`, buf)
+            FfiConverterULong.write(value.`lastSequence`, buf)
     }
 }
 
@@ -1901,15 +3843,15 @@ public object FfiConverterTypeFfiTurnStreamProjection: FfiConverterRustBuffer<Ff
 
 data class FfiTurnStreamProjectionResult (
     var `projection`: FfiTurnStreamProjection?
-    ,
+    , 
     var `errorMessage`: kotlin.String?
-
+    
 ){
+    
 
+    
 
-
-
-
+    
     companion object
 }
 
@@ -1939,11 +3881,11 @@ public object FfiConverterTypeFfiTurnStreamProjectionResult: FfiConverterRustBuf
 
 
 enum class FfiDiagnosticSeverity {
-
+    
     ERROR,
     WARNING;
 
-
+    
 
 
     companion object
@@ -2007,6 +3949,70 @@ public object FfiConverterOptionalULong: FfiConverterRustBuffer<kotlin.ULong?> {
 /**
  * @suppress
  */
+public object FfiConverterOptionalLong: FfiConverterRustBuffer<kotlin.Long?> {
+    override fun read(buf: ByteBuffer): kotlin.Long? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterLong.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.Long?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterLong.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.Long?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterLong.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalBoolean: FfiConverterRustBuffer<kotlin.Boolean?> {
+    override fun read(buf: ByteBuffer): kotlin.Boolean? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterBoolean.read(buf)
+    }
+
+    override fun allocationSize(value: kotlin.Boolean?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterBoolean.allocationSize(value)
+        }
+    }
+
+    override fun write(value: kotlin.Boolean?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterBoolean.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?> {
     override fun read(buf: ByteBuffer): kotlin.String? {
         if (buf.get().toInt() == 0) {
@@ -2029,6 +4035,38 @@ public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?>
         } else {
             buf.put(1)
             FfiConverterString.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeFfiCodexRemoteActiveTurn: FfiConverterRustBuffer<FfiCodexRemoteActiveTurn?> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteActiveTurn? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeFfiCodexRemoteActiveTurn.read(buf)
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteActiveTurn?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeFfiCodexRemoteActiveTurn.allocationSize(value)
+        }
+    }
+
+    override fun write(value: FfiCodexRemoteActiveTurn?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeFfiCodexRemoteActiveTurn.write(value, buf)
         }
     }
 }
@@ -2103,6 +4141,70 @@ public object FfiConverterOptionalTypeFfiCodexRemoteHealth: FfiConverterRustBuff
 /**
  * @suppress
  */
+public object FfiConverterOptionalTypeFfiCodexRemoteSnapshot: FfiConverterRustBuffer<FfiCodexRemoteSnapshot?> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteSnapshot? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeFfiCodexRemoteSnapshot.read(buf)
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteSnapshot?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeFfiCodexRemoteSnapshot.allocationSize(value)
+        }
+    }
+
+    override fun write(value: FfiCodexRemoteSnapshot?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeFfiCodexRemoteSnapshot.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeFfiCodexRemoteThreadCreateResponse: FfiConverterRustBuffer<FfiCodexRemoteThreadCreateResponse?> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteThreadCreateResponse? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeFfiCodexRemoteThreadCreateResponse.read(buf)
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteThreadCreateResponse?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeFfiCodexRemoteThreadCreateResponse.allocationSize(value)
+        }
+    }
+
+    override fun write(value: FfiCodexRemoteThreadCreateResponse?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeFfiCodexRemoteThreadCreateResponse.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterOptionalTypeFfiCodexRemoteThreadDetail: FfiConverterRustBuffer<FfiCodexRemoteThreadDetail?> {
     override fun read(buf: ByteBuffer): FfiCodexRemoteThreadDetail? {
         if (buf.get().toInt() == 0) {
@@ -2125,6 +4227,102 @@ public object FfiConverterOptionalTypeFfiCodexRemoteThreadDetail: FfiConverterRu
         } else {
             buf.put(1)
             FfiConverterTypeFfiCodexRemoteThreadDetail.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeFfiCodexRemoteThreadDetailResponse: FfiConverterRustBuffer<FfiCodexRemoteThreadDetailResponse?> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteThreadDetailResponse? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeFfiCodexRemoteThreadDetailResponse.read(buf)
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteThreadDetailResponse?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeFfiCodexRemoteThreadDetailResponse.allocationSize(value)
+        }
+    }
+
+    override fun write(value: FfiCodexRemoteThreadDetailResponse?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeFfiCodexRemoteThreadDetailResponse.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeFfiCodexRemoteToolCallPayload: FfiConverterRustBuffer<FfiCodexRemoteToolCallPayload?> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteToolCallPayload? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeFfiCodexRemoteToolCallPayload.read(buf)
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteToolCallPayload?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeFfiCodexRemoteToolCallPayload.allocationSize(value)
+        }
+    }
+
+    override fun write(value: FfiCodexRemoteToolCallPayload?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeFfiCodexRemoteToolCallPayload.write(value, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterOptionalTypeFfiCodexRemoteTranscriptEntry: FfiConverterRustBuffer<FfiCodexRemoteTranscriptEntry?> {
+    override fun read(buf: ByteBuffer): FfiCodexRemoteTranscriptEntry? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeFfiCodexRemoteTranscriptEntry.read(buf)
+    }
+
+    override fun allocationSize(value: FfiCodexRemoteTranscriptEntry?): ULong {
+        if (value == null) {
+            return 1UL
+        } else {
+            return 1UL + FfiConverterTypeFfiCodexRemoteTranscriptEntry.allocationSize(value)
+        }
+    }
+
+    override fun write(value: FfiCodexRemoteTranscriptEntry?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeFfiCodexRemoteTranscriptEntry.write(value, buf)
         }
     }
 }
@@ -2291,6 +4489,62 @@ public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.Str
 /**
  * @suppress
  */
+public object FfiConverterSequenceTypeFfiCodexRemoteModelOption: FfiConverterRustBuffer<List<FfiCodexRemoteModelOption>> {
+    override fun read(buf: ByteBuffer): List<FfiCodexRemoteModelOption> {
+        val len = buf.getInt()
+        return List<FfiCodexRemoteModelOption>(len) {
+            FfiConverterTypeFfiCodexRemoteModelOption.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<FfiCodexRemoteModelOption>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeFfiCodexRemoteModelOption.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<FfiCodexRemoteModelOption>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeFfiCodexRemoteModelOption.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeFfiCodexRemoteReasoningEffortOption: FfiConverterRustBuffer<List<FfiCodexRemoteReasoningEffortOption>> {
+    override fun read(buf: ByteBuffer): List<FfiCodexRemoteReasoningEffortOption> {
+        val len = buf.getInt()
+        return List<FfiCodexRemoteReasoningEffortOption>(len) {
+            FfiConverterTypeFfiCodexRemoteReasoningEffortOption.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<FfiCodexRemoteReasoningEffortOption>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeFfiCodexRemoteReasoningEffortOption.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<FfiCodexRemoteReasoningEffortOption>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeFfiCodexRemoteReasoningEffortOption.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
 public object FfiConverterSequenceTypeFfiCodexRemoteThreadSummary: FfiConverterRustBuffer<List<FfiCodexRemoteThreadSummary>> {
     override fun read(buf: ByteBuffer): List<FfiCodexRemoteThreadSummary> {
         val len = buf.getInt()
@@ -2309,6 +4563,34 @@ public object FfiConverterSequenceTypeFfiCodexRemoteThreadSummary: FfiConverterR
         buf.putInt(value.size)
         value.iterator().forEach {
             FfiConverterTypeFfiCodexRemoteThreadSummary.write(it, buf)
+        }
+    }
+}
+
+
+
+
+/**
+ * @suppress
+ */
+public object FfiConverterSequenceTypeFfiCodexRemoteTranscriptEntry: FfiConverterRustBuffer<List<FfiCodexRemoteTranscriptEntry>> {
+    override fun read(buf: ByteBuffer): List<FfiCodexRemoteTranscriptEntry> {
+        val len = buf.getInt()
+        return List<FfiCodexRemoteTranscriptEntry>(len) {
+            FfiConverterTypeFfiCodexRemoteTranscriptEntry.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<FfiCodexRemoteTranscriptEntry>): ULong {
+        val sizeForLength = 4UL
+        val sizeForItems = value.map { FfiConverterTypeFfiCodexRemoteTranscriptEntry.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<FfiCodexRemoteTranscriptEntry>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.iterator().forEach {
+            FfiConverterTypeFfiCodexRemoteTranscriptEntry.write(it, buf)
         }
     }
 }
@@ -2399,108 +4681,111 @@ public object FfiConverterSequenceTypeFfiHostConfig: FfiConverterRustBuffer<List
             return FfiConverterTypeFfiCodexRemoteHealthDecodeResult.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_ct_core_fn_func_codex_remote_decode_health_json(
-
+    
         FfiConverterString.lower(`input`),_status)
 }
     )
     }
-
+    
  fun `codexRemoteDecodeThreadDetailJson`(`input`: kotlin.String): FfiCodexRemoteThreadDetailDecodeResult {
             return FfiConverterTypeFfiCodexRemoteThreadDetailDecodeResult.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_ct_core_fn_func_codex_remote_decode_thread_detail_json(
-
+    
         FfiConverterString.lower(`input`),_status)
 }
     )
     }
-
+    
  fun `codexRemoteDecodeThreadListJson`(`input`: kotlin.String): FfiCodexRemoteThreadListDecodeResult {
             return FfiConverterTypeFfiCodexRemoteThreadListDecodeResult.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_ct_core_fn_func_codex_remote_decode_thread_list_json(
-
+    
         FfiConverterString.lower(`input`),_status)
 }
     )
     }
-
+    
  fun `codexRemoteDecodeTurnSubmitJson`(`input`: kotlin.String): FfiCodexRemoteTurnSubmitDecodeResult {
             return FfiConverterTypeFfiCodexRemoteTurnSubmitDecodeResult.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_ct_core_fn_func_codex_remote_decode_turn_submit_json(
-
+    
         FfiConverterString.lower(`input`),_status)
 }
     )
     }
-
+    
  fun `codexRemoteTurnStreamApplyEventJson`(`projection`: FfiTurnStreamProjection, `eventJson`: kotlin.String): FfiTurnStreamProjectionResult {
             return FfiConverterTypeFfiTurnStreamProjectionResult.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_ct_core_fn_func_codex_remote_turn_stream_apply_event_json(
-
+    
         FfiConverterTypeFfiTurnStreamProjection.lower(`projection`),FfiConverterString.lower(`eventJson`),_status)
 }
     )
     }
-
+    
  fun `codexRemoteTurnStreamEmptyProjection`(): FfiTurnStreamProjection {
             return FfiConverterTypeFfiTurnStreamProjection.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_ct_core_fn_func_codex_remote_turn_stream_empty_projection(
-
+    
         _status)
 }
     )
     }
-
+    
  fun `codexRemoteWireContractVersion`(): kotlin.UInt {
             return FfiConverterUInt.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_ct_core_fn_func_codex_remote_wire_contract_version(
-
+    
         _status)
 }
     )
     }
-
+    
  fun `portableConfigDecodeJson`(`input`: kotlin.String): FfiPortableConfigDecodeResult {
             return FfiConverterTypeFfiPortableConfigDecodeResult.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_ct_core_fn_func_portable_config_decode_json(
-
+    
         FfiConverterString.lower(`input`),_status)
 }
     )
     }
-
+    
  fun `portableConfigEmptyDocument`(): FfiPortableConfigDocument {
             return FfiConverterTypeFfiPortableConfigDocument.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_ct_core_fn_func_portable_config_empty_document(
-
+    
         _status)
 }
     )
     }
-
+    
  fun `portableConfigEncodeJson`(`document`: FfiPortableConfigDocument): FfiPortableConfigEncodeResult {
             return FfiConverterTypeFfiPortableConfigEncodeResult.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_ct_core_fn_func_portable_config_encode_json(
-
+    
         FfiConverterTypeFfiPortableConfigDocument.lower(`document`),_status)
 }
     )
     }
-
+    
  fun `portableConfigValidate`(`document`: FfiPortableConfigDocument): List<FfiConfigDiagnostic> {
             return FfiConverterSequenceTypeFfiConfigDiagnostic.lift(
     uniffiRustCall() { _status ->
     UniffiLib.uniffi_ct_core_fn_func_portable_config_validate(
-
+    
         FfiConverterTypeFfiPortableConfigDocument.lower(`document`),_status)
 }
     )
     }
+    
+
+
